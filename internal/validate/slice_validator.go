@@ -6,6 +6,8 @@ import (
 
 	"github.com/casualjim/go-swagger/errors"
 	"github.com/casualjim/go-swagger/spec"
+	"github.com/casualjim/go-swagger/strfmt"
+	"github.com/casualjim/go-swagger/validate"
 )
 
 type schemaSliceValidator struct {
@@ -17,7 +19,7 @@ type schemaSliceValidator struct {
 	AdditionalItems *spec.SchemaOrBool
 	Items           *spec.SchemaOrArray
 	Root            interface{}
-	KnownFormats    map[string]FormatValidator
+	KnownFormats    strfmt.Registry
 }
 
 func (s *schemaSliceValidator) SetPath(path string) {
@@ -27,12 +29,11 @@ func (s *schemaSliceValidator) SetPath(path string) {
 func (s *schemaSliceValidator) Applies(source interface{}, kind reflect.Kind) bool {
 	_, ok := source.(*spec.Schema)
 	r := ok && kind == reflect.Slice
-	// fmt.Printf("slice validator for %q applies %t for %T (kind: %v)\n", s.Path, r, source, kind)
 	return r
 }
 
-func (s *schemaSliceValidator) Validate(data interface{}) *Result {
-	result := new(Result)
+func (s *schemaSliceValidator) Validate(data interface{}) *validate.Result {
+	result := new(validate.Result)
 	if data == nil {
 		return result
 	}
@@ -40,9 +41,10 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	size := val.Len()
 
 	if s.Items != nil && s.Items.Schema != nil {
+		validator := NewSchemaValidator(s.Items.Schema, s.Root, s.Path, s.KnownFormats)
 		for i := 0; i < size; i++ {
+			validator.SetPath(fmt.Sprintf("%s.%d", s.Path, i))
 			value := val.Index(i)
-			validator := newSchemaValidator(s.Items.Schema, s.Root, fmt.Sprintf("%s.%d", s.Path, i), s.KnownFormats)
 			result.Merge(validator.Validate(value.Interface()))
 		}
 	}
@@ -51,46 +53,38 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	if s.Items != nil && len(s.Items.Schemas) > 0 {
 		itemsSize = int64(len(s.Items.Schemas))
 		for i := int64(0); i < itemsSize; i++ {
-			validator := newSchemaValidator(&s.Items.Schemas[i], s.Root, fmt.Sprintf("%s.%d", s.Path, i), s.KnownFormats)
+			validator := NewSchemaValidator(&s.Items.Schemas[i], s.Root, fmt.Sprintf("%s.%d", s.Path, i), s.KnownFormats)
 			result.Merge(validator.Validate(val.Index(int(i)).Interface()))
 		}
 
 	}
 	if s.AdditionalItems != nil && itemsSize < int64(size) {
-		if s.Items != nil && (s.Items.Schema != nil || len(s.Items.Schemas) > 0) && !s.AdditionalItems.Allows {
+		if s.Items != nil && len(s.Items.Schemas) > 0 && !s.AdditionalItems.Allows {
 			result.AddErrors(errors.New(422, "array doesn't allow for additional items"))
 		}
 		if s.AdditionalItems.Schema != nil {
 			for i := itemsSize; i < (int64(size)-itemsSize)+1; i++ {
-				validator := newSchemaValidator(s.AdditionalItems.Schema, s.Root, fmt.Sprintf("%s.%d", s.Path, i), s.KnownFormats)
+				validator := NewSchemaValidator(s.AdditionalItems.Schema, s.Root, fmt.Sprintf("%s.%d", s.Path, i), s.KnownFormats)
 				result.Merge(validator.Validate(val.Index(int(i)).Interface()))
 			}
 		}
 	}
 
-	if s.MinItems != nil && int64(size) < *s.MinItems {
-		result.AddErrors(errors.TooFewItems(s.Path, s.In, *s.MinItems))
+	if s.MinItems != nil {
+		if err := validate.MinItems(s.Path, s.In, int64(size), *s.MinItems); err != nil {
+			result.AddErrors(err)
+		}
 	}
-	if s.MaxItems != nil && int64(size) > *s.MaxItems {
-		result.AddErrors(errors.TooManyItems(s.Path, s.In, *s.MaxItems))
+	if s.MaxItems != nil {
+		if err := validate.MaxItems(s.Path, s.In, int64(size), *s.MaxItems); err != nil {
+			result.AddErrors(err)
+		}
 	}
-	if s.UniqueItems && s.hasDuplicates(val, size) {
-		result.AddErrors(errors.DuplicateItems(s.Path, s.In))
+	if s.UniqueItems {
+		if err := validate.UniqueItems(s.Path, s.In, val.Interface()); err != nil {
+			result.AddErrors(err)
+		}
 	}
 	result.Inc()
 	return result
-}
-
-func (s *schemaSliceValidator) hasDuplicates(value reflect.Value, size int) bool {
-	var unique []interface{}
-	for i := 0; i < value.Len(); i++ {
-		v := value.Index(i).Interface()
-		for _, u := range unique {
-			if reflect.DeepEqual(v, u) {
-				return true
-			}
-		}
-		unique = append(unique, v)
-	}
-	return false
 }

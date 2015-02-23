@@ -1,29 +1,16 @@
 package validate
 
 import (
-	"math"
 	"reflect"
 	"strings"
 
 	"github.com/casualjim/go-swagger"
 	"github.com/casualjim/go-swagger/errors"
 	"github.com/casualjim/go-swagger/spec"
+	"github.com/casualjim/go-swagger/strfmt"
+	"github.com/casualjim/go-swagger/util"
+	"github.com/casualjim/go-swagger/validate"
 )
-
-// same as ECMA Number.MAX_SAFE_INTEGER and Number.MIN_SAFE_INTEGER
-const (
-	MaxJSONFloat = float64(1<<53 - 1)  // 9007199254740991.0 	 	 2^53 - 1
-	MinJSONFloat = -float64(1<<53 - 1) //-9007199254740991.0	-2^53 - 1
-)
-
-// allow for integers [-2^53, 2^53-1] inclusive
-func isFloat64AnInteger(f float64) bool {
-	if math.IsNaN(f) || math.IsInf(f, 0) || f < MinJSONFloat || f > MaxJSONFloat {
-		return false
-	}
-
-	return f == float64(int64(f)) || f == float64(uint64(f))
-}
 
 type typeValidator struct {
 	Type   spec.StringOrArray
@@ -46,43 +33,43 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 	switch data.(type) {
 	case []byte:
 		return "string", "byte"
-	case swagger.Date, *swagger.Date:
+	case strfmt.Date, *strfmt.Date:
 		return "string", "date"
-	case swagger.DateTime, *swagger.DateTime:
+	case strfmt.DateTime, *strfmt.DateTime:
 		return "string", "datetime"
 	case swagger.File, *swagger.File:
 		return "file", ""
-	case swagger.URI, *swagger.URI:
+	case strfmt.URI, *strfmt.URI:
 		return "string", "uri"
-	case swagger.Email, *swagger.Email:
+	case strfmt.Email, *strfmt.Email:
 		return "string", "email"
-	case swagger.Hostname, *swagger.Hostname:
+	case strfmt.Hostname, *strfmt.Hostname:
 		return "string", "hostname"
-	case swagger.IPv4, *swagger.IPv4:
+	case strfmt.IPv4, *strfmt.IPv4:
 		return "string", "ipv4"
-	case swagger.IPv6, *swagger.IPv6:
+	case strfmt.IPv6, *strfmt.IPv6:
 		return "string", "ipv6"
-	case swagger.UUID, *swagger.UUID:
+	case strfmt.UUID, *strfmt.UUID:
 		return "string", "uuid"
-	case swagger.UUID3, *swagger.UUID3:
+	case strfmt.UUID3, *strfmt.UUID3:
 		return "string", "uuid3"
-	case swagger.UUID4, *swagger.UUID4:
+	case strfmt.UUID4, *strfmt.UUID4:
 		return "string", "uuid4"
-	case swagger.UUID5, *swagger.UUID5:
+	case strfmt.UUID5, *strfmt.UUID5:
 		return "string", "uuid5"
-	case swagger.ISBN, *swagger.ISBN:
+	case strfmt.ISBN, *strfmt.ISBN:
 		return "string", "isbn"
-	case swagger.ISBN10, *swagger.ISBN10:
+	case strfmt.ISBN10, *strfmt.ISBN10:
 		return "string", "isbn10"
-	case swagger.ISBN13, *swagger.ISBN13:
+	case strfmt.ISBN13, *strfmt.ISBN13:
 		return "string", "isbn13"
-	case swagger.CreditCard, *swagger.CreditCard:
+	case strfmt.CreditCard, *strfmt.CreditCard:
 		return "string", "creditcard"
-	case swagger.SSN, *swagger.SSN:
+	case strfmt.SSN, *strfmt.SSN:
 		return "string", "ssn"
-	case swagger.HexColor, *swagger.HexColor:
+	case strfmt.HexColor, *strfmt.HexColor:
 		return "string", "hexcolor"
-	case swagger.RGBColor, *swagger.RGBColor:
+	case strfmt.RGBColor, *strfmt.RGBColor:
 		return "string", "rgbcolor"
 	default:
 		val := reflect.ValueOf(data)
@@ -124,8 +111,8 @@ func (t *typeValidator) Applies(source interface{}, kind reflect.Kind) bool {
 	return r
 }
 
-func (t *typeValidator) Validate(data interface{}) *Result {
-	result := new(Result)
+func (t *typeValidator) Validate(data interface{}) *validate.Result {
+	result := new(validate.Result)
 	result.Inc()
 	if data == nil || reflect.DeepEqual(reflect.Zero(reflect.TypeOf(data)), reflect.ValueOf(data)) {
 		if len(t.Type) > 0 && !t.Type.Contains("null") { // TODO: if a property is not required it also passes this
@@ -148,7 +135,7 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 		return result
 	}
 
-	isFloatInt := schType == "number" && isFloat64AnInteger(val.Float()) && t.Type.Contains("integer")
+	isFloatInt := schType == "number" && util.IsFloat64AJSONInteger(val.Float()) && t.Type.Contains("integer")
 	isIntFloat := schType == "integer" && t.Type.Contains("number")
 	if !(t.Type.Contains(schType) || isFloatInt || isIntFloat) {
 		return sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), schType))

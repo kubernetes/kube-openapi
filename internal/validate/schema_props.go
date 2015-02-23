@@ -5,6 +5,8 @@ import (
 
 	"github.com/casualjim/go-swagger/errors"
 	"github.com/casualjim/go-swagger/spec"
+	"github.com/casualjim/go-swagger/strfmt"
+	"github.com/casualjim/go-swagger/validate"
 )
 
 type schemaPropsValidator struct {
@@ -15,35 +17,35 @@ type schemaPropsValidator struct {
 	AnyOf           []spec.Schema
 	Not             *spec.Schema
 	Dependencies    spec.Dependencies
-	anyOfValidators []schemaValidator
-	allOfValidators []schemaValidator
-	oneOfValidators []schemaValidator
-	notValidator    *schemaValidator
+	anyOfValidators []SchemaValidator
+	allOfValidators []SchemaValidator
+	oneOfValidators []SchemaValidator
+	notValidator    *SchemaValidator
 	Root            interface{}
-	KnownFormats    map[string]FormatValidator
+	KnownFormats    strfmt.Registry
 }
 
 func (s *schemaPropsValidator) SetPath(path string) {
 	s.Path = path
 }
 
-func newSchemaPropsValidator(path string, in string, allOf, oneOf, anyOf []spec.Schema, not *spec.Schema, deps spec.Dependencies, root interface{}, formats map[string]FormatValidator) *schemaPropsValidator {
-	var anyValidators []schemaValidator
+func newSchemaPropsValidator(path string, in string, allOf, oneOf, anyOf []spec.Schema, not *spec.Schema, deps spec.Dependencies, root interface{}, formats strfmt.Registry) *schemaPropsValidator {
+	var anyValidators []SchemaValidator
 	for _, v := range anyOf {
-		anyValidators = append(anyValidators, *newSchemaValidator(&v, root, path, formats))
+		anyValidators = append(anyValidators, *NewSchemaValidator(&v, root, path, formats))
 	}
-	var allValidators []schemaValidator
+	var allValidators []SchemaValidator
 	for _, v := range allOf {
-		allValidators = append(allValidators, *newSchemaValidator(&v, root, path, formats))
+		allValidators = append(allValidators, *NewSchemaValidator(&v, root, path, formats))
 	}
-	var oneValidators []schemaValidator
+	var oneValidators []SchemaValidator
 	for _, v := range oneOf {
-		oneValidators = append(oneValidators, *newSchemaValidator(&v, root, path, formats))
+		oneValidators = append(oneValidators, *NewSchemaValidator(&v, root, path, formats))
 	}
 
-	var notValidator *schemaValidator
+	var notValidator *SchemaValidator
 	if not != nil {
-		notValidator = newSchemaValidator(not, root, path, formats)
+		notValidator = NewSchemaValidator(not, root, path, formats)
 	}
 
 	return &schemaPropsValidator{
@@ -69,10 +71,10 @@ func (s *schemaPropsValidator) Applies(source interface{}, kind reflect.Kind) bo
 	return r
 }
 
-func (s *schemaPropsValidator) Validate(data interface{}) *Result {
-	mainResult := &Result{}
+func (s *schemaPropsValidator) Validate(data interface{}) *validate.Result {
+	mainResult := &validate.Result{}
 	if len(s.anyOfValidators) > 0 {
-		var bestFailures *Result
+		var bestFailures *validate.Result
 		succeededOnce := false
 		for _, anyOfSchema := range s.anyOfValidators {
 			result := anyOfSchema.Validate(data)
@@ -95,7 +97,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 	}
 
 	if len(s.oneOfValidators) > 0 {
-		var bestFailures *Result
+		var bestFailures *validate.Result
 		validated := 0
 
 		for _, oneOfSchema := range s.oneOfValidators {
@@ -147,7 +149,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 			if dep, ok := s.Dependencies[key]; ok {
 
 				if dep.Schema != nil {
-					mainResult.Merge(newSchemaValidator(dep.Schema, s.Root, s.Path+"."+key, s.KnownFormats).Validate(data))
+					mainResult.Merge(NewSchemaValidator(dep.Schema, s.Root, s.Path+"."+key, s.KnownFormats).Validate(data))
 					continue
 				}
 

@@ -6,8 +6,32 @@ import (
 
 	"github.com/casualjim/go-swagger/errors"
 	"github.com/casualjim/go-swagger/spec"
+	"github.com/casualjim/go-swagger/strfmt"
 	"github.com/stretchr/testify/assert"
 )
+
+type email struct {
+	Address string
+}
+
+type paramFactory func(string) *spec.Parameter
+
+var paramFactories = []paramFactory{
+	spec.QueryParam,
+	spec.HeaderParam,
+	spec.PathParam,
+	spec.FormDataParam,
+}
+
+var stringItems = new(spec.Items)
+
+func init() {
+	stringItems.Type = "string"
+}
+
+func requiredError(param *spec.Parameter) *errors.Validation {
+	return errors.Required(param.Name, param.In)
+}
 
 func maxErrorItems(path, in string, items *spec.Items) *errors.Validation {
 	return errors.ExceedsMaximum(path, in, *items.Maximum, items.ExclusiveMaximum)
@@ -69,7 +93,7 @@ func TestNumberItemsValidation(t *testing.T) {
 		items.WithEnum(v[3], v[6], v[8], v[1])
 		parent := spec.QueryParam("factors").CollectionOf(items, "")
 		path := fmt.Sprintf("factors.%d", i)
-		validator := newItemsValidator(parent.Name, parent.In, items, parent, formatCheckers)
+		validator := newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 
 		// MultipleOf
 		err := validator.Validate(i, v[0])
@@ -86,7 +110,7 @@ func TestNumberItemsValidation(t *testing.T) {
 		// ExclusiveMaximum
 		items.ExclusiveMaximum = true
 		// requires a new items validator because this is set a creation time
-		validator = newItemsValidator(parent.Name, parent.In, items, parent, formatCheckers)
+		validator = newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 		err = validator.Validate(i, v[1])
 		assert.True(t, err.HasErrors())
 		assert.EqualError(t, maxErrorItems(path, validator.in, items), err.Errors[0].Error())
@@ -101,7 +125,7 @@ func TestNumberItemsValidation(t *testing.T) {
 		// ExclusiveMinimum
 		items.ExclusiveMinimum = true
 		// requires a new items validator because this is set a creation time
-		validator = newItemsValidator(parent.Name, parent.In, items, parent, formatCheckers)
+		validator = newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 		err = validator.Validate(i, v[3])
 		assert.True(t, err.HasErrors())
 		assert.EqualError(t, minErrorItems(path, validator.in, items), err.Errors[0].Error())
@@ -123,7 +147,7 @@ func TestStringItemsValidation(t *testing.T) {
 	items.WithEnum("aaa", "bbb", "ccc")
 	parent := spec.QueryParam("tags").CollectionOf(items, "")
 	path := parent.Name + ".1"
-	validator := newItemsValidator(parent.Name, parent.In, items, parent, formatCheckers)
+	validator := newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 
 	// required
 	err := validator.Validate(1, "")
@@ -160,7 +184,7 @@ func TestArrayItemsValidation(t *testing.T) {
 	items.WithEnum("aaa", "bbb", "ccc")
 	parent := spec.QueryParam("tags").CollectionOf(items, "")
 	path := parent.Name + ".1"
-	validator := newItemsValidator(parent.Name, parent.In, items, parent, formatCheckers)
+	validator := newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 
 	// MinItems
 	err := validator.Validate(1, []string{})
@@ -183,7 +207,7 @@ func TestArrayItemsValidation(t *testing.T) {
 	// Items
 	strItems := spec.NewItems().WithMinLength(3).WithMaxLength(5).WithPattern(`^[a-z]+$`)
 	items = spec.NewItems().CollectionOf(strItems, "").WithMinItems(1).WithMaxItems(5).UniqueValues()
-	validator = newItemsValidator(parent.Name, parent.In, items, parent, formatCheckers)
+	validator = newItemsValidator(parent.Name, parent.In, items, parent, strfmt.Default)
 
 	err = validator.Validate(1, []string{"aa", "bbb", "ccc"})
 	assert.True(t, err.HasErrors())
