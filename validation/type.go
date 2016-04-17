@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -49,8 +50,8 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 		return "string", "date"
 	case strfmt.DateTime, *strfmt.DateTime:
 		return "string", "datetime"
-	// case httpkit.File, *httpkit.File:
-	// 	return "file", ""
+	case runtime.File, *runtime.File:
+		return "file", ""
 	case strfmt.URI, *strfmt.URI:
 		return "string", "uri"
 	case strfmt.Email, *strfmt.Email:
