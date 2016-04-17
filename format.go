@@ -20,7 +20,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-swagger/go-swagger/errors"
+	"github.com/go-openapi/errors"
 )
 
 // Default is the default formats registry
