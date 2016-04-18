@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validation
+package validate
 
 import (
 	"fmt"
@@ -21,7 +21,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	validate "github.com/go-openapi/validate/validator"
 )
 
 type schemaSliceValidator struct {
@@ -85,17 +84,17 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	}
 
 	if s.MinItems != nil {
-		if err := validate.MinItems(s.Path, s.In, int64(size), *s.MinItems); err != nil {
+		if err := MinItems(s.Path, s.In, int64(size), *s.MinItems); err != nil {
 			result.AddErrors(err)
 		}
 	}
 	if s.MaxItems != nil {
-		if err := validate.MaxItems(s.Path, s.In, int64(size), *s.MaxItems); err != nil {
+		if err := MaxItems(s.Path, s.In, int64(size), *s.MaxItems); err != nil {
 			result.AddErrors(err)
 		}
 	}
 	if s.UniqueItems {
-		if err := validate.UniqueItems(s.Path, s.In, val.Interface()); err != nil {
+		if err := UniqueItems(s.Path, s.In, val.Interface()); err != nil {
 			result.AddErrors(err)
 		}
 	}

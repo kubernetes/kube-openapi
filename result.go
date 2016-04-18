@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validation
+package validate
 
 import "github.com/go-openapi/errors"
 
@@ -52,6 +52,7 @@ func (r *Result) Inc() {
 	r.MatchCount++
 }
 
+// AsError renders this result as an error interface
 func (r *Result) AsError() error {
 	if r.IsValid() {
 		return nil

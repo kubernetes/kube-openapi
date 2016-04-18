@@ -20,7 +20,8 @@ build:
       - go get -u github.com/go-openapi/loads
       - go get -u github.com/go-openapi/strfmt
       - go get -u github.com/go-openapi/runtime
-      - ./hack/build-drone.sh
+      - go test -race
+      - go test -v -cover -coverprofile=coverage.out -covermode=count
 
 notify:
   slack:

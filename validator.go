@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validation
+package validate
 
 import (
 	"fmt"
@@ -21,7 +21,6 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	validate "github.com/go-openapi/validate/validator"
 )
 
 // An EntityValidator is an interface for things that can validate entities
@@ -410,19 +409,19 @@ func (s *basicSliceValidator) Validate(data interface{}) *Result {
 
 	size := int64(val.Len())
 	if s.MinItems != nil {
-		if err := validate.MinItems(s.Path, s.In, size, *s.MinItems); err != nil {
+		if err := MinItems(s.Path, s.In, size, *s.MinItems); err != nil {
 			return sErr(err)
 		}
 	}
 
 	if s.MaxItems != nil {
-		if err := validate.MaxItems(s.Path, s.In, size, *s.MaxItems); err != nil {
+		if err := MaxItems(s.Path, s.In, size, *s.MaxItems); err != nil {
 			return sErr(err)
 		}
 	}
 
 	if s.UniqueItems {
-		if err := validate.UniqueItems(s.Path, s.In, data); err != nil {
+		if err := UniqueItems(s.Path, s.In, data); err != nil {
 			return sErr(err)
 		}
 	}
@@ -499,17 +498,17 @@ func (n *numberValidator) Validate(val interface{}) *Result {
 	data := n.convertToFloat(val)
 
 	if n.MultipleOf != nil {
-		if err := validate.MultipleOf(n.Path, n.In, data, *n.MultipleOf); err != nil {
+		if err := MultipleOf(n.Path, n.In, data, *n.MultipleOf); err != nil {
 			return sErr(err)
 		}
 	}
 	if n.Maximum != nil {
-		if err := validate.Maximum(n.Path, n.In, data, *n.Maximum, n.ExclusiveMaximum); err != nil {
+		if err := Maximum(n.Path, n.In, data, *n.Maximum, n.ExclusiveMaximum); err != nil {
 			return sErr(err)
 		}
 	}
 	if n.Minimum != nil {
-		if err := validate.Minimum(n.Path, n.In, data, *n.Minimum, n.ExclusiveMinimum); err != nil {
+		if err := Minimum(n.Path, n.In, data, *n.Minimum, n.ExclusiveMinimum); err != nil {
 			return sErr(err)
 		}
 	}
@@ -548,25 +547,25 @@ func (s *stringValidator) Validate(val interface{}) *Result {
 	data := val.(string)
 
 	if s.Required && !s.AllowEmptyValue && (s.Default == nil || s.Default == "") {
-		if err := validate.RequiredString(s.Path, s.In, data); err != nil {
+		if err := RequiredString(s.Path, s.In, data); err != nil {
 			return sErr(err)
 		}
 	}
 
 	if s.MaxLength != nil {
-		if err := validate.MaxLength(s.Path, s.In, data, *s.MaxLength); err != nil {
+		if err := MaxLength(s.Path, s.In, data, *s.MaxLength); err != nil {
 			return sErr(err)
 		}
 	}
 
 	if s.MinLength != nil {
-		if err := validate.MinLength(s.Path, s.In, data, *s.MinLength); err != nil {
+		if err := MinLength(s.Path, s.In, data, *s.MinLength); err != nil {
 			return sErr(err)
 		}
 	}
 
 	if s.Pattern != "" {
-		if err := validate.Pattern(s.Path, s.In, data, s.Pattern); err != nil {
+		if err := Pattern(s.Path, s.In, data, s.Pattern); err != nil {
 			return sErr(err)
 		}
 	}

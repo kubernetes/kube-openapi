@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validation
+package validate
 
 import (
 	"encoding/json"
@@ -39,7 +39,7 @@ type schemaTestT struct {
 	}
 }
 
-var jsonSchemaFixturesPath = filepath.Join("..", "fixtures", "jsonschema_suite")
+var jsonSchemaFixturesPath = filepath.Join("fixtures", "jsonschema_suite")
 
 var ints = []interface{}{
 	1,
@@ -72,35 +72,35 @@ var notNumbers = []interface{}{
 }
 
 var enabled = []string{
-	//"minLength",
-	//"maxLength",
-	//"pattern",
-	//"type",
-	//"minimum",
-	//"maximum",
-	//"multipleOf",
-	//"enum",
-	//"default",
-	//"dependencies",
-	//"items",
-	//"maxItems",
-	//"maxProperties",
-	//"minItems",
-	//"minProperties",
-	//"patternProperties",
-	//"required",
-	//"additionalItems",
-	//"uniqueItems",
-	//"properties",
-	//"additionalProperties",
-	//"allOf",
-	//"not",
-	//"oneOf",
-	//"anyOf",
-	//"ref",
-	//"definitions",
+	"minLength",
+	"maxLength",
+	"pattern",
+	"type",
+	"minimum",
+	"maximum",
+	"multipleOf",
+	"enum",
+	"default",
+	"dependencies",
+	"items",
+	"maxItems",
+	"maxProperties",
+	"minItems",
+	"minProperties",
+	"patternProperties",
+	"required",
+	"additionalItems",
+	"uniqueItems",
+	"properties",
+	"additionalProperties",
+	"allOf",
+	"not",
+	"oneOf",
+	"anyOf",
+	// "ref",
+	// "definitions",
 	"refRemote",
-	//"format",
+	"format",
 }
 
 type noopResCache struct {

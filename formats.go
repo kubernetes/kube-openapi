@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validation
+package validate
 
 import (
 	"reflect"
 
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-	validate "github.com/go-openapi/validate/validator"
 )
 
 type formatValidator struct {
@@ -59,7 +58,7 @@ func (f *formatValidator) Applies(source interface{}, kind reflect.Kind) bool {
 func (f *formatValidator) Validate(val interface{}) *Result {
 	result := new(Result)
 
-	if err := validate.FormatOf(f.Path, f.In, f.Format, val.(string), f.KnownFormats); err != nil {
+	if err := FormatOf(f.Path, f.In, f.Format, val.(string), f.KnownFormats); err != nil {
 		result.AddErrors(err)
 	}
 
