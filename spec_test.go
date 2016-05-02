@@ -425,7 +425,7 @@ func TestValidateParameters(t *testing.T) {
 	}
 	pp.Parameters = nameParams
 	sw.Paths.Paths["/pets/{name}"] = pp
-	doc.Reload()
+
 	validator = NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
 	validator.spec = doc
 	validator.analyzer = analysis.New(doc.Spec())
@@ -444,7 +444,7 @@ func TestValidateParameters(t *testing.T) {
 	pp.Get.Parameters = nameParams
 	pp.Parameters = nil
 	sw.Paths.Paths["/pets/{id}"] = pp
-	doc.Reload()
+
 	res = validator.validateParameters()
 	assert.NotEmpty(t, res.Errors)
 	assert.Len(t, res.Errors, 2)
