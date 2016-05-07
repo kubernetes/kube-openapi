@@ -11,7 +11,7 @@ build:
     pull: true
     commands:
       - go get -u github.com/stretchr/testify/assert
-      - go get -u github.com/nu7hatch/gouuid
+      - go get -u github.com/pborman/uuid
       - go get -u github.com/asaskevich/govalidator
       - go get -u github.com/go-openapi/errors
       - go test -race
