@@ -20,6 +20,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestValidateIntEnum(t *testing.T) {
+	enumValues := []interface{}{1, 2, 3}
+
+	err := Enum("test", "body", int64(5), enumValues)
+	assert.Error(t, err)
+	err = Enum("test", "body", int64(1), enumValues)
+	assert.NoError(t, err)
+}
+
 func TestValidateEnum(t *testing.T) {
 	enumValues := []string{"aa", "bb", "cc"}
 
