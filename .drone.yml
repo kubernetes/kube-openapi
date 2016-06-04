@@ -13,6 +13,7 @@ build:
       - go get -u github.com/stretchr/testify/assert
       - go get -u github.com/pborman/uuid
       - go get -u github.com/asaskevich/govalidator
+      - go get -u github.com/mailru/easyjson
       - go get -u github.com/go-openapi/errors
       - go test -race
       - go test -v -cover -coverprofile=coverage.out -covermode=count ./...
