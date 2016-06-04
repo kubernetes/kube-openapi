@@ -33,11 +33,21 @@ func TestDate(t *testing.T) {
 	err = pp.UnmarshalText([]byte("yada"))
 	assert.Error(t, err)
 	orig := "2014-12-15"
+	b := []byte(orig)
+	bj := []byte("\"" + orig + "\"")
 	err = pp.UnmarshalText([]byte(orig))
 	assert.NoError(t, err)
 	txt, err := pp.MarshalText()
 	assert.NoError(t, err)
 	assert.Equal(t, orig, string(txt))
+
+	err = pp.UnmarshalJSON(bj)
+	assert.NoError(t, err)
+	assert.EqualValues(t, orig, pp.String())
+
+	b, err = pp.MarshalJSON()
+	assert.NoError(t, err)
+	assert.Equal(t, bj, b)
 }
 
 func TestDate_Scan(t *testing.T) {
