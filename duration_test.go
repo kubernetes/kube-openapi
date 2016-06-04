@@ -21,6 +21,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDuration(t *testing.T) {
+	pp := Duration(0)
+
+	err := pp.UnmarshalText([]byte("0ms"))
+	assert.NoError(t, err)
+	err = pp.UnmarshalText([]byte("yada"))
+	assert.Error(t, err)
+
+	orig := "2ms"
+	b := []byte(orig)
+	bj := []byte("\"" + orig + "\"")
+
+	err = pp.UnmarshalText(b)
+	assert.NoError(t, err)
+
+	txt, err := pp.MarshalText()
+	assert.NoError(t, err)
+	assert.Equal(t, orig, string(txt))
+
+	err = pp.UnmarshalJSON(bj)
+	assert.NoError(t, err)
+	assert.EqualValues(t, orig, pp.String())
+
+	b, err = pp.MarshalJSON()
+	assert.NoError(t, err)
+	assert.Equal(t, bj, b)
+}
+
 func testDurationParser(t *testing.T, toParse string, expected time.Duration) {
 	r, e := ParseDuration(toParse)
 	assert.NoError(t, e)

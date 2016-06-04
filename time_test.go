@@ -15,6 +15,7 @@
 package strfmt
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -75,6 +76,8 @@ func TestDateTime_UnmarshalText_errorCases(t *testing.T) {
 	pp := NewDateTime()
 	err := pp.UnmarshalText([]byte("yada"))
 	assert.Error(t, err)
+	err = pp.UnmarshalJSON([]byte("yada"))
+	assert.Error(t, err)
 }
 
 func TestDateTime_UnmarshalText(t *testing.T) {
@@ -86,6 +89,23 @@ func TestDateTime_UnmarshalText(t *testing.T) {
 		assert.EqualValues(t, example.time, pp)
 	}
 }
+func TestDateTime_UnmarshalJSON(t *testing.T) {
+	for caseNum, example := range testCases {
+		t.Logf("Case #%d", caseNum)
+		pp := NewDateTime()
+		err := pp.UnmarshalJSON(esc(example.in))
+		assert.NoError(t, err)
+		assert.EqualValues(t, example.time, pp)
+	}
+}
+
+func esc(v []byte) []byte {
+	var buf bytes.Buffer
+	buf.WriteByte('"')
+	buf.Write(v)
+	buf.WriteByte('"')
+	return buf.Bytes()
+}
 
 func TestDateTime_MarshalText(t *testing.T) {
 	for caseNum, example := range testCases {
@@ -94,6 +114,15 @@ func TestDateTime_MarshalText(t *testing.T) {
 		mt, err := dt.MarshalText()
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(example.str), mt)
+	}
+}
+func TestDateTime_MarshalJSON(t *testing.T) {
+	for caseNum, example := range testCases {
+		t.Logf("Case #%d", caseNum)
+		dt := DateTime(example.time)
+		bb, err := dt.MarshalJSON()
+		assert.NoError(t, err)
+		assert.EqualValues(t, esc([]byte(example.str)), bb)
 	}
 }
 
