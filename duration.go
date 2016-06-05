@@ -33,14 +33,14 @@ func init() {
 
 var (
 	timeUnits = [][]string{
-		[]string{"ns", "nano"},
-		[]string{"us", "µs", "micro"},
-		[]string{"ms", "milli"},
-		[]string{"s", "sec"},
-		[]string{"m", "min"},
-		[]string{"h", "hr", "hour"},
-		[]string{"d", "day"},
-		[]string{"w", "wk", "week"},
+		{"ns", "nano"},
+		{"us", "µs", "micro"},
+		{"ms", "milli"},
+		{"s", "sec"},
+		{"m", "min"},
+		{"h", "hr", "hour"},
+		{"d", "day"},
+		{"w", "wk", "week"},
 	}
 
 	timeMultiplier = map[string]time.Duration{
