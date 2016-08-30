@@ -24,8 +24,3 @@ publish:
   coverage:
     server: https://coverage.vmware.run
     token: $$GITHUB_TOKEN
-    # threshold: 70
-    # must_increase: true
-    when:
-      matrix:
-        GO_VERSION: "1.6"
