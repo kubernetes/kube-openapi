@@ -16,8 +16,8 @@ package validate
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"testing"
 
@@ -142,7 +142,7 @@ func TestIssue123(t *testing.T) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
 		res, _ := validator.Validate(doc)
 		for _, e := range res.Errors {
-			fmt.Println(e)
+			log.Println(e)
 		}
 		assert.True(t, res.IsValid())
 	}
