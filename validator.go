@@ -156,8 +156,15 @@ func (b *basicCommonValidator) Applies(source interface{}, kind reflect.Kind) bo
 func (b *basicCommonValidator) Validate(data interface{}) (res *Result) {
 	if len(b.Enum) > 0 {
 		for _, enumValue := range b.Enum {
-			if data != nil && reflect.DeepEqual(enumValue, data) {
-				return nil
+			actualType := reflect.TypeOf(enumValue)
+			if actualType == nil {
+				continue
+			}
+			expectedValue := reflect.ValueOf(data)
+			if expectedValue.IsValid() && expectedValue.Type().ConvertibleTo(actualType) {
+				if reflect.DeepEqual(expectedValue.Convert(actualType).Interface(), enumValue) {
+					return nil
+				}
 			}
 		}
 		return sErr(errors.EnumFail(b.Path, b.In, data, b.Enum))
