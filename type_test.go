@@ -26,7 +26,6 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/kr/pretty"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -205,59 +204,6 @@ func TestSchemaFixtures(t *testing.T) {
 				invalid := validator.Validate(testDescription.Invalid)
 				if assert.NotNil(t, invalid, specName+" should validate") {
 					assert.NotEmpty(t, invalid.Errors, specName+".invalid should have errors")
-				}
-			}
-		}
-	}
-}
-
-func TestJSONSchemaSuite_Definitions(t *testing.T) {
-	b, _ := ioutil.ReadFile(filepath.Join(jsonSchemaFixturesPath, "definitions.json"))
-
-	var testDescriptions []schemaTestT
-	json.Unmarshal(b, &testDescriptions)
-
-	for _, testDescription := range testDescriptions {
-
-		err := spec.ExpandSchema(testDescription.Schema, nil, nil /*new(noopResCache)*/)
-		if assert.NoError(t, err, testDescription.Description+" should expand cleanly") {
-
-			validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
-			for _, test := range testDescription.Tests {
-				t.Logf("%+v", test.Data)
-				t.Logf("%v", pretty.Sprint(testDescription.Schema))
-				result := validator.Validate(test.Data)
-				assert.NotNil(t, result, test.Description+" should validate")
-				if test.Valid {
-					assert.Empty(t, result.Errors, test.Description+" should not have errors")
-				} else {
-					assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
-				}
-			}
-		}
-	}
-}
-
-func TestJSONSchemaSuite_Ref(t *testing.T) {
-	b, _ := ioutil.ReadFile(filepath.Join(jsonSchemaFixturesPath, "ref.json"))
-
-	var testDescriptions []schemaTestT
-	json.Unmarshal(b, &testDescriptions)
-
-	for _, testDescription := range testDescriptions {
-
-		err := spec.ExpandSchema(testDescription.Schema, nil, nil /*new(noopResCache)*/)
-		if assert.NoError(t, err, testDescription.Description+" should expand cleanly") {
-
-			validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
-			for _, test := range testDescription.Tests {
-				t.Logf("%+v", test.Data)
-				result := validator.Validate(test.Data)
-				assert.NotNil(t, result, test.Description+" should validate")
-				if test.Valid {
-					assert.Empty(t, result.Errors, test.Description+" should not have errors")
-				} else {
-					assert.NotEmpty(t, result.Errors, test.Description+" should have errors")
 				}
 			}
 		}
