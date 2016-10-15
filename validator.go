@@ -16,6 +16,7 @@ package validate
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 
 	"github.com/go-openapi/errors"
@@ -481,10 +482,14 @@ func (n *numberValidator) Applies(source interface{}, kind reflect.Kind) bool {
 		isInt := kind >= reflect.Int && kind <= reflect.Uint64
 		isFloat := kind == reflect.Float32 || kind == reflect.Float64
 		r := isInt || isFloat
-		// fmt.Printf("schema props validator for %q applies %t for %T (kind: %v)\n", n.Path, r, source, kind)
+		if Debug {
+			log.Printf("schema props validator for %q applies %t for %T (kind: %v)\n", n.Path, r, source, kind)
+		}
 		return r
 	}
-	// fmt.Printf("schema props validator for %q applies %t for %T (kind: %v)\n", n.Path, false, source, kind)
+	if Debug {
+		log.Printf("schema props validator for %q applies %t for %T (kind: %v)\n", n.Path, false, source, kind)
+	}
 	return false
 }
 
@@ -543,10 +548,14 @@ func (s *stringValidator) Applies(source interface{}, kind reflect.Kind) bool {
 	switch source.(type) {
 	case *spec.Parameter, *spec.Schema, *spec.Items, *spec.Header:
 		r := kind == reflect.String
-		// fmt.Printf("string validator for %q applies %t for %T (kind: %v)\n", s.Path, r, source, kind)
+		if Debug {
+			log.Printf("string validator for %q applies %t for %T (kind: %v)\n", s.Path, r, source, kind)
+		}
 		return r
 	}
-	// fmt.Printf("string validator for %q applies %t for %T (kind: %v)\n", s.Path, false, source, kind)
+	if Debug {
+		log.Printf("string validator for %q applies %t for %T (kind: %v)\n", s.Path, false, source, kind)
+	}
 	return false
 }
 

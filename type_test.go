@@ -104,8 +104,8 @@ var enabled = []string{
 	"not",
 	"oneOf",
 	"anyOf",
-	// "ref",
-	// "definitions",
+	"ref",
+	"definitions",
 	"refRemote",
 	"format",
 }
