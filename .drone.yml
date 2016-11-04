@@ -15,6 +15,7 @@ build:
       - go get -u github.com/asaskevich/govalidator
       - go get -u github.com/mailru/easyjson
       - go get -u github.com/go-openapi/errors
+      - go get -u github.com/mitchellh/mapstructure
       - go test -race
       - go test -v -cover -coverprofile=coverage.out -covermode=count ./...
 
