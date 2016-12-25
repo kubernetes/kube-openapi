@@ -33,6 +33,19 @@ func init() {
 	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
 }
 
+func TestExpandResponseLocalFile(t *testing.T) {
+	fp := filepath.Join("fixtures", "local_expansion", "spec.yaml")
+	doc, err := loads.Spec(fp)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, doc) {
+			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			res, _ := validator.Validate(doc)
+			assert.True(t, res.IsValid())
+			assert.Empty(t, res.Errors)
+		}
+	}
+}
+
 func TestIssue52(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "52", "swagger.json")
 	jstext, _ := ioutil.ReadFile(fp)
@@ -162,10 +175,6 @@ func TestIssue18(t *testing.T) {
 			assert.False(t, res.IsValid())
 		}
 	}
-}
-
-func init() {
-	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
 }
 
 func TestValidateDuplicatePropertyNames(t *testing.T) {
