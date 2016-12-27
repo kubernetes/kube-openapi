@@ -161,6 +161,21 @@ func TestIssue123(t *testing.T) {
 	}
 }
 
+func TestIssue6(t *testing.T) {
+	files, _ := filepath.Glob(filepath.Join("fixtures", "bugs", "6", "*.json"))
+	for _, path := range files {
+		doc, err := loads.Spec(path)
+		if assert.NoError(t, err) {
+			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			res, _ := validator.Validate(doc)
+			for _, e := range res.Errors {
+				log.Println(e)
+			}
+			assert.False(t, res.IsValid())
+		}
+	}
+}
+
 // check if invalid patterns are indeed invalidated
 func TestIssue18(t *testing.T) {
 	files, _ := filepath.Glob(filepath.Join("fixtures", "bugs", "18", "*.json"))
