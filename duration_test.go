@@ -18,6 +18,8 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,6 +49,15 @@ func TestDuration(t *testing.T) {
 	b, err = pp.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	dur := Duration(42)
+	bsonData, err := bson.Marshal(&dur)
+	assert.NoError(t, err)
+
+	var durCopy Duration
+	err = bson.Unmarshal(bsonData, &durCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, dur, durCopy)
 }
 
 func testDurationParser(t *testing.T, toParse string, expected time.Duration) {

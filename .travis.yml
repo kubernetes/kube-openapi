@@ -8,6 +8,7 @@ install:
 - go get -u github.com/mailru/easyjson
 - go get -u github.com/go-openapi/errors
 - go get -u github.com/mitchellh/mapstructure
+- go get -u gopkg.in/mgo.v2/bson
 script:
 - ./hack/coverage
 after_success:

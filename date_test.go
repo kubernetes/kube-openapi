@@ -20,6 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,6 +50,16 @@ func TestDate(t *testing.T) {
 	b, err = pp.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	dateOriginal := Date(time.Date(2014, 10, 10, 0, 0, 0, 0, time.UTC))
+
+	bsonData, err := bson.Marshal(&dateOriginal)
+	assert.NoError(t, err)
+
+	var dateCopy Date
+	err = bson.Unmarshal(bsonData, &dateCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, dateOriginal, dateCopy)
 }
 
 func TestDate_Scan(t *testing.T) {
