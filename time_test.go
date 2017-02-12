@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -133,5 +135,20 @@ func TestDateTime_Scan(t *testing.T) {
 		err := pp.Scan(example.in)
 		assert.NoError(t, err)
 		assert.Equal(t, DateTime(example.time), pp)
+	}
+}
+
+func TestDateTime_BSON(t *testing.T) {
+	for caseNum, example := range testCases {
+		t.Logf("Case #%d", caseNum)
+		dt := DateTime(example.time)
+
+		bsonData, err := bson.Marshal(&dt)
+		assert.NoError(t, err)
+
+		var dtCopy DateTime
+		err = bson.Unmarshal(bsonData, &dtCopy)
+		assert.NoError(t, err)
+		assert.Equal(t, dt, dtCopy)
 	}
 }

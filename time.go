@@ -16,10 +16,13 @@ package strfmt
 
 import (
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
+
+	"gopkg.in/mgo.v2/bson"
 
 	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
@@ -159,4 +162,23 @@ func (t *DateTime) UnmarshalEasyJSON(in *jlexer.Lexer) {
 		}
 		*t = tt
 	}
+}
+
+func (t *DateTime) GetBSON() (interface{}, error) {
+	return bson.M{"data": t.String()}, nil
+}
+
+func (t *DateTime) SetBSON(raw bson.Raw) error {
+	var m bson.M
+	if err := raw.Unmarshal(&m); err != nil {
+		return err
+	}
+
+	if data, ok := m["data"].(string); ok {
+		var err error
+		*t, err = ParseDateTime(data)
+		return err
+	}
+
+	return errors.New("couldn't unmarshal bson raw value as Duration")
 }
