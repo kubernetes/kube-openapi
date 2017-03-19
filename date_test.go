@@ -79,5 +79,5 @@ func TestDate_Value(t *testing.T) {
 	date := Date(ref)
 	dbv, err := date.Value()
 	assert.NoError(t, err)
-	assert.EqualValues(t, dbv, ref)
+	assert.EqualValues(t, dbv, ref.Format("2006-01-02"))
 }
