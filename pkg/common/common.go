@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/emicklei/go-restful"
@@ -40,6 +41,10 @@ type GetOpenAPIDefinitions func(ReferenceCallback) map[string]OpenAPIDefinition
 // possible.
 type OpenAPIDefinitionGetter interface {
 	OpenAPIDefinition() *OpenAPIDefinition
+}
+
+type PathHandler interface {
+	Handle(path string, handler http.Handler)
 }
 
 // Config is set of configuration for openAPI spec generation.

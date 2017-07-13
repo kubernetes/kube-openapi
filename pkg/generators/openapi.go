@@ -59,7 +59,7 @@ func getSingleTagsValue(comments []string, tag string) (string, error) {
 		return "", nil
 	}
 	if len(tags) > 1 {
-		return "", fmt.Errorf("Multiple values are not allowed for tag %s", tag)
+		return "", fmt.Errorf("multiple values are not allowed for tag %s", tag)
 	}
 	return tags[0], nil
 }
@@ -391,7 +391,7 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 		if strings.HasPrefix(val, tagExtensionPrefix) {
 			parts := strings.SplitN(val, ":", 2)
 			if len(parts) != 2 {
-				return fmt.Errorf("Invalid extension value: %v", val)
+				return fmt.Errorf("invalid extension value: %v", val)
 			}
 			extensions = append(extensions, NameValue{parts[0], parts[1]})
 		}
@@ -577,7 +577,7 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 	}
 	switch elemType.Kind {
 	case types.Builtin:
-		return fmt.Errorf("please add type %v to getOpenAPITypeFormat function.", elemType)
+		return fmt.Errorf("please add type %v to getOpenAPITypeFormat function", elemType)
 	case types.Struct:
 		g.generateReferenceProperty(t.Elem)
 	case types.Slice, types.Array:
@@ -601,7 +601,7 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 	}
 	switch elemType.Kind {
 	case types.Builtin:
-		return fmt.Errorf("please add type %v to getOpenAPITypeFormat function.", elemType)
+		return fmt.Errorf("please add type %v to getOpenAPITypeFormat function", elemType)
 	case types.Struct:
 		g.generateReferenceProperty(t.Elem)
 	default:
