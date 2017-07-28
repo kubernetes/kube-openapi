@@ -40,24 +40,26 @@ type referenceWalker struct {
 
 	// The spec to walk through.
 	root *spec.Swagger
+
+	// Keep track of visited references
+	alreadyVisited map[string]bool
 }
 
 func walkOnAllReferences(walkRef func(ref spec.Ref) spec.Ref, sp *spec.Swagger) {
-	walker := &referenceWalker{walkRefCallback: walkRef, root: sp}
+	walker := &referenceWalker{walkRefCallback: walkRef, root: sp, alreadyVisited: map[string]bool{}}
 	walker.Start()
 }
 
 func (s *referenceWalker) walkRef(ref spec.Ref) spec.Ref {
-	if ref.String() != "" {
-		refStr := ref.String()
-		// References that start with #/definitions/ has a definition
-		// inside the same spec file. If that is the case, walk through
-		// those definitions too.
-		// We do not support external references yet.
-		if strings.HasPrefix(refStr, definitionPrefix) {
-			def := s.root.Definitions[refStr[len(definitionPrefix):]]
-			s.walkSchema(&def)
-		}
+	refStr := ref.String()
+	// References that start with #/definitions/ has a definition
+	// inside the same spec file. If that is the case, walk through
+	// those definitions too.
+	// We do not support external references yet.
+	if !!s.alreadyVisited[refStr] && strings.HasPrefix(refStr, definitionPrefix) {
+		s.alreadyVisited[refStr] = true
+		def := s.root.Definitions[refStr[len(definitionPrefix):]]
+		s.walkSchema(&def)
 	}
 	return s.walkRefCallback(ref)
 }
@@ -216,7 +218,7 @@ func MergeSpecs(dest, source *spec.Swagger) error {
 	}
 	for k, v := range sourceCopy.Paths.Paths {
 		if _, found := dest.Paths.Paths[k]; found {
-			return fmt.Errorf("unable to merge: Duplicated path %s", k)
+			return fmt.Errorf("unable to merge: duplicated path %s", k)
 		}
 		dest.Paths.Paths[k] = v
 	}
@@ -245,8 +247,6 @@ func MergeSpecs(dest, source *spec.Swagger) error {
 			}
 			renames = append(renames, Rename{from: k, to: newName})
 			usedNames[newName] = true
-		} else {
-			usedNames[k] = true
 		}
 	}
 	for _, r := range renames {
