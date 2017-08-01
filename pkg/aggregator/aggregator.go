@@ -56,7 +56,7 @@ func (s *referenceWalker) walkRef(ref spec.Ref) spec.Ref {
 	// inside the same spec file. If that is the case, walk through
 	// those definitions too.
 	// We do not support external references yet.
-	if !!s.alreadyVisited[refStr] && strings.HasPrefix(refStr, definitionPrefix) {
+	if !s.alreadyVisited[refStr] && strings.HasPrefix(refStr, definitionPrefix) {
 		s.alreadyVisited[refStr] = true
 		def := s.root.Definitions[refStr[len(definitionPrefix):]]
 		s.walkSchema(&def)
