@@ -17,6 +17,8 @@ limitations under the License.
 package aggregator
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/ghodss/yaml"
@@ -24,6 +26,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type DebugSpec struct {
+	*spec.Swagger
+}
+
+func (d DebugSpec) String() string {
+	bytes, err := json.MarshalIndent(d.Swagger, "", " ")
+	if err != nil {
+		return fmt.Sprintf("DebugSpec.String failed: %s", err)
+	}
+	return string(bytes)
+}
 func TestFilterSpecs(t *testing.T) {
 	var spec1, spec1_filtered *spec.Swagger
 	yaml.Unmarshal([]byte(`
@@ -120,7 +133,7 @@ definitions:
 `), &spec1_filtered)
 	assert := assert.New(t)
 	FilterSpecByPaths(spec1, []string{"/test"})
-	assert.Equal(spec1_filtered, spec1)
+	assert.Equal(DebugSpec{spec1_filtered}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsSimple(t *testing.T) {
@@ -250,7 +263,7 @@ definitions:
 	if !assert.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(expected, spec1)
+	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsReuseModel(t *testing.T) {
@@ -378,7 +391,7 @@ definitions:
 	if !assert.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	assert.Equal(expected, spec1)
+	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
 }
 
 func TestMergeSpecsRenameModel(t *testing.T) {
@@ -511,9 +524,316 @@ definitions:
 	if !assert.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+}
 
-	expected_yaml, _ := yaml.Marshal(expected)
-	spec1_yaml, _ := yaml.Marshal(spec1)
+func TestSafeMergeSpecsSimple(t *testing.T) {
+	var fooSpec, barSpec, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &fooSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /bar:
+    post:
+      summary: "Bar API"
+      operationId: "barTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "bar object"
+        required: true
+        schema:
+          $ref: "#/definitions/Bar"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Bar:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &barSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+  /bar:
+    post:
+      summary: "Bar API"
+      operationId: "barTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "bar object"
+        required: true
+        schema:
+          $ref: "#/definitions/Bar"
+      responses:
+        200:
+          description: "OK"
+definitions:
+    Foo:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+    Bar:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+  `), &expected)
+	assert := assert.New(t)
+	actual, err := CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	if !assert.NoError(SafeMergeSpecs(actual, barSpec)) {
+		return
+	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
+}
 
-	assert.Equal(string(expected_yaml), string(spec1_yaml))
+func TestSafeMergeSpecsReuseModel(t *testing.T) {
+	var fooSpec, barSpec, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &fooSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /refoo:
+    post:
+      summary: "Refoo API"
+      operationId: "refooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &barSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+  /refoo:
+    post:
+      summary: "Refoo API"
+      operationId: "refooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+    Foo:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+  `), &expected)
+	assert := assert.New(t)
+	actual, err := CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	if !assert.NoError(SafeMergeSpecs(actual, barSpec)) {
+		return
+	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
+}
+
+func TestSafeMergeSpecsReuseModelFails(t *testing.T) {
+	var fooSpec, barSpec, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &fooSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /refoo:
+    post:
+      summary: "Refoo API"
+      operationId: "refooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      new_field:
+        type: "string"
+`), &barSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+  /refoo:
+    post:
+      summary: "Refoo API"
+      operationId: "refooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+    Foo:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+  `), &expected)
+	assert := assert.New(t)
+	actual, err := CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	assert.Error(SafeMergeSpecs(actual, barSpec))
 }
