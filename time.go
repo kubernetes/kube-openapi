@@ -62,6 +62,7 @@ const (
 var (
 	dateTimeFormats = []string{RFC3339Millis, time.RFC3339, time.RFC3339Nano}
 	rxDateTime      = regexp.MustCompile(DateTimePattern)
+	MarshalFormat   = RFC3339Millis
 )
 
 // ParseDateTime parses a string that represents an ISO8601 time or a unix epoch
@@ -96,7 +97,7 @@ func NewDateTime() DateTime {
 }
 
 func (t DateTime) String() string {
-	return time.Time(t).Format(RFC3339Millis)
+	return time.Time(t).Format(MarshalFormat)
 }
 
 // MarshalText implements the text marshaller interface
@@ -145,7 +146,7 @@ func (t DateTime) MarshalJSON() ([]byte, error) {
 }
 
 func (t DateTime) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(time.Time(t).Format(RFC3339Millis))
+	w.String(time.Time(t).Format(MarshalFormat))
 }
 
 func (t *DateTime) UnmarshalJSON(data []byte) error {
