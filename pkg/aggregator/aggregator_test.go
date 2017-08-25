@@ -629,7 +629,7 @@ definitions:
 	if !assert.NoError(err) {
 		return
 	}
-	if !assert.NoError(SafeMergeSpecs(actual, barSpec)) {
+	if !assert.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
 		return
 	}
 	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
@@ -731,7 +731,7 @@ definitions:
 	if !assert.NoError(err) {
 		return
 	}
-	if !assert.NoError(SafeMergeSpecs(actual, barSpec)) {
+	if !assert.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
 		return
 	}
 	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
@@ -835,5 +835,123 @@ definitions:
 	if !assert.NoError(err) {
 		return
 	}
-	assert.Error(SafeMergeSpecs(actual, barSpec))
+	assert.Error(MergeSpecsFailOnDefinitionConflict(actual, barSpec))
+}
+
+func TestMergeSpecsIgnorePathConflicts(t *testing.T) {
+	var fooSpec, barSpec, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &fooSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Should be ignored"
+  /bar:
+    post:
+      summary: "Bar API"
+      operationId: "barTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "bar object"
+        required: true
+        schema:
+          $ref: "#/definitions/Bar"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Bar:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &barSpec)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+  /bar:
+    post:
+      summary: "Bar API"
+      operationId: "barTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "bar object"
+        required: true
+        schema:
+          $ref: "#/definitions/Bar"
+      responses:
+        200:
+          description: "OK"
+definitions:
+    Foo:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+    Bar:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+  `), &expected)
+	assert := assert.New(t)
+	actual, err := CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	if !assert.Error(MergeSpecs(actual, barSpec)) {
+		return
+	}
+	actual, err = CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	if !assert.NoError(MergeSpecsIgnorePathConflict(actual, barSpec)) {
+		return
+	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
 }

@@ -209,19 +209,43 @@ func renameDefinition(s *spec.Swagger, old, new string) {
 	delete(s.Definitions, old)
 }
 
-// MergeSpecsOrFailOnConflict is differ from MergeSpecs as it fails if there is
+// MergeSpecsIgnorePathConflict is the same as MergeSpecs except it will ignore any path
+// conflicts by keeping the paths of destination. It will rename definition conflicts.
+func MergeSpecsIgnorePathConflict(dest, source *spec.Swagger) error {
+	return mergeSpecs(dest, source, true, true)
+}
+
+// MergeSpecsFailOnDefinitionConflict is differ from MergeSpecs as it fails if there is
 // a definition conflict.
-func MergeSpecsOrFailOnConflict(dest, source *spec.Swagger) error {
-	return mergeSpecs(dest, source, false)
+func MergeSpecsFailOnDefinitionConflict(dest, source *spec.Swagger) error {
+	return mergeSpecs(dest, source, false, false)
 }
 
 // MergeSpecs copies paths and definitions from source to dest, rename definitions if needed.
-// dest will be mutated, and source will not be changed.
+// dest will be mutated, and source will not be changed. It will fail on path conflicts.
 func MergeSpecs(dest, source *spec.Swagger) error {
-	return mergeSpecs(dest, source, true)
+	return mergeSpecs(dest, source, true, false)
 }
 
-func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts bool) (err error) {
+func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConflicts bool) (err error) {
+
+	specCloned := false
+	if ignorePathConflicts {
+		keepPaths := []string{}
+		for k := range source.Paths.Paths {
+			if _, found := dest.Paths.Paths[k]; !found {
+				keepPaths = append(keepPaths, k)
+			}
+		}
+		if len(keepPaths) > 0 {
+			source, err = CloneSpec(source)
+			if err != nil {
+				return err
+			}
+			specCloned = true
+			FilterSpecByPaths(source, keepPaths)
+		}
+	}
 	// Check for model conflicts
 	conflicts := false
 	for k, v := range source.Definitions {
@@ -236,10 +260,13 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts bool) (err erro
 	}
 
 	if conflicts {
-		source, err = CloneSpec(source)
-		if err != nil {
-			return err
+		if !specCloned {
+			source, err = CloneSpec(source)
+			if err != nil {
+				return err
+			}
 		}
+		specCloned = true
 		usedNames := map[string]bool{}
 		for k := range dest.Definitions {
 			usedNames[k] = true
