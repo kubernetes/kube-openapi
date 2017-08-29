@@ -955,3 +955,42 @@ definitions:
 	}
 	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
 }
+
+func TestMergeSpecsIgnorePathConflictsAllConflicting(t *testing.T) {
+	var fooSpec *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &fooSpec)
+	assert := assert.New(t)
+	foo2Spec, err := CloneSpec(fooSpec)
+	actual, err := CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	if !assert.NoError(MergeSpecsIgnorePathConflict(actual, foo2Spec)) {
+		return
+	}
+	assert.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
+}

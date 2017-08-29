@@ -232,12 +232,19 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 	specCloned := false
 	if ignorePathConflicts {
 		keepPaths := []string{}
+		hasConflictingPath := false
 		for k := range source.Paths.Paths {
 			if _, found := dest.Paths.Paths[k]; !found {
 				keepPaths = append(keepPaths, k)
+			} else {
+				hasConflictingPath = true
 			}
 		}
-		if len(keepPaths) > 0 {
+		if len(keepPaths) == 0 {
+			// There is nothing to merge. All paths are conflicting.
+			return nil
+		}
+		if hasConflictingPath {
 			source, err = CloneSpec(source)
 			if err != nil {
 				return err
