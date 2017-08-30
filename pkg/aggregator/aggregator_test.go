@@ -136,6 +136,109 @@ definitions:
 	assert.Equal(DebugSpec{spec1_filtered}, DebugSpec{spec1})
 }
 
+func TestFilterSpecsWithUnusedDefinitions(t *testing.T) {
+	var spec1, spec1Filtered *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      tags:
+      - "test"
+      summary: "Test API"
+      operationId: "addTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test"
+      responses:
+        405:
+          description: "Invalid input"
+          $ref: "#/definitions/InvalidInput"
+  /othertest:
+    post:
+      tags:
+      - "test2"
+      summary: "Test2 API"
+      operationId: "addTest2"
+      consumes:
+      - "application/json"
+      produces:
+      - "application/xml"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test2 object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test2"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      status:
+        type: "string"
+        description: "Status"
+  InvalidInput:
+    type: "string"
+    format: "string"
+  Test2:
+    type: "object"
+    properties:
+      other:
+        $ref: "#/definitions/Other"
+  Other:
+    type: "string"
+  Unused:
+    type: "object"
+`), &spec1)
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      tags:
+      - "test"
+      summary: "Test API"
+      operationId: "addTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test"
+      responses:
+        405:
+          description: "Invalid input"
+          $ref: "#/definitions/InvalidInput"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      status:
+        type: "string"
+        description: "Status"
+  InvalidInput:
+    type: "string"
+    format: "string"
+  Unused:
+    type: "object"
+`), &spec1Filtered)
+	assert := assert.New(t)
+	FilterSpecByPaths(spec1, []string{"/test"})
+	assert.Equal(DebugSpec{spec1Filtered}, DebugSpec{spec1})
+}
+
 func TestMergeSpecsSimple(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
 	yaml.Unmarshal([]byte(`
@@ -954,4 +1057,43 @@ definitions:
 		return
 	}
 	assert.Equal(DebugSpec{expected}, DebugSpec{actual})
+}
+
+func TestMergeSpecsIgnorePathConflictsAllConflicting(t *testing.T) {
+	var fooSpec *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      summary: "Foo API"
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "foo object"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &fooSpec)
+	assert := assert.New(t)
+	foo2Spec, err := CloneSpec(fooSpec)
+	actual, err := CloneSpec(fooSpec)
+	if !assert.NoError(err) {
+		return
+	}
+	if !assert.NoError(MergeSpecsIgnorePathConflict(actual, foo2Spec)) {
+		return
+	}
+	assert.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
 }
