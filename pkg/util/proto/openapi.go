@@ -18,6 +18,7 @@ package proto
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -34,10 +35,11 @@ const (
 	object = "object"
 )
 
-// Resources interface describe a resources provider, that can give you
-// resource based on group-version-kind.
-type Resources interface {
-	LookupResource(string) Schema
+// Models interface describe a model provider. They can give you the
+// schema for a specific model.
+type Models interface {
+	LookupModel(string) Schema
+	ListModels() []string
 }
 
 // SchemaVisitor is an interface that you need to implement if you want
@@ -177,6 +179,26 @@ func (k *Kind) GetName() string {
 		properties = append(properties, key)
 	}
 	return fmt.Sprintf("Kind(%v)", properties)
+}
+
+// IsRequired returns true if `field` is a required field for this type.
+func (k *Kind) IsRequired(field string) bool {
+	for _, f := range k.RequiredFields {
+		if f == field {
+			return true
+		}
+	}
+	return false
+}
+
+// Keys returns a alphabetically sorted list of keys.
+func (k *Kind) Keys() []string {
+	keys := make([]string, 0)
+	for key := range k.Fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 // Map is an object who values must all be of the same `SubType`.
