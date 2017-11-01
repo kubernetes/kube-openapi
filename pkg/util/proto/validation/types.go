@@ -43,7 +43,7 @@ func (item *baseItem) Errors() []error {
 // AddValidationError wraps the given error into a ValidationError and
 // attaches it to this item.
 func (item *baseItem) AddValidationError(err error) {
-	item.errors.AppendErrors(validationError{Path: item.path.String(), Err: err})
+	item.errors.AppendErrors(ValidationError{Path: item.path.String(), Err: err})
 }
 
 // AddError adds a regular (non-validation related) error to the list.
@@ -81,11 +81,11 @@ func (item *mapItem) sortedKeys() []string {
 var _ validationItem = &mapItem{}
 
 func (item *mapItem) VisitPrimitive(schema *proto.Primitive) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: "map"})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: "map"})
 }
 
 func (item *mapItem) VisitArray(schema *proto.Array) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: "map"})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: "map"})
 }
 
 func (item *mapItem) VisitMap(schema *proto.Map) {
@@ -112,7 +112,7 @@ func (item *mapItem) VisitKind(schema *proto.Kind) {
 			continue
 		}
 		if _, ok := schema.Fields[key]; !ok {
-			item.AddValidationError(unknownFieldError{Path: schema.GetPath().String(), Field: key})
+			item.AddValidationError(UnknownFieldError{Path: schema.GetPath().String(), Field: key})
 			continue
 		}
 		schema.Fields[key].Accept(subItem)
@@ -122,7 +122,7 @@ func (item *mapItem) VisitKind(schema *proto.Kind) {
 	// Verify that all required fields are present.
 	for _, required := range schema.RequiredFields {
 		if v, ok := item.Map[required]; !ok || v == nil {
-			item.AddValidationError(missingRequiredFieldError{Path: schema.GetPath().String(), Field: required})
+			item.AddValidationError(MissingRequiredFieldError{Path: schema.GetPath().String(), Field: required})
 		}
 	}
 }
@@ -142,14 +142,14 @@ type arrayItem struct {
 var _ validationItem = &arrayItem{}
 
 func (item *arrayItem) VisitPrimitive(schema *proto.Primitive) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: "array"})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: "array"})
 }
 
 func (item *arrayItem) VisitArray(schema *proto.Array) {
 	for i, v := range item.Array {
 		path := item.Path().ArrayPath(i)
 		if v == nil {
-			item.AddValidationError(invalidObjectTypeError{Type: "nil", Path: path.String()})
+			item.AddValidationError(InvalidObjectTypeError{Type: "nil", Path: path.String()})
 			continue
 		}
 		subItem, err := itemFactory(path, v)
@@ -163,11 +163,11 @@ func (item *arrayItem) VisitArray(schema *proto.Array) {
 }
 
 func (item *arrayItem) VisitMap(schema *proto.Map) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: "map"})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: "map"})
 }
 
 func (item *arrayItem) VisitKind(schema *proto.Kind) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: "map"})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: "map"})
 }
 
 func (item *arrayItem) VisitReference(schema proto.Reference) {
@@ -211,19 +211,19 @@ func (item *primitiveItem) VisitPrimitive(schema *proto.Primitive) {
 		return
 	}
 
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: item.Kind})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: schema.Type, Actual: item.Kind})
 }
 
 func (item *primitiveItem) VisitArray(schema *proto.Array) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: item.Kind})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: "array", Actual: item.Kind})
 }
 
 func (item *primitiveItem) VisitMap(schema *proto.Map) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: "map", Actual: item.Kind})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: "map", Actual: item.Kind})
 }
 
 func (item *primitiveItem) VisitKind(schema *proto.Kind) {
-	item.AddValidationError(invalidTypeError{Path: schema.GetPath().String(), Expected: "map", Actual: item.Kind})
+	item.AddValidationError(InvalidTypeError{Path: schema.GetPath().String(), Expected: "map", Actual: item.Kind})
 }
 
 func (item *primitiveItem) VisitReference(schema proto.Reference) {
@@ -235,7 +235,7 @@ func (item *primitiveItem) VisitReference(schema proto.Reference) {
 func itemFactory(path proto.Path, v interface{}) (validationItem, error) {
 	// We need to special case for no-type fields in yaml (e.g. empty item in list)
 	if v == nil {
-		return nil, invalidObjectTypeError{Type: "nil", Path: path.String()}
+		return nil, InvalidObjectTypeError{Type: "nil", Path: path.String()}
 	}
 	kind := reflect.TypeOf(v).Kind()
 	switch kind {
@@ -285,5 +285,5 @@ func itemFactory(path proto.Path, v interface{}) (validationItem, error) {
 			Map:      v.(map[string]interface{}),
 		}, nil
 	}
-	return nil, invalidObjectTypeError{Type: kind.String(), Path: path.String()}
+	return nil, InvalidObjectTypeError{Type: kind.String(), Path: path.String()}
 }

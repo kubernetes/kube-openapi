@@ -32,48 +32,48 @@ func (e *errors) AppendErrors(err ...error) {
 	e.errors = append(e.errors, err...)
 }
 
-type validationError struct {
+type ValidationError struct {
 	Path string
 	Err  error
 }
 
-func (e validationError) Error() string {
-	return fmt.Sprintf("validationError(%s): %v", e.Path, e.Err)
+func (e ValidationError) Error() string {
+	return fmt.Sprintf("ValidationError(%s): %v", e.Path, e.Err)
 }
 
-type invalidTypeError struct {
+type InvalidTypeError struct {
 	Path     string
 	Expected string
 	Actual   string
 }
 
-func (e invalidTypeError) Error() string {
+func (e InvalidTypeError) Error() string {
 	return fmt.Sprintf("invalid type for %s: got %q, expected %q", e.Path, e.Actual, e.Expected)
 }
 
-type missingRequiredFieldError struct {
+type MissingRequiredFieldError struct {
 	Path  string
 	Field string
 }
 
-func (e missingRequiredFieldError) Error() string {
+func (e MissingRequiredFieldError) Error() string {
 	return fmt.Sprintf("missing required field %q in %s", e.Field, e.Path)
 }
 
-type unknownFieldError struct {
+type UnknownFieldError struct {
 	Path  string
 	Field string
 }
 
-func (e unknownFieldError) Error() string {
+func (e UnknownFieldError) Error() string {
 	return fmt.Sprintf("unknown field %q in %s", e.Field, e.Path)
 }
 
-type invalidObjectTypeError struct {
+type InvalidObjectTypeError struct {
 	Path string
 	Type string
 }
 
-func (e invalidObjectTypeError) Error() string {
+func (e InvalidObjectTypeError) Error() string {
 	return fmt.Sprintf("unknown object type %q in %s", e.Type, e.Path)
 }
