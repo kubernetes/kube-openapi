@@ -64,10 +64,15 @@ func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]in
 
 func (o *objectValidator) checkItemsMustBeTypeArray(res *Result, val map[string]interface{}) {
 	if _, itemsKeyFound := val["items"]; itemsKeyFound {
-		if t, typeFound := val["type"]; typeFound {
+		t, typeFound := val["type"]
+		if typeFound {
 			if tpe, ok := t.(string); !ok || tpe != "array" {
 				res.AddErrors(errors.InvalidType(o.Path, o.In, "array", nil))
 			}
+		} else {
+			// there is no type
+			// shouldnt validate
+			res.AddErrors(errors.Required("type", o.Path))
 		}
 	}
 }
