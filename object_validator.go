@@ -55,7 +55,7 @@ func (o *objectValidator) Applies(source interface{}, kind reflect.Kind) bool {
 
 func (o *objectValidator) isPropertyName() bool {
 	p := strings.Split(o.Path, ".")
-	return p[len(p)-1] == "properties"
+	return p[len(p)-1] == "properties" && p[len(p)-2] != "properties"
 }
 func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]interface{}) {
 	if t, typeFound := val["type"]; typeFound {
