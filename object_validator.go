@@ -54,7 +54,6 @@ func (o *objectValidator) Applies(source interface{}, kind reflect.Kind) bool {
 }
 
 func (o *objectValidator) isPropertyName() bool {
-	log.Printf(o.Path)
 	p := strings.Split(o.Path, ".")
 	return p[len(p)-1] == "properties"
 }
