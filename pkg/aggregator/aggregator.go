@@ -291,15 +291,29 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 			from, to string
 		}
 		renames := []Rename{}
+
+	OUTERLOOP:
 		for k, v := range source.Definitions {
 			if usedNames[k] {
 				v2, found := dest.Definitions[k]
-				// Reuse model iff they are exactly the same.
+				// Reuse model if they are exactly the same.
 				if found && reflect.DeepEqual(v, v2) {
 					continue
 				}
-				i := 2
-				newName := fmt.Sprintf("%s_v%d", k, i)
+
+				// Reuse previously renamed model if one exists
+				var newName string
+				i := 1
+				for found {
+					i++
+					newName = fmt.Sprintf("%s_v%d", k, i)
+					v2, found = dest.Definitions[newName]
+					if reflect.DeepEqual(v, v2) {
+						renames = append(renames, Rename{from: k, to: newName})
+						continue OUTERLOOP
+					}
+				}
+
 				_, foundInSource := source.Definitions[newName]
 				for usedNames[newName] || foundInSource {
 					i++
