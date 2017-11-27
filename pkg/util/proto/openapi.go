@@ -242,6 +242,21 @@ func (p *Primitive) GetName() string {
 	return fmt.Sprintf("%s (%s)", p.Type, p.Format)
 }
 
+// AnyValue is an arbitrary value (object, array or primitive)
+type AnyValue struct {
+	BaseSchema
+}
+
+var _ Schema = &AnyValue{}
+
+func (m *AnyValue) Accept(v SchemaVisitor) {
+	// A AnyValue accepts any type of value, so it's not necessary to call the SchemaVisitor
+}
+
+func (m *AnyValue) GetName() string {
+	return "Any value"
+}
+
 // Reference implementation depends on the type of document.
 type Reference interface {
 	Schema
