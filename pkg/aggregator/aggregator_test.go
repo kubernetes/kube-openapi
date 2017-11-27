@@ -1097,3 +1097,200 @@ definitions:
 	}
 	assert.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
 }
+
+func TestMergeSpecReplacesAllPossibleRefs(t *testing.T) {
+	var spec1, spec2, expected *spec.Swagger
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      foo:
+        $ref: "#/definitions/TestProperty"
+  TestProperty:
+    type: "object"
+`), &spec1)
+
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test2:
+    post:
+      parameters:
+      - name: "test2"
+        schema:
+          $ref: "#/definitions/Test2"
+      - name: "test3"
+        schema:
+          $ref: "#/definitions/Test3"
+      - name: "test4"
+        schema:
+          $ref: "#/definitions/Test4"
+      - name: "test5"
+        schema:
+          $ref: "#/definitions/Test5"
+definitions:
+  Test2:
+    $ref: "#/definitions/TestProperty"
+  Test3:
+    type: "object"
+    properties:
+      withRef:
+        $ref: "#/definitions/TestProperty"
+      withAllOf:
+        type: "object"
+        allOf:
+        - $ref: "#/definitions/TestProperty"
+        - type: object
+          properties:
+            test:
+              $ref: "#/definitions/TestProperty"
+      withAnyOf:
+        type: "object"
+        anyOf:
+        - $ref: "#/definitions/TestProperty"
+        - type: object
+          properties:
+            test:
+              $ref: "#/definitions/TestProperty"
+      withOneOf:
+        type: "object"
+        oneOf:
+        - $ref: "#/definitions/TestProperty"
+        - type: object
+          properties:
+            test:
+              $ref: "#/definitions/TestProperty"
+      withNot:
+        type: "object"
+        not:
+          $ref: "#/definitions/TestProperty"
+    patternProperties:
+      "prefix.*":
+        $ref: "#/definitions/TestProperty"
+    additionalProperties:
+      $ref: "#/definitions/TestProperty"
+    definitions:
+      SomeDefinition:
+        $ref: "#/definitions/TestProperty"
+  Test4:
+    type: "array"
+    items:
+      $ref: "#/definitions/TestProperty"
+    additionalItems:
+      $ref: "#/definitions/TestProperty"
+  Test5:
+    type: "array"
+    items:
+    - $ref: "#/definitions/TestProperty"
+    - $ref: "#/definitions/TestProperty"
+  TestProperty:
+    description: "This TestProperty is different from the one in spec1"
+    type: "object"
+`), &spec2)
+
+	yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test"
+  /test2:
+    post:
+      parameters:
+      - name: "test2"
+        schema:
+          $ref: "#/definitions/Test2"
+      - name: "test3"
+        schema:
+          $ref: "#/definitions/Test3"
+      - name: "test4"
+        schema:
+          $ref: "#/definitions/Test4"
+      - name: "test5"
+        schema:
+          $ref: "#/definitions/Test5"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      foo:
+        $ref: "#/definitions/TestProperty"
+  TestProperty:
+    type: "object"
+  Test2:
+    $ref: "#/definitions/TestProperty_v2"
+  Test3:
+    type: "object"
+    properties:
+      withRef:
+        $ref: "#/definitions/TestProperty_v2"
+      withAllOf:
+        type: "object"
+        allOf:
+        - $ref: "#/definitions/TestProperty_v2"
+        - type: object
+          properties:
+            test:
+              $ref: "#/definitions/TestProperty_v2"
+      withAnyOf:
+        type: "object"
+        anyOf:
+        - $ref: "#/definitions/TestProperty_v2"
+        - type: object
+          properties:
+            test:
+              $ref: "#/definitions/TestProperty_v2"
+      withOneOf:
+        type: "object"
+        oneOf:
+        - $ref: "#/definitions/TestProperty_v2"
+        - type: object
+          properties:
+            test:
+              $ref: "#/definitions/TestProperty_v2"
+      withNot:
+        type: "object"
+        not:
+          $ref: "#/definitions/TestProperty_v2"
+    patternProperties:
+      "prefix.*":
+        $ref: "#/definitions/TestProperty_v2"
+    additionalProperties:
+      $ref: "#/definitions/TestProperty_v2"
+    definitions:
+      SomeDefinition:
+        $ref: "#/definitions/TestProperty_v2"
+  Test4:
+    type: "array"
+    items:
+      $ref: "#/definitions/TestProperty_v2"
+    additionalItems:
+      $ref: "#/definitions/TestProperty_v2"
+  Test5:
+    type: "array"
+    items:
+    - $ref: "#/definitions/TestProperty_v2"
+    - $ref: "#/definitions/TestProperty_v2"
+  TestProperty_v2:
+    description: "This TestProperty is different from the one in spec1"
+    type: "object"
+`), &expected)
+
+	assert := assert.New(t)
+	if !assert.NoError(MergeSpecs(spec1, spec2)) {
+		return
+	}
+	assert.Equal(DebugSpec{expected}, DebugSpec{spec1})
+}
