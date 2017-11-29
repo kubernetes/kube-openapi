@@ -210,8 +210,8 @@ func (d *Definitions) parseKind(s *openapi_v2.Schema, path *Path) (Schema, error
 	}, nil
 }
 
-func (d *Definitions) parseArbitraryValue(s *openapi_v2.Schema, path *Path) (Schema, error) {
-	return &ArbitraryValue{
+func (d *Definitions) parseArbitrary(s *openapi_v2.Schema, path *Path) (Schema, error) {
+	return &Arbitrary{
 		BaseSchema: d.parseBaseSchema(s, path),
 	}, nil
 }
@@ -237,7 +237,7 @@ func (d *Definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, err
 		return d.parseKind(s, path)
 	}
 	if len(objectTypes) == 0 || (len(objectTypes) == 1 && objectTypes[0] == "") {
-		return d.parseArbitraryValue(s, path)
+		return d.parseArbitrary(s, path)
 	}
 	return d.parsePrimitive(s, path)
 }
