@@ -55,6 +55,7 @@ type SchemaVisitor interface {
 	VisitMap(*Map)
 	VisitPrimitive(*Primitive)
 	VisitKind(*Kind)
+	VisitArbitrary(*Arbitrary)
 	VisitReference(Reference)
 }
 
@@ -240,6 +241,21 @@ func (p *Primitive) GetName() string {
 		return p.Type
 	}
 	return fmt.Sprintf("%s (%s)", p.Type, p.Format)
+}
+
+// Arbitrary is a value of any type (primitive, object or array)
+type Arbitrary struct {
+	BaseSchema
+}
+
+var _ Schema = &Arbitrary{}
+
+func (a *Arbitrary) Accept(v SchemaVisitor) {
+	v.VisitArbitrary(a)
+}
+
+func (a *Arbitrary) GetName() string {
+	return "Arbitrary value (primitive, object or array)"
 }
 
 // Reference implementation depends on the type of document.
