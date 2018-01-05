@@ -308,7 +308,7 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 					i++
 					newName = fmt.Sprintf("%s_v%d", k, i)
 					v2, found = dest.Definitions[newName]
-					if reflect.DeepEqual(v, v2) {
+					if found && reflect.DeepEqual(v, v2) {
 						renames = append(renames, Rename{from: k, to: newName})
 						continue OUTERLOOP
 					}
