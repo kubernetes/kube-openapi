@@ -16,6 +16,7 @@ package validate
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,12 +32,18 @@ func init() {
 	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
 }
 
+func skipNotifyGoSwagger(t *testing.T) {
+	t.Log("To enable this long running test, use -args -enable-go-swagger in your go test command line")
+}
+
 // Exercise validate will all tests cases from package go-swagger
 // A copy of all fixtures available in in go-swagger/go-swagger
 // is maintained in fixtures/go-swagger
+//
+// TODO: move this list to a YAML fixture config file
 func Test_GoSwaggerTestCases(t *testing.T) {
-	if !enableLongTests {
-		skipNotify(t)
+	if !enableGoSwaggerTests {
+		skipNotifyGoSwagger(t)
 		t.SkipNow()
 	}
 	// A list of test cases which fail on "swagger validate" at spec load time
@@ -109,12 +116,6 @@ func Test_GoSwaggerTestCases(t *testing.T) {
 		"fixtures/go-swagger/specs/resolution.json":                      true,
 	}
 
-	//t.SkipNow()
-	state := continueOnErrors
-	SetContinueOnErrors(true)
-	defer func() {
-		SetContinueOnErrors(state)
-	}()
 	if testGoSwaggerSpecs(t, "./fixtures/go-swagger", expectedFailures, expectedLoadFailures, true) != 0 {
 		t.Fail()
 	}
@@ -123,6 +124,7 @@ func Test_GoSwaggerTestCases(t *testing.T) {
 // A non regression test re "swagger validate" expectations
 // Just validates all fixtures in ./fixtures/go-swagger (excluded codegen cases)
 func testGoSwaggerSpecs(t *testing.T, path string, expectToFail, expectToFailOnLoad map[string]bool, haltOnErrors bool) (errs int) {
+	countSpec := 0
 	err := filepath.Walk(path,
 		func(path string, info os.FileInfo, err error) error {
 			shouldNotLoad := false
@@ -135,14 +137,20 @@ func testGoSwaggerSpecs(t *testing.T, path string, expectToFail, expectToFailOnL
 			}
 			if !info.IsDir() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml") || strings.HasSuffix(info.Name(), ".json")) {
 				// Checking invalid specs
-				t.Logf("Testing messages for spec: %s", path)
+				countSpec++
+				if countSpec%5 == 0 {
+					log.Printf("Processed %d specs...", countSpec)
+				}
+				if DebugTest {
+					t.Logf("Testing validation status for spec: %s", path)
+				}
 				doc, err := loads.Spec(path)
 				if shouldNotLoad {
-					if !assert.Error(t, err, "Expected this spec not to load") {
+					if !assert.Errorf(t, err, "Expected this spec not to load: %s", path) {
 						errs++
 					}
 				} else {
-					if !assert.NoError(t, err, "Expected this spec to load without error") {
+					if !assert.NoErrorf(t, err, "Expected this spec to load without error: %s", path) {
 						errs++
 					}
 				}
@@ -158,13 +166,14 @@ func testGoSwaggerSpecs(t *testing.T, path string, expectToFail, expectToFailOnL
 
 				// Validate the spec document
 				validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+				validator.SetContinueOnErrors(true)
 				res, _ := validator.Validate(doc)
 				if shouldFail {
-					if !assert.False(t, res.IsValid(), "Expected this spec to be invalid") {
+					if !assert.Falsef(t, res.IsValid(), "Expected this spec to be invalid: %s", path) {
 						errs++
 					}
 				} else {
-					if !assert.True(t, res.IsValid(), "Expected this spec to be valid") {
+					if !assert.Truef(t, res.IsValid(), "Expected this spec to be valid: %s", path) {
 						t.Logf("Errors reported by validation on %s", path)
 						for _, e := range res.Errors {
 							t.Log(e)
@@ -178,9 +187,13 @@ func testGoSwaggerSpecs(t *testing.T, path string, expectToFail, expectToFailOnL
 			}
 			return nil
 		})
+	log.Printf("Finished. Processed %d specs...", countSpec)
 	if err != nil {
 		t.Logf("%v", err)
 		errs++
+	}
+	if t.Failed() {
+		log.Printf("A change in expected validation status has been detected")
 	}
 	return
 }

@@ -33,16 +33,28 @@
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/Pet"
-              }
+      "allOf": [
+        {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": "ABC"
             },
-            "examples": {
-              "application/json": [{
-                "id": 123,
-                "photoUrls": [
-                  "https://cloud.githubusercontent.com/assets/987686/9987390/24bd7be0-607a-11e5-9c3a-e0c6f333a764.png"
-                ]
-              }]
+            "name": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "properties": {
+            "notes": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+              }
             }
           }
         }
@@ -100,15 +112,27 @@
       }
     },
     "Tag": {
-      "properties": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
+      "allOf": [
+        {
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": 20
+            },
+            "name": {
+              "type": "string"
+            }
+          }
         },
-        "name": {
-          "type": "string"
+        {
+          "properties": {
+            "notes": {
+              "type": "string"
+            }
+          }
         }
-      }
+      ]
     }
   }
 }
