@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
 )
@@ -120,7 +119,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 		}
 
 		if !succeededOnce {
-			mainResult.AddErrors(errors.New(errors.CompositeErrorCode, "\"%s\" must validate at least one schema (anyOf)", s.Path))
+			mainResult.AddErrors(mustValidateAtLeastOneSchemaMsg(s.Path))
 		}
 		if bestFailures != nil {
 			mainResult.Merge(bestFailures)
@@ -162,7 +161,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 				additionalMsg = fmt.Sprintf("Found %d valid alternatives", validated)
 			}
 
-			mainResult.AddErrors(errors.New(errors.CompositeErrorCode, "\"%s\" must validate one and only one schema (oneOf). %s", s.Path, additionalMsg))
+			mainResult.AddErrors(mustValidateOnlyOneSchemaMsg(s.Path, additionalMsg))
 			if bestFailures != nil {
 				mainResult.Merge(bestFailures)
 			}
@@ -192,7 +191,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 				additionalMsg = ". None validated"
 			}
 
-			mainResult.AddErrors(errors.New(errors.CompositeErrorCode, "\"%s\" must validate all the schemas (allOf)%s", s.Path, additionalMsg))
+			mainResult.AddErrors(mustValidateAllSchemasMsg(s.Path, additionalMsg))
 		}
 	}
 
@@ -200,7 +199,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 		result := s.notValidator.Validate(data)
 		// We keep inner IMPORTANT! errors no matter what MatchCount tells us
 		if result.IsValid() {
-			mainResult.AddErrors(errors.New(errors.CompositeErrorCode, "\"%s\" must not validate the schema (not)", s.Path))
+			mainResult.AddErrors(mustNotValidatechemaMsg(s.Path))
 		}
 	}
 
@@ -217,7 +216,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 				if len(dep.Property) > 0 {
 					for _, depKey := range dep.Property {
 						if _, ok := val[depKey]; !ok {
-							mainResult.AddErrors(errors.New(errors.CompositeErrorCode, "\"%s\" has a dependency on %s", s.Path, depKey))
+							mainResult.AddErrors(hasADependencyMsg(s.Path, depKey))
 						}
 					}
 				}

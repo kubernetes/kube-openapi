@@ -119,8 +119,9 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 				// Special properties "$schema" and "id" are ignored
 				res.AddErrors(errors.PropertyNotAllowed(o.Path, o.In, k))
 
-				// BUG(fredbi): this section should move to a part dedicated to spec validation as
+				// BUG(fredbi): This section should move to a part dedicated to spec validation as
 				// it will conflict with regular schemas where a property "headers" is defined.
+
 				//
 				// Croaks a more explicit message on top of the standard one
 				// on some recognized cases.
@@ -142,7 +143,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 											if refString, stringOk := headerSchema["$ref"].(string); stringOk {
 												msg = strings.Join([]string{", one may not use $ref=\":", refString, "\""}, "")
 											}
-											res.AddErrors(errors.New(errors.CompositeErrorCode, "IMPORTANT!in %q: $ref are not allowed in headers. In context for header %q%s", o.Path, headerKey, msg))
+											res.AddErrors(refNotAllowedInHeaderMsg(o.Path, headerKey, msg))
 										}
 									}
 								}
@@ -165,6 +166,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 
 			// Validates property against "patternProperties" if applicable
 			// BUG(fredbi): succeededOnce is always false
+
 			// NOTE: how about regular properties which do not match patternProperties?
 			matched, succeededOnce, _ := o.validatePatternProperty(key, value, res)
 
@@ -253,7 +255,8 @@ func (o *objectValidator) validatePatternProperty(key string, value interface{},
 		}
 	}
 
-	// BUG(fredbi): can't get to here
+	// BUG(fredbi): can't get to here. Should remove dead code (commented out).
+
 	//if succeededOnce {
 	//	result.Inc()
 	//}
