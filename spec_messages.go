@@ -34,6 +34,9 @@ const (
 	// BothFormDataAndBodyError indicates that an operation specifies both a body and a formData parameter, which is forbidden
 	BothFormDataAndBodyError = "operation %q has both formData and body parameters. Only one such In: type may be used for a given operation"
 
+	// CannotResolveRefError when a $ref could not be resolved
+	CannotResolveReferenceError = "could not resolve reference in %s to $ref %s: %v"
+
 	// CircularAncestryDefinitionError ...
 	CircularAncestryDefinitionError = "definition %q has circular ancestry: %v"
 
@@ -43,17 +46,20 @@ const (
 	// DefaultValueItemsDoesNotValidateError results from an invalid default value provided for Items
 	DefaultValueItemsDoesNotValidateError = "default value for %s.items in %s does not validate its schema"
 
-	// NoParameterInPathError indicates that a path was found without any parameter
-	NoParameterInPathError = "path param %q has no parameter definition"
-
-	// NoValidResponseError indicates that no valid response description could be found for an operation
-	NoValidResponseError = "operation %q has no valid response"
-
 	// DefaultValueHeaderDoesNotValidateError results from an invalid default value provided in header
 	DefaultValueHeaderDoesNotValidateError = "in operation %q, default value in header %s for %s does not validate its schema"
 
 	// DefaultValueHeaderItemsDoesNotValidateError results from an invalid default value provided in header.items
 	DefaultValueHeaderItemsDoesNotValidateError = "in operation %q, default value in header.items %s for %s does not validate its schema"
+
+	// DefaultValueInDoesNotValidateError ...
+	DefaultValueInDoesNotValidateError = "in operation %q, default value in %s does not validate its schema"
+
+	// DuplicateParamNameError ...
+	DuplicateParamNameError = "duplicate parameter name %q for %q in operation %q"
+
+	// DuplicatePropertiesError ...
+	DuplicatePropertiesError = "definition %q contains duplicate properties: %v"
 
 	// ExampleValueDoesNotValidateError results from an invalid example value provided
 	ExampleValueDoesNotValidateError = "example value for %s in %s does not validate its schema"
@@ -70,29 +76,21 @@ const (
 	// ExampleValueInDoesNotValidateError ...
 	ExampleValueInDoesNotValidateError = "in operation %q, example value in %s does not validate its schema"
 
+	// EmptyPathParameterError means that a path parameter was found empty (e.g. "{}")
+	EmptyPathParameterError = "%q contains an empty path parameter"
+
 	// InvalidDocumentError states that spec validation only processes spec.Document objects
 	InvalidDocumentError = "spec validator can only validate spec.Document objects"
 
 	// InvalidItemsPatternError indicates an Items definition with invalid pattern
 	InvalidItemsPatternError = "%s for %q has invalid items pattern: %q"
 
-	// InvalidPatternInHeaderError indicates a header definition with an invalid pattern
-	InvalidPatternInHeaderError = "in operation %q, header %s for %s has invalid pattern %q: %v"
+	// InvalidParameterDefinitionError indicates an error detected on a parameter definition
+	InvalidParameterDefinitionError = "invalid definition for parameter %s in %s in operation %q"
 
-	// InvalidReferenceError indicates that a $ref property could not be resolved
-	InvalidReferenceError = "invalid ref %q"
-
-	// DefaultValueInDoesNotValidateError ...
-	DefaultValueInDoesNotValidateError = "in operation %q, default value in %s does not validate its schema"
-
-	// DuplicateParamNameError ...
-	DuplicateParamNameError = "duplicate parameter name %q for %q in operation %q"
-
-	// DuplicatePropertiesError ...
-	DuplicatePropertiesError = "definition %q contains duplicate properties: %v"
-
-	// EmptyPathParameterError means that a path parameter was found empty (e.g. "{}")
-	EmptyPathParameterError = "%q contains an empty path parameter"
+	// InvalidParameterDefinitionAsSchemaError indicates an error detected on a parameter definition, which was mistaken with a schema definition.
+	// Most likely, this situation is encountered whenever a $ref has been added as a sibling of the parameter definition.
+	InvalidParameterDefinitionAsSchemaError = "invalid definition as Schema for parameter %s in %s in operation %q"
 
 	// InvalidPatternError ...
 	InvalidPatternError = "pattern %q is invalid in %s"
@@ -100,8 +98,14 @@ const (
 	// InvalidPatternInError indicates an invalid pattern in a schema or items definition
 	InvalidPatternInError = "%s in %s has invalid pattern: %q"
 
+	// InvalidPatternInHeaderError indicates a header definition with an invalid pattern
+	InvalidPatternInHeaderError = "in operation %q, header %s for %s has invalid pattern %q: %v"
+
 	// InvalidPatternInParamError ...
 	InvalidPatternInParamError = "operation %q has invalid pattern in param %q: %q"
+
+	// InvalidReferenceError indicates that a $ref property could not be resolved
+	InvalidReferenceError = "invalid ref %q"
 
 	// MultipleBodyParamError indicates that an operation specifies multiple parameter with in: body
 	MultipleBodyParamError = "operation %q has more than 1 body param: %v"
@@ -109,8 +113,14 @@ const (
 	// NonUniqueOperationIDError indicates that the same operationId has been specified several times
 	NonUniqueOperationIDError = "%q is defined %d times"
 
+	// NoParameterInPathError indicates that a path was found without any parameter
+	NoParameterInPathError = "path param %q has no parameter definition"
+
 	// NoValidPathErrorOrWarning indicates that no single path could be validated. If Paths is empty, this message is only a warning.
 	NoValidPathErrorOrWarning = "spec has no valid path defined"
+
+	// NoValidResponseError indicates that no valid response description could be found for an operation
+	NoValidResponseError = "operation %q has no valid response"
 
 	// PathOverlapError ...
 	PathOverlapError = "path %s overlaps with %s"
@@ -124,8 +134,14 @@ const (
 	// PathParamNotRequiredError ...
 	PathParamRequiredError = "in operation %q,path param %q must be declared as required"
 
+	// RefNotAllowedInHeaderError indicates a $ref was found in a header definition, which is not allowed by Swagger
+	RefNotAllowedInHeaderError = "IMPORTANT!in %q: $ref are not allowed in headers. In context for header %q%s"
+
 	// RequiredButNotDefinedError ...
 	RequiredButNotDefinedError = "%q is present in required but not defined as property in definition %q"
+
+	// SomeParametersBrokenError indicates that some parameters could not be resolved, which might result in partial checks to be carried on
+	SomeParametersBrokenError = "some parameters definitions are broken in %q.%s. Cannot carry on full checks on parameters for operation %s"
 
 	// UnresolvedReferencesError indicates that at least one $ref could not be resolved
 	UnresolvedReferencesError = "some references could not be resolved in spec. First found: %v"
@@ -137,7 +153,7 @@ const (
 	ExamplesWithoutSchemaWarning = "Examples provided without schema in operation %q, %s"
 
 	// ExamplesMimeNotSupportedWarning indicates that examples are provided with a mime type different than application/json, which
-	// the validator dos not support yet
+	// the validator dos not support yetl
 	ExamplesMimeNotSupportedWarning = "No validation attempt for examples for media types other than application/json, in operation %q, %s"
 
 	// PathParamGarbledWarning ...
@@ -148,6 +164,10 @@ const (
 
 	// ReadOnlyAndRequiredWarning ...
 	ReadOnlyAndRequiredWarning = "Required property %s in %q should not be marked as both required and readOnly"
+
+	// RefShouldNotHaveSiblingsWarning indicates that a $ref was found with a sibling definition. This results in the $ref taking over its siblings,
+	// which is most likely not wanted.
+	RefShouldNotHaveSiblingsWarning = "$ref property should have no sibling in %q.%s"
 
 	// RequiredHasDefaultWarning indicates that a required parameter property should not have a default
 	RequiredHasDefaultWarning = "%s in %s has a default value and is required as parameter"
@@ -304,4 +324,22 @@ func examplesWithoutSchemaMsg(operation, response string) errors.Error {
 }
 func examplesMimeNotSupportedMsg(operation, response string) errors.Error {
 	return errors.New(errors.CompositeErrorCode, ExamplesMimeNotSupportedWarning, operation, response)
+}
+func refNotAllowedInHeaderMsg(path, header, ref string) errors.Error {
+	return errors.New(errors.CompositeErrorCode, RefNotAllowedInHeaderError, path, header, ref)
+}
+func cannotResolveRefMsg(path, ref string, err error) errors.Error {
+	return errors.New(errors.CompositeErrorCode, CannotResolveReferenceError, path, ref, err)
+}
+func invalidParameterDefinitionMsg(path, method, operationID string) errors.Error {
+	return errors.New(errors.CompositeErrorCode, InvalidParameterDefinitionError, path, method, operationID)
+}
+func invalidParameterDefinitionAsSchemaMsg(path, method, operationID string) errors.Error {
+	return errors.New(errors.CompositeErrorCode, InvalidParameterDefinitionAsSchemaError, path, method, operationID)
+}
+func someParametersBrokenMsg(path, method, operationID string) errors.Error {
+	return errors.New(errors.CompositeErrorCode, SomeParametersBrokenError, path, method, operationID)
+}
+func refShouldNotHaveSiblingsMsg(path, operationID string) errors.Error {
+	return errors.New(errors.CompositeErrorCode, RefShouldNotHaveSiblingsWarning, operationID, path)
 }

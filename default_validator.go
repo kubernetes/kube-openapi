@@ -17,7 +17,6 @@ package validate
 import (
 	"fmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 )
 
@@ -177,7 +176,7 @@ func (d *defaultValidator) validateDefaultValueSchemaAgainstSchema(path, in stri
 			}
 		}
 		if _, err := compileRegexp(schema.Pattern); err != nil {
-			res.AddErrors(errors.New(errors.CompositeErrorCode, "%s in %s has invalid pattern: %q", path, in, schema.Pattern))
+			res.AddErrors(invalidPatternInMsg(path, in, schema.Pattern))
 		}
 		if schema.AdditionalItems != nil && schema.AdditionalItems.Schema != nil {
 			// NOTE: we keep validating values, even though additionalItems is not supported by Swagger 2.0 (and 3.0 as well)

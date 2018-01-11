@@ -16,7 +16,6 @@ package validate
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 
 	"github.com/go-openapi/errors"
@@ -68,7 +67,7 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 	if schema.ID != "" || schema.Ref.String() != "" || schema.Ref.IsRoot() {
 		err := spec.ExpandSchema(schema, rootSchema, nil)
 		if err != nil {
-			msg := fmt.Sprintf("Invalid schema provided to SchemaValidator: %v", err)
+			msg := invalidSchemaProvidedMsg(err).Error()
 			panic(msg)
 		}
 	}
@@ -121,14 +120,14 @@ func (s *SchemaValidator) Validate(data interface{}) *Result {
 		d = swag.ToDynamicJSON(data)
 	}
 
-	// TODO: this part should be hander over to type validator
+	// TODO: this part should be handed over to type validator
 	// Handle special case of json.Number data (number marshalled as string)
 	isnumber := s.Schema.Type.Contains("number") || s.Schema.Type.Contains("integer")
 	if num, ok := data.(json.Number); ok && isnumber {
 		if s.Schema.Type.Contains("integer") { // avoid lossy conversion
 			in, erri := num.Int64()
 			if erri != nil {
-				result.AddErrors(fmt.Errorf("invalid type conversion in %s: %v ", s.Path, erri))
+				result.AddErrors(invalidTypeConversionMsg(s.Path, erri))
 				result.Inc()
 				return result
 			}
@@ -136,7 +135,7 @@ func (s *SchemaValidator) Validate(data interface{}) *Result {
 		} else {
 			nf, errf := num.Float64()
 			if errf != nil {
-				result.AddErrors(fmt.Errorf("invalid type conversion in %s: %v ", s.Path, errf))
+				result.AddErrors(invalidTypeConversionMsg(s.Path, errf))
 				result.Inc()
 				return result
 			}

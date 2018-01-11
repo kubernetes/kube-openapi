@@ -169,10 +169,8 @@ func (s *SpecValidator) validateNonEmptyPathParamNames() *Result {
 	return res
 }
 
-// TODO: there is a catch here. Duplicate operationId are not strictly forbidden, but
-// not supported by go-swagger. Shouldn't it be a warning?
-// Ideally, the behavior error vs warning should be an optional setting (e.g. go-swagger mode)
 func (s *SpecValidator) validateDuplicateOperationIDs() *Result {
+	// OperationID, if specified, must be unique accross the board
 	res := new(Result)
 	known := make(map[string]int)
 	for _, v := range s.analyzer.OperationIDs() {
