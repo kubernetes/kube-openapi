@@ -315,6 +315,49 @@ Dependencies: []string{
 `, funcBuffer.String())
 }
 
+func TestSchemaTypeFormatTag(t *testing.T) {
+	err, assert, buffer := testOpenAPITypeWritter(t, `
+package foo
+
+// Blah is a test.
+// +k8s:openapi-gen=true
+type Blah struct {
+	// Reference to type with schema-type-format tag
+	Foo Foo
+}
+
+// This type will not appear in the OpenAPI schema, because of the +k8s:openapi-gen:schema-type-format tag 
+// +k8s:openapi-gen:schema-type-format=object,
+type Foo struct {
+	String string
+}
+		`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(`"base/foo.Blah": {
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"Foo": {
+SchemaProps: spec.SchemaProps{
+Description: "Reference to type with schema-type-format tag",
+Type: []string{"object"},
+Format: "",
+},
+},
+},
+Required: []string{"Foo"},
+},
+},
+Dependencies: []string{
+},
+},
+`, buffer.String())
+}
+
 func TestFailingSample1(t *testing.T) {
 	_, funcErr, assert, _, _ := testOpenAPITypeWriter(t, `
 package foo
