@@ -156,6 +156,40 @@ var _ = Describe("Reading apps/v1beta1/Deployment from v1.11 openAPIData", func(
 	})
 })
 
+var _ = Describe("Reading apps/v1beta1/ControllerRevision from v1.11 openAPIData", func() {
+	var models proto.Models
+	BeforeEach(func() {
+		s, err := fakeSchemaNext.OpenAPISchema()
+		Expect(err).To(BeNil())
+		models, err = proto.NewOpenAPIData(s)
+		Expect(err).To(BeNil())
+	})
+
+	model := "io.k8s.api.apps.v1beta1.ControllerRevision"
+	var schema proto.Schema
+	It("should lookup the Schema by its model name", func() {
+		schema = models.LookupModel(model)
+		Expect(schema).ToNot(BeNil())
+	})
+
+	var cr *proto.Kind
+	It("data property should be map[string]Arbitrary", func() {
+		cr = schema.(*proto.Kind)
+		Expect(cr).ToNot(BeNil())
+		Expect(cr.Fields).To(HaveKey("data"))
+
+		data := cr.Fields["data"].(*proto.Map)
+		Expect(data).ToNot(BeNil())
+		Expect(data.GetName()).To(Equal("Map of Arbitrary value (primitive, object or array)"))
+		Expect(data.GetPath().Get()).To(Equal([]string{"io.k8s.api.apps.v1beta1.ControllerRevision", ".data"}))
+
+		arbitrary := data.SubType.(*proto.Arbitrary)
+		Expect(arbitrary).ToNot(BeNil())
+		Expect(arbitrary.GetName()).To(Equal("Arbitrary value (primitive, object or array)"))
+		Expect(arbitrary.GetPath().Get()).To(Equal([]string{"io.k8s.api.apps.v1beta1.ControllerRevision", ".data"}))
+	})
+})
+
 var _ = Describe("Reading authorization.k8s.io/v1/SubjectAccessReview from openAPIData", func() {
 	var models proto.Models
 	BeforeEach(func() {
