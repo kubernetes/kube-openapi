@@ -27,8 +27,9 @@ import (
 )
 
 var fakeSchema = testing.Fake{Path: filepath.Join("testing", "swagger.json")}
+var fakeSchemaNext = testing.Fake{Path: filepath.Join("testing", "swagger_next.json")}
 
-var _ = Describe("Reading apps/v1beta1/Deployment from openAPIData", func() {
+var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func() {
 	var models proto.Models
 	BeforeEach(func() {
 		s, err := fakeSchema.OpenAPISchema()
@@ -129,6 +130,29 @@ var _ = Describe("Reading apps/v1beta1/Deployment from openAPIData", func() {
 		key := spec.Fields["template"].(proto.Reference)
 		Expect(key).ToNot(BeNil())
 		Expect(key.Reference()).To(Equal("io.k8s.api.core.v1.PodTemplateSpec"))
+	})
+})
+
+var _ = Describe("Reading apps/v1beta1/Deployment from v1.11 openAPIData", func() {
+	var models proto.Models
+	BeforeEach(func() {
+		s, err := fakeSchemaNext.OpenAPISchema()
+		Expect(err).To(BeNil())
+		models, err = proto.NewOpenAPIData(s)
+		Expect(err).To(BeNil())
+	})
+
+	model := "io.k8s.api.apps.v1beta1.Deployment"
+	var schema proto.Schema
+	It("should lookup the Schema by its model name", func() {
+		schema = models.LookupModel(model)
+		Expect(schema).ToNot(BeNil())
+	})
+
+	var deployment *proto.Kind
+	It("should be a Kind", func() {
+		deployment = schema.(*proto.Kind)
+		Expect(deployment).ToNot(BeNil())
 	})
 })
 
