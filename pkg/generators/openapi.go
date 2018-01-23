@@ -42,6 +42,7 @@ const tagOptional = "optional"
 const (
 	tagValueTrue               = "true"
 	tagValueFalse              = "false"
+	tagPattern                 = "pattern"
 	tagExtensionPrefix         = "x-kubernetes-"
 	tagPatchStrategy           = "patchStrategy"
 	tagPatchMergeKey           = "patchMergeKey"
@@ -542,6 +543,11 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	typeString, format := openapi.GetOpenAPITypeFormat(t.String())
 	if typeString != "" {
 		g.generateSimpleProperty(typeString, format)
+		if pattern, err := getSingleTagsValue(m.CommentLines, tagPattern); err == nil {
+			if pattern != "" {
+				g.Do("Pattern: \"$.$\",\n", pattern)
+			}
+		}
 		g.Do("},\n},\n", nil)
 		return nil
 	}
