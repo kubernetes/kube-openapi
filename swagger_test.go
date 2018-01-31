@@ -71,7 +71,7 @@ func Test_GoSwaggerTestCases(t *testing.T) {
 		"fixtures/go-swagger/bugs/453/swagger.yml":                       true,
 		"fixtures/go-swagger/bugs/455/swagger.yml":                       true,
 		"fixtures/go-swagger/bugs/628/swagger.yml":                       true,
-		"fixtures/go-swagger/bugs/733/swagger.json":                      true,
+		"fixtures/go-swagger/bugs/733/swagger.json":                      false,
 		"fixtures/go-swagger/bugs/763/swagger.yml":                       true,
 		"fixtures/go-swagger/bugs/774/swagger.yml":                       true,
 		"fixtures/go-swagger/bugs/776/error.yaml":                        true,

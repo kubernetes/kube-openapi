@@ -197,6 +197,22 @@ fixture-additional-items-invalid-values.yaml:
   - message: '200.default.3.z in body must be of type number: "string"'
     withContinueOnErrors: true
     isRegexp: false
+  expectedWarnings:
+  - message: 'in operation "getGoodOp", example value in response 200 does not validate its schema'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: '/servers/getBad1.0.first in body must be of type string: "number"'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: '/servers/getBad1.3.z in body must be of type number: "boolean"'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: '200.example.0.first in body must be of type string: "number"'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: '200.example.3.z in body must be of type number: "boolean"'
+    withContinueOnErrors: true
+    isRegexp: false
   - message: 'example value for addItems in body does not validate its schema'
     withContinueOnErrors: true
     isRegexp: false
@@ -215,22 +231,6 @@ fixture-additional-items-invalid-values.yaml:
   - message: 'default.example.3.z in body must be of type number: "boolean"'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/servers/getBad1.0.first in body must be of type string: "number"'
-    withContinueOnErrors: true
-    isRegexp: false
-  - message: '/servers/getBad1.3.z in body must be of type number: "boolean"'
-    withContinueOnErrors: true
-    isRegexp: false
-  - message: 'in operation "getGoodOp", example value in response 200 does not validate its schema'
-    withContinueOnErrors: true
-    isRegexp: false
-  - message: '200.example.0.first in body must be of type string: "number"'
-    withContinueOnErrors: true
-    isRegexp: false
-  - message: '200.example.3.z in body must be of type number: "boolean"'
-    withContinueOnErrors: true
-    isRegexp: false
-  expectedWarnings: []
 fixture-no-response.yaml:
   comment: 
   todo: 
@@ -304,26 +304,26 @@ fixture-161-2.json:
   - message: 'requestBody.default in body must be of type object: "string"'
     withContinueOnErrors: false
     isRegexp: false
+  expectedWarnings:
   - message: 'example value for requestBody in body does not validate its schema'
     withContinueOnErrors: false
     isRegexp: false
   - message: 'requestBody.example.parent.id in body must be of type number: "string"'
     withContinueOnErrors: false
     isRegexp: false
-  expectedWarnings: []
 fixture-161-good.json:
   comment: 'Issue#161: this is the corresponding corrected spec which should be valid. Ah! But now examples are invalid...'
   todo: 
   expectedLoadError: false
-  expectedValid: false
-  expectedMessages:
+  expectedValid: true
+  expectedMessages: []
+  expectedWarnings:
   - message: 'example value for requestBody in body does not validate its schema'
     withContinueOnErrors: false
     isRegexp: false
   - message: 'requestBody.example.parent.id in body must be of type number: "string"'
     withContinueOnErrors: false
     isRegexp: false
-  expectedWarnings: []
 fixture-161.json:
   comment: 'Issue#161: default value as object'
   todo: 
@@ -333,10 +333,11 @@ fixture-161.json:
   - message: 'default value for requestBody in body does not validate its schema'
     withContinueOnErrors: false
     isRegexp: false
-  - message: 'requestBody.example.name in body must be of type object: "string"'
+  - message: 'requestBody.default in body must be of type object: "string"'
     withContinueOnErrors: false
     isRegexp: false
-  - message: 'requestBody.default in body must be of type object: "string"'
+  expectedWarnings:
+  - message: 'requestBody.example.name in body must be of type object: "string"'
     withContinueOnErrors: false
     isRegexp: false
   - message: 'example value for requestBody in body does not validate its schema'
@@ -345,7 +346,6 @@ fixture-161.json:
   - message: 'requestBody.example.parent.id in body must be of type number: "string"'
     withContinueOnErrors: false
     isRegexp: false
-  expectedWarnings: []
 fixture-342-2.yaml:
   comment: Botched correction attempt for fixture-342
   todo: 
@@ -734,16 +734,7 @@ fixture-1231.yaml:
   - message: 'parameters.customerIdParam.in in body should be one of [header]'
     withContinueOnErrors: false
     isRegexp: false
-  - message: '/v1/broker/{customer_id}.id in body must be of type uuid: "mycustomer"'
-    withContinueOnErrors: true
-    isRegexp: false
-  - message: '/v1/broker/{customer_id}.create_date in body must be of type date-time:
-      "bad-date"'
-    withContinueOnErrors: true
-    isRegexp: false
-  - message: 'customer_id in path must be of type uuid: "xyz"'
-    withContinueOnErrors: true
-    isRegexp: false
+  expectedWarnings:
   - message: 'definitions.customer.create_date.example in body must be of type date-time: "float64"'
     withContinueOnErrors: true
     isRegexp: false
@@ -762,7 +753,16 @@ fixture-1231.yaml:
   - message: 'example value for customer_id in path does not validate its schema'
     withContinueOnErrors: true
     isRegexp: false
-  expectedWarnings: []
+  - message: '/v1/broker/{customer_id}.id in body must be of type uuid: "mycustomer"'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: '/v1/broker/{customer_id}.create_date in body must be of type date-time:
+      "bad-date"'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: 'customer_id in path must be of type uuid: "xyz"'
+    withContinueOnErrors: true
+    isRegexp: false
 fixture-1238.yaml:
   comment: ""
   todo: ""
@@ -1125,15 +1125,15 @@ fixture-invalid-example-property.yaml:
   comment: 
   todo: 
   expectedLoadError: false
-  expectedValid: false
-  expectedMessages:
+  expectedValid: true
+  expectedMessages: []
+  expectedWarnings:
   - message: example value for getSomeIds in body does not validate its schema
     withContinueOnErrors: false
     isRegexp: false
   - message: 'getSomeIds.id.example in body must be of type number: "string"'
     withContinueOnErrors: false
     isRegexp: false
-  expectedWarnings: []
 fixture-valid-example-property.yaml:
   comment: 
   todo: 
