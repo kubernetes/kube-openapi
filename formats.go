@@ -47,6 +47,9 @@ func (f *formatValidator) Applies(source interface{}, kind reflect.Kind) bool {
 		case *spec.Schema:
 			sch := source.(*spec.Schema)
 			return kind == reflect.String && f.KnownFormats.ContainsName(sch.Format)
+		case *spec.Header:
+			hdr := source.(*spec.Header)
+			return kind == reflect.String && f.KnownFormats.ContainsName(hdr.Format)
 		}
 		return false
 	}

@@ -1155,3 +1155,42 @@ petstore-expanded.json:
     withContinueOnErrors: true
     isRegexp: true
   expectedWarnings: []
+gentest.yaml:
+  comment: many parameters situations
+  todo: 
+  expectedLoadError: false
+  expectedValid: true
+  expectedMessages: []
+  expectedWarnings:
+  - message: deepNested1 in query has a default value and is required as parameter
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: queryParam2 in query has a default value and is required as parameter
+    withContinueOnErrors: false
+    isRegexp: false
+gentest2.yaml:
+  comment: many parameters situations with default values
+  todo: 
+  expectedLoadError: false
+  expectedValid: true
+  expectedMessages: []
+  expectedWarnings:
+  - message: deepNested1 in query has a default value and is required as parameter
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: queryParam2 in query has a default value and is required as parameter
+    withContinueOnErrors: false
+    isRegexp: false
+gentest3.yaml:
+  comment: default format in headers
+  todo: 
+  expectedLoadError: false
+  expectedValid: false
+  expectedMessages:
+  - message: 'in operation "gimmeLottaHeaders", default value in header sanity-check-header-2 for response 201 does not validate its schema'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'sanity-check-header-2 in response must be of type date: "x1972-01-01"'
+    withContinueOnErrors: false
+    isRegexp: false
+  expectedWarnings: []
