@@ -60,6 +60,7 @@ func (f *formatValidator) Applies(source interface{}, kind reflect.Kind) bool {
 
 func (f *formatValidator) Validate(val interface{}) *Result {
 	result := new(Result)
+	debugLog("validating \"%v\" against format: %s", val, f.Format)
 
 	if err := FormatOf(f.Path, f.In, f.Format, val.(string), f.KnownFormats); err != nil {
 		result.AddErrors(err)

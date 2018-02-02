@@ -228,8 +228,17 @@ func (r *responseHelper) expandResponseRef(response *spec.Response, path string,
 			errorHelp.addPointerError(res, err, response.Ref.String(), strings.Join([]string{"\"" + path + "\"", response.ResponseProps.Schema.ID}, "."))
 			break
 		}
-		// Here we may expect type assertion to be guaranteed (not like in the Parameter case)
-		nr := obj.(spec.Response)
+		// NOTE: we may no expect type assertion to be guaranteed (like in the Parameter case):
+		// e.g: a $ref may override Response with Schema
+		nr, ok := obj.(spec.Response)
+		if !ok {
+			// Most likely, a $ref with a sibling is an unwanted situation: in itself this is a warning...
+			res.AddWarnings(refShouldNotHaveSiblingsMsg(path, "responses"))
+			// but we detect it because of the following error:
+			// schema took over Response for an unexplained reason
+			res.AddErrors(invalidResponseDefinitionAsSchemaMsg(path, "responses"))
+			return nil, res
+		}
 		response = &nr
 	}
 	return response, res
