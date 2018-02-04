@@ -179,7 +179,7 @@ func (h *paramHelper) resolveParam(path, method, operationID string, ppr spec.Pa
 	for pr.Ref.String() != "" {
 		obj, _, err := pr.Ref.GetPointer().Get(sw)
 		if err != nil { // Safeguard
-			// NOTE: it looks like the new spec.Ref.GetPointer() method expands the full tree, so this code is no more reachable
+			// NOTE: we may enter enter here when the whole parameter is an unresolved $ref
 			refPath := strings.Join([]string{"\"" + path + "\"", method}, ".")
 			errorHelp.addPointerError(res, err, pr.Ref.String(), refPath)
 			pr = spec.Parameter{}
@@ -219,13 +219,13 @@ type responseHelper struct {
 }
 
 func (r *responseHelper) expandResponseRef(response *spec.Response, path string, s *SpecValidator) (*spec.Response, *Result) {
-	// Recursively follow possible $ref's on responses
+	// Recursively follows possible $ref's on responses
 	res := new(Result)
 	for response.Ref.String() != "" {
 		obj, _, err := response.Ref.GetPointer().Get(s.spec.Spec())
 		if err != nil { // Safeguard
-			// NOTE: with ref expansion in spec, this code is no more reachable
-			errorHelp.addPointerError(res, err, response.Ref.String(), strings.Join([]string{"\"" + path + "\"", response.ResponseProps.Schema.ID}, "."))
+			// NOTE: we may enter here when the whole response is an unresolved $ref.
+			errorHelp.addPointerError(res, err, response.Ref.String(), path)
 			break
 		}
 		// NOTE: we may no expect type assertion to be guaranteed (like in the Parameter case):
