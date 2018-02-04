@@ -142,7 +142,7 @@ func (d *Duration) Scan(raw interface{}) error {
 	return nil
 }
 
-// Value converts Duration to a primitive value ready to written to a database.
+// Value converts Duration to a primitive value ready to be written to a database.
 func (d Duration) Value() (driver.Value, error) {
 	return driver.Value(int64(d)), nil
 }
