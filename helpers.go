@@ -170,16 +170,7 @@ func (h *paramHelper) safeExpandedParamsFor(path, method, operationID string, re
 				res.AddErrors(err)
 				return true
 			}) {
-			pr, red := h.resolveParam(path, method, operationID, &ppr, s)
-			if red.HasErrors() { // Safeguard
-				// NOTE: it looks like the new spec.Ref.GetPointer() method expands the full tree, so this code is no more reachable
-				res.Merge(red)
-				if red.HasErrors() && !s.Options.ContinueOnErrors {
-					break
-				}
-				continue
-			}
-			params = append(params, *pr)
+			params = append(params, ppr)
 		}
 	}
 	return
@@ -209,12 +200,11 @@ func (h *paramHelper) checkExpandedParam(pr *spec.Parameter, path, in, operation
 	// Try to explain why... best guess
 	if pr.In == "body" && pr.SimpleSchema != simpleZero {
 		// Most likely, a $ref with a sibling is an unwanted situation: in itself this is a warning...
-		res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
-		res.AddErrors(invalidParameterDefinitionAsSchemaMsg(path, in, operation))
-	} else if pr.In != "body" && pr.Schema != nil {
 		// but we detect it because of the following error:
 		// schema took over Parameter for an unexplained reason
-		// TODO: distinguish situation from previous one with relevant message
+		res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
+		res.AddErrors(invalidParameterDefinitionMsg(path, in, operation))
+	} else if pr.In != "body" && pr.Schema != nil {
 		res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
 		res.AddErrors(invalidParameterDefinitionAsSchemaMsg(path, in, operation))
 	} else if (pr.In == "body" && pr.Schema == nil) || (pr.In != "body" && pr.SimpleSchema == simpleZero) { // Safeguard

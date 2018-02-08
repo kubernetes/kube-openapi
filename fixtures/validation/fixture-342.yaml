@@ -26,6 +26,9 @@ paths:
           in: query
           required: true
           $ref: "#/definitions/sample_info/properties/sid"  # <-- error: a whole schema replaces the parameter
+        - $ref: "#/parameters/wrong"  # <-- error: wrong param props
+        - $ref: "#/parameters/notbetter"  # <-- error: wrong param schema
+        - $ref: "#/parameters/stillnogood"  # <-- error: wrong param schema
         - name: pquery2
           in: query
           required: true
@@ -37,6 +40,22 @@ paths:
       responses:
         '200':
 
+parameters:
+  wrong:
+    theName: wrongNameProperty
+    theType: wrongTypePropery
+  notbetter:
+    type: object
+    properties:
+      whenDidThatHappen:
+        type: string
+        format: date
+  stillnogood:
+    schema:
+      type: object
+      properties:
+        aintnogood:
+          type: integer
 definitions:
   sample_info:
     type: object

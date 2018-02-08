@@ -440,7 +440,7 @@ func verifyLoadErrors(t *testing.T, err error, expectedMessages []ExpectedMessag
 // Test unitary fixture for dev and bug fixing
 func Test_SingleFixture(t *testing.T) {
 	t.SkipNow()
-	path := filepath.Join("fixtures", "validation", "fixture-bad-response.yaml")
+	path := filepath.Join("fixtures", "validation", "fixture-342.yaml")
 	doc, err := loads.Spec(path)
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)

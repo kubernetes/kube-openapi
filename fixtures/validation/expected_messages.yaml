@@ -366,6 +366,9 @@ fixture-342.yaml:
   - message: 'paths./get_main_object.get.parameters.$ref in body is a forbidden property'
     withContinueOnErrors: false
     isRegexp: false
+  - message: 'invalid definition for parameter sid in body in operation ""'
+    withContinueOnErrors: true
+    isRegexp: false
   - message: 'paths./get_main_object.get.parameters.in in body should be one of [header]'
     withContinueOnErrors: false
     isRegexp: false
@@ -378,23 +381,65 @@ fixture-342.yaml:
   - message: 'invalid ref "nowhere.yaml#/definitions/sample_info/properties/sid"'
     withContinueOnErrors: true
     isRegexp: false
-  - message: 'invalid definition as Schema for parameter sid in body in operation ""'
+  - message: 'invalid definition as Schema for parameter  in  in operation ""'
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: 'invalid definition for parameter  in  in operation ""'
     withContinueOnErrors: true
     isRegexp: false
   - message: 'could not resolve reference in "/get_main_object".GET to $ref nowhere.yaml#/definitions/sample_info/properties/sid: open fixtures/validation/nowhere.yaml: no such file or directory'
     withContinueOnErrors: true
     isRegexp: false
-    #- message: 'resolved reference is not a parameter: "#/definitions/sample_info/properties/sid"'
-    #withContinueOnErrors: true
-    #isRegeexp: false
-    #- message: 'some parameters definitions are broken in "/get_main_object".GET. Cannot carry on full checks on parameters for operation'
-    #withContinueOnErrors: true
-    #isRegexp: false
+  - message: '"parameters.wrong" must validate one and only one schema (oneOf). Found none valid'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.wrong.theName in body is a forbidden property'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.wrong.theType in body is a forbidden property'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.wrong.name in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.wrong.in in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.wrong.type in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: '"parameters.notbetter" must validate one and only one schema (oneOf). Found none valid'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.notbetter.properties in body is a forbidden property'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.notbetter.type in body should be one of [string number boolean integer array]'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.notbetter.name in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.notbetter.in in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: '"parameters.stillnogood" must validate one and only one schema (oneOf). Found none valid'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.stillnogood.name in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
+  - message: 'parameters.stillnogood.in in body is required'
+    withContinueOnErrors: false
+    isRegexp: false
   expectedWarnings:
   - message: 'definition "#/definitions/sample_info" is not used anywhere'
     withContinueOnErrors: true
     isRegexp: false
   - message: $ref property should have no sibling in "".sid
+    withContinueOnErrors: true
+    isRegexp: false
+  - message: $ref property should have no sibling in "".
     withContinueOnErrors: true
     isRegexp: false
 fixture-581-good-numbers.yaml:
