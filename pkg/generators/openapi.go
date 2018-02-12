@@ -422,7 +422,7 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension) {
 }
 
 // TODO(#44005): Move this validation outside of this generator (probably to policy verifier)
-func (g openAPITypeWriter) validatePatchTags(m *types.Member, parent *types.Type) error {
+func validatePatchTags(m *types.Member, parent *types.Type) error {
 	// TODO: Remove patch struct tag validation because they we are now consuming OpenAPI on server.
 	for _, tagKey := range tempPatchTags {
 		structTagValue := reflect.StructTag(m.Tags).Get(tagKey)
@@ -439,6 +439,20 @@ func (g openAPITypeWriter) validatePatchTags(m *types.Member, parent *types.Type
 }
 
 func (g openAPITypeWriter) generateDescription(CommentLines []string) {
+	postDoc := parseDescription(CommentLines)
+	postDoc = strings.TrimRight(postDoc, "\n")
+	postDoc = strings.Replace(postDoc, "\\\"", "\"", -1) // replace user's \" to "
+	postDoc = strings.Replace(postDoc, "\"", "\\\"", -1) // Escape "
+	postDoc = strings.Replace(postDoc, "\n", "\\n", -1)
+	postDoc = strings.Replace(postDoc, "\t", "\\t", -1)
+	postDoc = strings.Trim(postDoc, " ")
+	if postDoc != "" {
+		g.Do("Description: \"$.$\",\n", postDoc)
+	}
+}
+
+// parseDescription derives an openapi description from a set of comment lines
+func parseDescription(lines []string) string {
 	var buffer bytes.Buffer
 	delPrevChar := func() {
 		if buffer.Len() > 0 {
@@ -446,7 +460,7 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 		}
 	}
 
-	for _, line := range CommentLines {
+	for _, line := range lines {
 		// Ignore all lines after ---
 		if line == "---" {
 			break
@@ -469,16 +483,7 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 			buffer.WriteString(line)
 		}
 	}
-
-	postDoc := strings.TrimRight(buffer.String(), "\n")
-	postDoc = strings.Replace(postDoc, "\\\"", "\"", -1) // replace user's \" to "
-	postDoc = strings.Replace(postDoc, "\"", "\\\"", -1) // Escape "
-	postDoc = strings.Replace(postDoc, "\n", "\\n", -1)
-	postDoc = strings.Replace(postDoc, "\t", "\\t", -1)
-	postDoc = strings.Trim(postDoc, " ")
-	if postDoc != "" {
-		g.Do("Description: \"$.$\",\n", postDoc)
-	}
+	return buffer.String()
 }
 
 func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type) error {
@@ -486,7 +491,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	if name == "" {
 		return nil
 	}
-	if err := g.validatePatchTags(m, parent); err != nil {
+	if err := validatePatchTags(m, parent); err != nil {
 		return err
 	}
 	g.Do("\"$.$\": {\n", name)
