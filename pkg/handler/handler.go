@@ -28,6 +28,8 @@ import (
 	"sync"
 	"time"
 
+	"bitbucket.org/ww/goautoneg"
+
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/NYTimes/gziphandler"
@@ -219,33 +221,43 @@ func RegisterOpenAPIVersionedService(openapiSpec *spec.Swagger, servePath string
 		return nil, err
 	}
 
-	files := map[string]func() ([]byte, string, time.Time){
-		"application/json":                                           o.getSwaggerBytes,
-		"application/com.github.proto-openapi.spec.v2@v1.0+protobuf": o.getSwaggerPbBytes,
+	accepted := []struct {
+		Type           string
+		SubType        string
+		GetDataAndETag func() ([]byte, string, time.Time)
+	}{
+		{"application", "json", o.getSwaggerBytes},
+		{"application", "com.github.proto-openapi.spec.v2@v1.0+protobuf", o.getSwaggerPbBytes},
 	}
 
 	handler.Handle(servePath, gziphandler.GzipHandler(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var getDataAndETag func() ([]byte, string, time.Time)
-			// Get the first value associated with header "Accept"
-			decipherableFormat := r.Header.Get("Accept")
-			if decipherableFormat == "" || decipherableFormat == "*/*" {
-				// If "Accept" header is not set or "*/*", serve json file as default
-				decipherableFormat = "application/json"
+			decipherableFormats := r.Header.Get("Accept")
+			if decipherableFormats == "" {
+				decipherableFormats = "*/*"
 			}
+			clauses := goautoneg.ParseAccept(decipherableFormats)
 			w.Header().Add("Vary", "Accept")
+			for _, clause := range clauses {
+				for _, accepts := range accepted {
+					if clause.Type != accepts.Type && clause.Type != "*" {
+						continue
+					}
+					if clause.SubType != accepts.SubType && clause.SubType != "*" {
+						continue
+					}
 
-			getDataAndETag = files[decipherableFormat]
-			if getDataAndETag == nil {
-				// Return 406 for not acceptable format
-				w.WriteHeader(406)
-				return
+					// serve the first matching media type in the sorted clause list
+					data, etag, lastModified := accepts.GetDataAndETag()
+					w.Header().Set("Etag", etag)
+					// ServeContent will take care of caching using eTag.
+					http.ServeContent(w, r, servePath, lastModified, bytes.NewReader(data))
+					return
+				}
 			}
-			data, etag, lastModified := getDataAndETag()
-			w.Header().Set("Etag", etag)
-
-			// ServeContent will take care of caching using eTag.
-			http.ServeContent(w, r, servePath, lastModified, bytes.NewReader(data))
+			// Return 406 for not acceptable format
+			w.WriteHeader(406)
+			return
 		}),
 	))
 
