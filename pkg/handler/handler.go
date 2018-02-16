@@ -81,7 +81,7 @@ func computeETag(data []byte) string {
 }
 
 // NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.9. The design doc and deprecation process
+// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
 // are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
 //
 // BuildAndRegisterOpenAPIService builds the spec and registers a handler to provides access to it.
@@ -95,7 +95,7 @@ func BuildAndRegisterOpenAPIService(servePath string, webServices []*restful.Web
 }
 
 // NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.9. The design doc and deprecation process
+// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
 // are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
 //
 // RegisterOpenAPIService registers a handler to provides access to provided swagger spec.
