@@ -65,3 +65,37 @@ func TestDefaulter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expected, x)
 }
+
+func TestDefaulterSimple(t *testing.T) {
+	schema := spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Properties: map[string]spec.Schema{
+				"int": spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Default: float64(42),
+					},
+				},
+				"str": spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Default: "Hello",
+					},
+				},
+			},
+		},
+	}
+	validator := NewSchemaValidator(&schema, nil, "", strfmt.Default)
+	x := map[string]interface{}{}
+	t.Logf("Before: %v", x)
+	r := validator.Validate(x)
+	assert.False(t, r.HasErrors(), fmt.Sprintf("unexpected validation error: %v", r.AsError()))
+
+	r.ApplyDefaults()
+	t.Logf("After: %v", x)
+	var expected interface{}
+	err := json.Unmarshal([]byte(`{
+		"int": 42,
+		"str": "Hello"
+	}`), &expected)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, x)
+}
