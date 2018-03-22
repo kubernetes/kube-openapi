@@ -26,21 +26,29 @@ type openAPIGeneratorJSON struct {
 	targetPkg, targetType string
 }
 
-func (g openAPIGeneratorJSON) Execute() error {
+func (g openAPIGeneratorJSON) ExecuteAndWrite() error {
+	schema, err := g.Generate()
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(g.output).Encode(schema)
+}
+
+func (g openAPIGeneratorJSON) Generate() (*spec.Schema, error) {
 	b := parser.New()
 	if err := b.AddDir(g.targetPkg); err != nil {
-		return err
+		return nil, err
 	}
 	u, err := b.FindTypes()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	pkg := u.Package(g.targetPkg)
 	t := pkg.Type(g.targetType)
 	return g.generate(t)
 }
 
-func (g openAPIGeneratorJSON) generate(t *types.Type) error {
+func (g openAPIGeneratorJSON) generate(t *types.Type) (*spec.Schema, error) {
 	schema := &spec.Schema{}
 	// Only generate for struct type and ignore the rest
 	switch t.Kind {
@@ -49,14 +57,14 @@ func (g openAPIGeneratorJSON) generate(t *types.Type) error {
 		// This really would involve compiling the code in question and calling
 		// the function.
 		if hasOpenAPIDefinitionMethod(t) {
-			return nil
+			return nil, fmt.Errorf("Cannot compute validation schema for manual openapi definitions")
 		}
 		props := spec.SchemaProps{
 			Description: strings.TrimSpace(parseDescription(t.CommentLines)),
 		}
 		properties, req, err := g.generateMembers(t, true)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		props.Properties = properties
 		props.Required = req
@@ -64,11 +72,11 @@ func (g openAPIGeneratorJSON) generate(t *types.Type) error {
 
 		extensions, err := g.generateExtensions(t.CommentLines)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		schema.VendorExtensible = *extensions
 	}
-	return json.NewEncoder(g.output).Encode(schema)
+	return schema, nil
 }
 
 func (g openAPIGeneratorJSON) generateMembers(t *types.Type, root bool) (map[string]spec.Schema, []string, error) {
