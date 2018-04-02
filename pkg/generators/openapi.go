@@ -40,14 +40,21 @@ const tagOptional = "optional"
 
 // Known values for the tag.
 const (
-	tagValueTrue               = "true"
-	tagValueFalse              = "false"
-	tagExtensionPrefix         = "x-kubernetes-"
-	tagPatchStrategy           = "patchStrategy"
-	tagPatchMergeKey           = "patchMergeKey"
-	patchStrategyExtensionName = "patch-strategy"
-	patchMergeKeyExtensionName = "patch-merge-key"
+	tagValueTrue  = "true"
+	tagValueFalse = "false"
 )
+
+// First-class Kubernetes extension tags within comments.
+var tags = [...]string{
+	"patchMergeKey",
+	"patchStrategy",
+}
+
+// Extension tag to openapi extension string.
+var tagToExtension = map[string]string{
+	"patchStrategy": "x-kubernetes-patch-strategy",
+	"patchMergeKey": "x-kubernetes-patch-merge-key",
+}
 
 func getOpenAPITagValue(comments []string) []string {
 	return types.ExtractCommentTags("+", comments)[tagName]
@@ -243,10 +250,6 @@ func getJsonTags(m *types.Member) []string {
 	return strings.Split(jsonTag, ",")
 }
 
-func getPatchTags(m *types.Member) (string, string) {
-	return reflect.StructTag(m.Tags).Get(tagPatchMergeKey), reflect.StructTag(m.Tags).Get(tagPatchStrategy)
-}
-
 func getReferableName(m *types.Member) string {
 	jsonTags := getJsonTags(m)
 	if len(jsonTags) > 0 {
@@ -411,14 +414,23 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	return nil
 }
 
+func isExtensionTag(tag string) bool {
+	isExtension := false
+	if strings.HasPrefix(tag, "x-kubernetes-") {
+		isExtension = true
+	}
+	return isExtension
+}
+
 func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 	tagValues := getOpenAPITagValue(CommentLines)
 	type NameValue struct {
 		Name, Value string
 	}
 	extensions := []NameValue{}
+	// First, generate extensions from "+k8s:openapi-gen=x-kubernetes-*" annotations.
 	for _, val := range tagValues {
-		if strings.HasPrefix(val, tagExtensionPrefix) {
+		if isExtensionTag(val) {
 			parts := strings.SplitN(val, ":", 2)
 			if len(parts) != 2 {
 				return fmt.Errorf("invalid extension value: %v", val)
@@ -426,20 +438,18 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 			extensions = append(extensions, NameValue{parts[0], parts[1]})
 		}
 	}
-	patchMergeKeyTag, err := getSingleTagsValue(CommentLines, tagPatchMergeKey)
-	if err != nil {
-		return err
+	// Next, generate extensions from "tags".
+	for _, tagKey := range tags {
+		tagValue, err := getSingleTagsValue(CommentLines, tagKey)
+		if err != nil {
+			return err
+		}
+		if len(tagValue) > 0 {
+			extensions = append(extensions, NameValue{tagToExtension[tagKey], tagValue})
+		}
 	}
-	if len(patchMergeKeyTag) > 0 {
-		extensions = append(extensions, NameValue{tagExtensionPrefix + patchMergeKeyExtensionName, patchMergeKeyTag})
-	}
-	patchStrategyTag, err := getSingleTagsValue(CommentLines, tagPatchStrategy)
-	if err != nil {
-		return err
-	}
-	if len(patchStrategyTag) > 0 {
-		extensions = append(extensions, NameValue{tagExtensionPrefix + patchStrategyExtensionName, patchStrategyTag})
-	}
+	// If there are generated extensions, write them out to schema.
+	// Example: "x-kubernetes-patch-strategy" : "merge"
 	if len(extensions) == 0 {
 		return nil
 	}
@@ -453,23 +463,17 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 }
 
 // TODO(#44005): Move this validation outside of this generator (probably to policy verifier)
-func (g openAPITypeWriter) validatePatchTags(m *types.Member, parent *types.Type) error {
-	patchMergeKeyStructTag, patchStrategyStructTag := getPatchTags(m)
-	patchMergeKeyCommentTag, err := getSingleTagsValue(m.CommentLines, tagPatchMergeKey)
-	if err != nil {
-		return err
-	}
-	patchStrategyCommentTag, err := getSingleTagsValue(m.CommentLines, tagPatchStrategy)
-	if err != nil {
-		return err
-	}
-	if patchMergeKeyStructTag != patchMergeKeyCommentTag {
-		return fmt.Errorf("patchMergeKey in comment and struct tags should match for member (%s) of (%s)",
-			m.Name, parent.Name.String())
-	}
-	if patchStrategyStructTag != patchStrategyCommentTag {
-		return fmt.Errorf("patchStrategy in comment and struct tags should match for member (%s) of (%s)",
-			m.Name, parent.Name.String())
+func (g openAPITypeWriter) validateTags(m *types.Member, parent *types.Type) error {
+	for _, tagKey := range tags {
+		structTagValue := reflect.StructTag(m.Tags).Get(tagKey)
+		commentTagValue, err := getSingleTagsValue(m.CommentLines, tagKey)
+		if err != nil {
+			return err
+		}
+		if structTagValue != commentTagValue {
+			return fmt.Errorf("Tags in comment and struct should match for member (%s) of (%s)",
+				m.Name, parent.Name.String())
+		}
 	}
 	return nil
 }
@@ -522,7 +526,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	if name == "" {
 		return nil
 	}
-	if err := g.validatePatchTags(m, parent); err != nil {
+	if err := g.validateTags(m, parent); err != nil {
 		return err
 	}
 	g.Do("\"$.$\": {\n", name)
