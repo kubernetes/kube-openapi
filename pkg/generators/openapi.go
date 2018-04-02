@@ -44,16 +44,10 @@ const (
 	tagValueFalse = "false"
 )
 
-// First-class Kubernetes extension tags within comments.
-var tags = [...]string{
-	"patchMergeKey",
-	"patchStrategy",
-}
-
 // Extension tag to openapi extension string.
 var tagToExtension = map[string]string{
-	"patchStrategy": "x-kubernetes-patch-strategy",
 	"patchMergeKey": "x-kubernetes-patch-merge-key",
+	"patchStrategy": "x-kubernetes-patch-strategy",
 }
 
 func getOpenAPITagValue(comments []string) []string {
@@ -439,7 +433,7 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 		}
 	}
 	// Next, generate extensions from "tags".
-	for _, tagKey := range tags {
+	for tagKey := range tagToExtension {
 		tagValue, err := getSingleTagsValue(CommentLines, tagKey)
 		if err != nil {
 			return err
@@ -464,7 +458,7 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 
 // TODO(#44005): Move this validation outside of this generator (probably to policy verifier)
 func (g openAPITypeWriter) validateTags(m *types.Member, parent *types.Type) error {
-	for _, tagKey := range tags {
+	for tagKey := range tagToExtension {
 		structTagValue := reflect.StructTag(m.Tags).Get(tagKey)
 		commentTagValue, err := getSingleTagsValue(m.CommentLines, tagKey)
 		if err != nil {
