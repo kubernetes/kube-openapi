@@ -423,6 +423,18 @@ func isExtensionTag(tag string) bool {
 	return isExtension
 }
 
+// Returns sorted list of map keys. Needed for deterministic testing.
+func sortedMapKeys(m map[string]string) []string {
+	keys := make([]string, len(m))
+	i := 0
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 	tagValues := getOpenAPITagValue(CommentLines)
 	type NameValue struct {
@@ -440,7 +452,7 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 		}
 	}
 	// Next, generate extensions from "tags".
-	for tagKey := range tagToExtension {
+	for _, tagKey := range sortedMapKeys(tagToExtension) {
 		tagValue, err := getSingleTagsValue(CommentLines, tagKey)
 		if err != nil {
 			return err
