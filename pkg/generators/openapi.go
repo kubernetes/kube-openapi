@@ -44,6 +44,13 @@ const (
 	tagValueFalse = "false"
 )
 
+// Used for temporary validation of patch struct tags.
+// TODO: Remove patch struct tag validation because they we are now consuming OpenAPI on server.
+var tempPatchTags = [...]string{
+	"patchMergeKey",
+	"patchStrategy",
+}
+
 // Extension tag to openapi extension string.
 var tagToExtension = map[string]string{
 	"patchMergeKey": "x-kubernetes-patch-merge-key",
@@ -457,8 +464,9 @@ func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
 }
 
 // TODO(#44005): Move this validation outside of this generator (probably to policy verifier)
-func (g openAPITypeWriter) validateTags(m *types.Member, parent *types.Type) error {
-	for tagKey := range tagToExtension {
+func (g openAPITypeWriter) validatePatchTags(m *types.Member, parent *types.Type) error {
+	// TODO: Remove patch struct tag validation because they we are now consuming OpenAPI on server.
+	for _, tagKey := range tempPatchTags {
 		structTagValue := reflect.StructTag(m.Tags).Get(tagKey)
 		commentTagValue, err := getSingleTagsValue(m.CommentLines, tagKey)
 		if err != nil {
@@ -520,7 +528,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	if name == "" {
 		return nil
 	}
-	if err := g.validateTags(m, parent); err != nil {
+	if err := g.validatePatchTags(m, parent); err != nil {
 		return err
 	}
 	g.Do("\"$.$\": {\n", name)
