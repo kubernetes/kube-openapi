@@ -16,7 +16,7 @@ OpenAPI/Json specs.
 ## Development
 
 After cloning this repo, within the top-level directory do the following to
-resolve dependencies:
+resolve and download dependencies:
 
 ```
 $ go get -t -v ./...
