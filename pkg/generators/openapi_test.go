@@ -115,6 +115,9 @@ type Blah struct {
 	// +patchStrategy=ps
 	// +patchMergeKey=pmk
 	WithStructTagExtension string `+"`"+`patchStrategy:"ps" patchMergeKey:"pmk"`+"`"+`
+	// a member with a list attribute
+	// +listAttribute=la
+	WithListAttribute string
 }
 		`)
 	if err != nil {
@@ -255,8 +258,20 @@ Type: []string{"string"},
 Format: "",
 },
 },
+"WithListAttribute": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-list-attribute": "la",
 },
-Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension"},
+},
+SchemaProps: spec.SchemaProps{
+Description: "a member with a list attribute",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListAttribute"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
