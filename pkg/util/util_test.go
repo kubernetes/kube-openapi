@@ -27,6 +27,7 @@ func TestCanonicalName(t *testing.T) {
 		{"k8s.io/api/core/v1.Pod", "io.k8s.api.core.v1.Pod"},
 		{"k8s.io/api/networking/v1/NetworkPolicy", "io.k8s.api.networking.v1.NetworkPolicy"},
 		{"k8s.io/api/apps/v1beta2.Scale", "io.k8s.api.apps.v1beta2.Scale"},
+		{"servicecatalog.k8s.io/foo/bar/v1alpha1.Baz", "io.k8s.servicecatalog.foo.bar.v1alpha1.Baz"},
 	}
 	for _, test := range tests {
 		if got := ToCanonicalName(test.input); got != test.expected {
