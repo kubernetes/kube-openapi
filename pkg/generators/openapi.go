@@ -51,13 +51,6 @@ var tempPatchTags = [...]string{
 	"patchStrategy",
 }
 
-// Extension tag to openapi extension string.
-var tagToExtension = map[string]string{
-	"patchMergeKey": "x-kubernetes-patch-merge-key",
-	"patchStrategy": "x-kubernetes-patch-strategy",
-	"listAttribute": "x-kubernetes-list-attribute",
-}
-
 func getOpenAPITagValue(comments []string) []string {
 	return types.ExtractCommentTags("+", comments)[tagName]
 }
@@ -435,61 +428,24 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	return nil
 }
 
-func isExtensionTag(tag string) bool {
-	isExtension := false
-	if strings.HasPrefix(tag, "x-kubernetes-") {
-		isExtension = true
-	}
-	return isExtension
-}
-
-// Returns sorted list of map keys. Needed for deterministic testing.
-func sortedMapKeys(m map[string]string) []string {
-	keys := make([]string, len(m))
-	i := 0
-	for k := range m {
-		keys[i] = k
-		i++
-	}
-	sort.Strings(keys)
-	return keys
-}
-
 func (g openAPITypeWriter) generateExtensions(CommentLines []string) error {
-	tagValues := getOpenAPITagValue(CommentLines)
-	type NameValue struct {
-		Name, Value string
-	}
-	extensions := []NameValue{}
-	// First, generate extensions from "+k8s:openapi-gen=x-kubernetes-*" annotations.
-	for _, val := range tagValues {
-		if isExtensionTag(val) {
-			parts := strings.SplitN(val, ":", 2)
-			if len(parts) != 2 {
-				return fmt.Errorf("invalid extension value: %v", val)
-			}
-			extensions = append(extensions, NameValue{parts[0], parts[1]})
-		}
-	}
-	// Next, generate extensions from "tags".
-	for _, tagKey := range sortedMapKeys(tagToExtension) {
-		tagValue, err := getSingleTagsValue(CommentLines, tagKey)
-		if err != nil {
-			return err
-		}
-		if len(tagValue) > 0 {
-			extensions = append(extensions, NameValue{tagToExtension[tagKey], tagValue})
-		}
-	}
-	// If there are generated extensions, write them out to schema.
-	// Example: "x-kubernetes-patch-strategy" : "merge"
+	extensions := parseExtensions(CommentLines)
 	if len(extensions) == 0 {
 		return nil
 	}
+	// If any extensions exist, then emit code to create them.
 	g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: spec.Extensions{\n", nil)
 	for _, extension := range extensions {
-		g.Do("\"$.$\": ", extension.Name)
-		g.Do("\"$.$\",\n", extension.Value)
+		g.Do("\"$.$\": ", extension.name)
+		if extension.hasMultipleValues() {
+			g.Do("[]string{\n", nil)
+		}
+		for _, value := range extension.values {
+			g.Do("\"$.$\",\n", value)
+		}
+		if extension.hasMultipleValues() {
+			g.Do("},\n", nil)
+		}
 	}
 	g.Do("},\n},\n", nil)
 	return nil
