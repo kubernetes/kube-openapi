@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package validate
+package post
 
 import (
 	"encoding/json"
@@ -25,22 +25,23 @@ import (
 
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 )
 
-var defaulterFixturesPath = filepath.Join("fixtures", "defaulting")
+var defaulterFixturesPath = filepath.Join("..", "fixtures", "defaulting")
 
 func TestDefaulter(t *testing.T) {
 	schema, err := defaulterFixture()
 	assert.NoError(t, err)
 
-	validator := NewSchemaValidator(schema, nil, "", strfmt.Default)
+	validator := validate.NewSchemaValidator(schema, nil, "", strfmt.Default)
 	x := defaulterFixtureInput()
 	t.Logf("Before: %v", x)
 
 	r := validator.Validate(x)
 	assert.False(t, r.HasErrors(), fmt.Sprintf("unexpected validation error: %v", r.AsError()))
 
-	r.ApplyDefaults()
+	ApplyDefaults(r)
 	t.Logf("After: %v", x)
 	var expected interface{}
 	err = json.Unmarshal([]byte(`{
@@ -60,12 +61,12 @@ func TestDefaulterSimple(t *testing.T) {
 	schema := spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Properties: map[string]spec.Schema{
-				"int": spec.Schema{
+				"int": {
 					SchemaProps: spec.SchemaProps{
 						Default: float64(42),
 					},
 				},
-				"str": spec.Schema{
+				"str": {
 					SchemaProps: spec.SchemaProps{
 						Default: "Hello",
 					},
@@ -73,13 +74,13 @@ func TestDefaulterSimple(t *testing.T) {
 			},
 		},
 	}
-	validator := NewSchemaValidator(&schema, nil, "", strfmt.Default)
+	validator := validate.NewSchemaValidator(&schema, nil, "", strfmt.Default)
 	x := map[string]interface{}{}
 	t.Logf("Before: %v", x)
 	r := validator.Validate(x)
 	assert.False(t, r.HasErrors(), fmt.Sprintf("unexpected validation error: %v", r.AsError()))
 
-	r.ApplyDefaults()
+	ApplyDefaults(r)
 	t.Logf("After: %v", x)
 	var expected interface{}
 	err := json.Unmarshal([]byte(`{
@@ -92,16 +93,16 @@ func TestDefaulterSimple(t *testing.T) {
 
 func BenchmarkDefaulting(b *testing.B) {
 	b.ReportAllocs()
-	
+
 	schema, err := defaulterFixture()
 	assert.NoError(b, err)
 
 	for n := 0; n < b.N; n++ {
-		validator := NewSchemaValidator(schema, nil, "", strfmt.Default)
+		validator := validate.NewSchemaValidator(schema, nil, "", strfmt.Default)
 		x := defaulterFixtureInput()
 		r := validator.Validate(x)
 		assert.False(b, r.HasErrors(), fmt.Sprintf("unexpected validation error: %v", r.AsError()))
-		r.ApplyDefaults()
+		ApplyDefaults(r)
 	}
 }
 
