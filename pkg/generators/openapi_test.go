@@ -126,12 +126,12 @@ type Blah struct {
 	// +k8s:openapi-gen=x-kubernetes-member-tag:member_test
 	WithExtension string
 	// a member with struct tag as extension
-	// +patchStrategy=ps
+	// +patchStrategy=merge
 	// +patchMergeKey=pmk
-	WithStructTagExtension string `+"`"+`patchStrategy:"ps" patchMergeKey:"pmk"`+"`"+`
-	// a member with a list attribute
-	// +listAttribute=la
-	WithListAttribute string
+	WithStructTagExtension string `+"`"+`patchStrategy:"merge" patchMergeKey:"pmk"`+"`"+`
+	// a member with a list type
+	// +listType=atomic
+	WithListType []string
 }
 		`)
 	if callErr != nil {
@@ -269,7 +269,7 @@ Format: "",
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
 "x-kubernetes-patch-merge-key": "pmk",
-"x-kubernetes-patch-strategy": "ps",
+"x-kubernetes-patch-strategy": "merge",
 },
 },
 SchemaProps: spec.SchemaProps{
@@ -278,20 +278,27 @@ Type: []string{"string"},
 Format: "",
 },
 },
-"WithListAttribute": {
+"WithListType": {
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
-"x-kubernetes-list-attribute": "la",
+"x-kubernetes-list-type": "atomic",
 },
 },
 SchemaProps: spec.SchemaProps{
-Description: "a member with a list attribute",
+Description: "a member with a list type",
+Type: []string{"array"},
+Items: &spec.SchemaOrArray{
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
 Type: []string{"string"},
 Format: "",
 },
 },
 },
-Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListAttribute"},
+},
+},
+},
+Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListType"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
@@ -531,6 +538,75 @@ Format: "int64",
 },
 },
 Required: []string{"NestedList"},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "type_test",
+},
+},
+},
+Dependencies: []string{
+},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestExtensions(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Blah is a test.
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:type_test
+type Blah struct {
+	// a member with a list type
+	// +listType=map
+	// +listMapKey=port
+	// +listMapKey=protocol
+	WithListField []string
+}
+		`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Properties: map[string]spec.Schema{
+"WithListField": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-list-map-keys": []string{
+"port",
+"protocol",
+},
+"x-kubernetes-list-type": "map",
+},
+},
+SchemaProps: spec.SchemaProps{
+Description: "a member with a list type",
+Type: []string{"array"},
+Items: &spec.SchemaOrArray{
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+},
+},
+},
+Required: []string{"WithListField"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
