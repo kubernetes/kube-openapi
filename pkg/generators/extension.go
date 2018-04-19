@@ -21,12 +21,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
 	"k8s.io/gengo/examples/set-gen/sets"
 	"k8s.io/gengo/types"
 )
 
-const extensionTag = "x-kubernetes-"
+const extensionPrefix = "x-kubernetes-"
 
 // Extension tag to openapi extension
 var tagToExtension = map[string]string{
@@ -43,11 +42,10 @@ var allowedExtensionValues = map[string]sets.String{
 }
 
 // Extension encapsulates information necessary to generate an OpenAPI extension.
-// TODO(seans3): Create interface for an extension validation function, and create
-// validation functions for different extensions.
 type extension struct {
+	tag    string   // Example: listType
 	name   string   // Example: x-kubernetes-list-type
-	values []string // Example: atomic
+	values []string // Example: [atomic]
 }
 
 func (e extension) validateAllowedValues() error {
@@ -56,10 +54,14 @@ func (e extension) validateAllowedValues() error {
 	if !exists {
 		return nil
 	}
+	// Check for missing value.
+	if len(e.values) == 0 {
+		return fmt.Errorf("%s needs a value, none given.", e.tag)
+	}
 	// For each extension value, validate that it is allowed.
 	if !allowedValues.HasAll(e.values...) {
-		return fmt.Errorf("%s: value(s) %v not allowed. Allowed values: %v\n",
-			e.name, e.values, allowedValues.List())
+		return fmt.Errorf("%v not allowed for %s. Allowed values: %v",
+			e.values, e.tag, allowedValues.List())
 	}
 	return nil
 }
@@ -80,21 +82,23 @@ func sortedMapKeys(m map[string][]string) []string {
 	return keys
 }
 
-// Parses comments to return openapi extensions
-func parseExtensions(comments []string) []extension {
+// Parses comments to return openapi extensions.
+// NOTE: Non-empty errors does not mean extensions is empty.
+func parseExtensions(comments []string) ([]extension, []error) {
 	extensions := []extension{}
+	errors := []error{}
 	// First, generate extensions from "+k8s:openapi-gen=x-kubernetes-*" annotations.
 	values := getOpenAPITagValue(comments)
 	for _, val := range values {
 		// Example: x-kubernetes-member-tag:member_test
-		if strings.HasPrefix(val, extensionTag) {
+		if strings.HasPrefix(val, extensionPrefix) {
 			parts := strings.SplitN(val, ":", 2)
 			if len(parts) != 2 {
-				// TODO(seans3): Spit out source file/line number with error.
-				glog.V(2).Info(fmt.Sprintf("Invalid extension value: %v", val))
+				errors = append(errors, fmt.Errorf("invalid extension value: %v", val))
 				continue
 			}
 			e := extension{
+				tag:    tagName,            // Example: k8s:openapi-gen
 				name:   parts[0],           // Example: x-kubernetes-member-tag
 				values: []string{parts[1]}, // Example: member_test
 			}
@@ -104,23 +108,21 @@ func parseExtensions(comments []string) []extension {
 	// Next, generate extensions from "tags" (e.g. +listType)
 	tagValues := types.ExtractCommentTags("+", comments)
 	for _, tag := range sortedMapKeys(tagValues) {
-		extensionName, exists := tagToExtension[tag]
+		name, exists := tagToExtension[tag]
 		if !exists {
 			continue
 		}
-		extensionValues := tagValues[tag]
+		values := tagValues[tag]
 		e := extension{
-			name:   extensionName,
-			values: extensionValues,
+			tag:    tag,    // listType
+			name:   name,   // x-kubernetes-list-type
+			values: values, // [atomic]
 		}
-		// TODO(seans3): Validate the number of allowed values
-		// TODO(seans3): Validate the field type for this extension.
-		// Example: +listType is only allowed on an array.
 		if err := e.validateAllowedValues(); err != nil {
 			// For now, only log the extension validation errors.
-			glog.V(2).Info(err)
+			errors = append(errors, err)
 		}
 		extensions = append(extensions, e)
 	}
-	return extensions
+	return extensions, errors
 }
