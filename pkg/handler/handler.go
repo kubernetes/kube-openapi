@@ -160,6 +160,8 @@ func (o *OpenAPIService) getSwaggerPbGzBytes() ([]byte, string, time.Time) {
 	return o.specPbGz, o.specPbGzETag, o.lastModified
 }
 
+// UpdateSpec creates updated copies of the data that this OpenAPIService will serve from a given spec.
+// NOTE: The caller of this function must not modify openapiSpec after calling this function.
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	orgSpec := openapiSpec
 	specBytes, err := json.MarshalIndent(openapiSpec, " ", " ")
@@ -191,6 +193,14 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	o.lastModified = lastModified
 
 	return nil
+}
+
+// GetSpec allows different go processes to concurrently read an openapi spec.
+// NOTE: The caller of this function must not modify the returned spec.
+func (o *OpenAPIService) GetSpec() *spec.Swagger {
+	o.rwMutex.RLock()
+	defer o.rwMutex.RUnlock()
+	return o.orgSpec
 }
 
 func toProtoBinary(spec []byte) ([]byte, error) {
