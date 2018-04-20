@@ -43,25 +43,25 @@ var allowedExtensionValues = map[string]sets.String{
 
 // Extension encapsulates information necessary to generate an OpenAPI extension.
 type extension struct {
-	tag    string   // Example: listType
-	name   string   // Example: x-kubernetes-list-type
+	idlTag string   // Example: listType
+	xName  string   // Example: x-kubernetes-list-type
 	values []string // Example: [atomic]
 }
 
 func (e extension) validateAllowedValues() error {
 	// allowedValues not set means no restrictions on values.
-	allowedValues, exists := allowedExtensionValues[e.name]
+	allowedValues, exists := allowedExtensionValues[e.xName]
 	if !exists {
 		return nil
 	}
 	// Check for missing value.
 	if len(e.values) == 0 {
-		return fmt.Errorf("%s needs a value, none given.", e.tag)
+		return fmt.Errorf("%s needs a value, none given.", e.idlTag)
 	}
 	// For each extension value, validate that it is allowed.
 	if !allowedValues.HasAll(e.values...) {
 		return fmt.Errorf("%v not allowed for %s. Allowed values: %v",
-			e.values, e.tag, allowedValues.List())
+			e.values, e.idlTag, allowedValues.List())
 	}
 	return nil
 }
@@ -98,24 +98,24 @@ func parseExtensions(comments []string) ([]extension, []error) {
 				continue
 			}
 			e := extension{
-				tag:    tagName,            // Example: k8s:openapi-gen
-				name:   parts[0],           // Example: x-kubernetes-member-tag
+				idlTag: tagName,            // Example: k8s:openapi-gen
+				xName:  parts[0],           // Example: x-kubernetes-member-tag
 				values: []string{parts[1]}, // Example: member_test
 			}
 			extensions = append(extensions, e)
 		}
 	}
-	// Next, generate extensions from "tags" (e.g. +listType)
+	// Next, generate extensions from "idlTags" (e.g. +listType)
 	tagValues := types.ExtractCommentTags("+", comments)
-	for _, tag := range sortedMapKeys(tagValues) {
-		name, exists := tagToExtension[tag]
+	for _, idlTag := range sortedMapKeys(tagValues) {
+		xName, exists := tagToExtension[idlTag]
 		if !exists {
 			continue
 		}
-		values := tagValues[tag]
+		values := tagValues[idlTag]
 		e := extension{
-			tag:    tag,    // listType
-			name:   name,   // x-kubernetes-list-type
+			idlTag: idlTag, // listType
+			xName:  xName,  // x-kubernetes-list-type
 			values: values, // [atomic]
 		}
 		if err := e.validateAllowedValues(); err != nil {

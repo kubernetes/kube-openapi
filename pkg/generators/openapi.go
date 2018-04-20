@@ -464,7 +464,7 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension) {
 	}
 	g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: spec.Extensions{\n", nil)
 	for _, extension := range extensions {
-		g.Do("\"$.$\": ", extension.name)
+		g.Do("\"$.$\": ", extension.xName)
 		if extension.hasMultipleValues() {
 			g.Do("[]string{\n", nil)
 		}
