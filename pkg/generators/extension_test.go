@@ -82,17 +82,17 @@ func TestSingleTagExtension(t *testing.T) {
 	for _, test := range tests {
 		extensions, _ := parseExtensions(test.comments)
 		actual := extensions[0]
-		if actual.tag != test.extensionTag {
-			t.Errorf("Extension Tag: expected (%s), actual (%s)\n", test.extensionTag, actual.tag)
+		if actual.idlTag != test.extensionTag {
+			t.Errorf("Extension Tag: expected (%s), actual (%s)\n", test.extensionTag, actual.idlTag)
 		}
-		if actual.name != test.extensionName {
-			t.Errorf("Extension Name: expected (%s), actual (%s)\n", test.extensionName, actual.name)
+		if actual.xName != test.extensionName {
+			t.Errorf("Extension Name: expected (%s), actual (%s)\n", test.extensionName, actual.xName)
 		}
 		if !reflect.DeepEqual(actual.values, test.extensionValues) {
 			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
 		}
 		if actual.hasMultipleValues() {
-			t.Errorf("%s: hasMultipleValues() should be false\n", actual.name)
+			t.Errorf("%s: hasMultipleValues() should be false\n", actual.xName)
 		}
 	}
 
@@ -122,17 +122,17 @@ func TestMultipleTagExtensions(t *testing.T) {
 			t.Errorf("Unexpected errors: %v\n", errors)
 		}
 		actual := extensions[0]
-		if actual.tag != test.extensionTag {
-			t.Errorf("Extension Tag: expected (%s), actual (%s)\n", test.extensionTag, actual.tag)
+		if actual.idlTag != test.extensionTag {
+			t.Errorf("Extension Tag: expected (%s), actual (%s)\n", test.extensionTag, actual.idlTag)
 		}
-		if actual.name != test.extensionName {
-			t.Errorf("Extension Name: expected (%s), actual (%s)\n", test.extensionName, actual.name)
+		if actual.xName != test.extensionName {
+			t.Errorf("Extension Name: expected (%s), actual (%s)\n", test.extensionName, actual.xName)
 		}
 		if !reflect.DeepEqual(actual.values, test.extensionValues) {
 			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
 		}
 		if !actual.hasMultipleValues() {
-			t.Errorf("%s: hasMultipleValues() should be true\n", actual.name)
+			t.Errorf("%s: hasMultipleValues() should be true\n", actual.xName)
 		}
 	}
 
@@ -200,30 +200,30 @@ func TestExtensionAllowedValues(t *testing.T) {
 	}{
 		{
 			e: extension{
-				tag:    "patchStrategy",
-				name:   "x-kubernetes-patch-strategy",
+				idlTag: "patchStrategy",
+				xName:  "x-kubernetes-patch-strategy",
 				values: []string{"merge"},
 			},
 		},
 		{
 			// Validate multiple values.
 			e: extension{
-				tag:    "patchStrategy",
-				name:   "x-kubernetes-patch-strategy",
+				idlTag: "patchStrategy",
+				xName:  "x-kubernetes-patch-strategy",
 				values: []string{"merge", "retainKeys"},
 			},
 		},
 		{
 			e: extension{
-				tag:    "patchMergeKey",
-				name:   "x-kubernetes-patch-merge-key",
+				idlTag: "patchMergeKey",
+				xName:  "x-kubernetes-patch-merge-key",
 				values: []string{"key1"},
 			},
 		},
 		{
 			e: extension{
-				tag:    "listType",
-				name:   "x-kubernetes-list-type",
+				idlTag: "listType",
+				xName:  "x-kubernetes-list-type",
 				values: []string{"atomic"},
 			},
 		},
@@ -241,22 +241,22 @@ func TestExtensionAllowedValues(t *testing.T) {
 		{
 			// Every value must be allowed.
 			e: extension{
-				tag:    "patchStrategy",
-				name:   "x-kubernetes-patch-strategy",
+				idlTag: "patchStrategy",
+				xName:  "x-kubernetes-patch-strategy",
 				values: []string{"disallowed", "merge"},
 			},
 		},
 		{
 			e: extension{
-				tag:    "patchStrategy",
-				name:   "x-kubernetes-patch-strategy",
+				idlTag: "patchStrategy",
+				xName:  "x-kubernetes-patch-strategy",
 				values: []string{"foo"},
 			},
 		},
 		{
 			e: extension{
-				tag:    "listType",
-				name:   "x-kubernetes-list-type",
+				idlTag: "listType",
+				xName:  "x-kubernetes-list-type",
 				values: []string{"not-allowed"},
 			},
 		},
