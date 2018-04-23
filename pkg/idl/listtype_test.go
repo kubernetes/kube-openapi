@@ -16,25 +16,24 @@ limitations under the License.
 
 package idl_test
 
-// This example shows how you can use the listType map attribute and how
-// to specify a key that will be used to identify specific elements of
-// the list. The listMapKey attribute is used to specify that Name will
-// be used as the key of the map.
+// This example shows how to use the listType map attribute and how to
+// specify a key to identify elements of the list. The listMapKey
+// attribute is used to specify that Name is the key of the map.
 func ExampleListType_map() {
+	type SomeStruct struct {
+		Name  string
+		Value string
+	}
 	type SomeAPI struct {
 		// +listType=map
 		// +listMapKey=name
-		elements []struct {
-			Name string
-
-			Value int
-		}
+		elements []SomeStruct
 	}
 }
 
-// This example shows how you can use the listType set attribute to
-// specify that this list should be treated as a set: items in the list
-// can't be duplicated.
+// This example shows how to use the listType set attribute to specify
+// that this list should be treated as a set: items in the list can't be
+// duplicated.
 func ExampleListType_set() {
 	type SomeAPI struct {
 		// +listType=set
@@ -42,14 +41,16 @@ func ExampleListType_set() {
 	}
 }
 
-// This example shows how you can use the listType atomic attribute to
+// This example shows how to use the listType atomic attribute to
 // specify that this list should be treated as a whole.
 func ExampleListType_atomic() {
+	type SomeStruct struct {
+		Name  string
+		Value string
+	}
+
 	type SomeAPI struct {
 		// +listType=atomic
-		elements []struct {
-			Name  string
-			Value string
-		}
+		elements []SomeStruct
 	}
 }
