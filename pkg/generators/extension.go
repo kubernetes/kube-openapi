@@ -27,18 +27,33 @@ import (
 
 const extensionPrefix = "x-kubernetes-"
 
-// Extension tag to openapi extension
-var tagToExtension = map[string]string{
-	"patchMergeKey": "x-kubernetes-patch-merge-key",
-	"patchStrategy": "x-kubernetes-patch-strategy",
-	"listType":      "x-kubernetes-list-type",
-	"listMapKey":    "x-kubernetes-list-map-keys",
+// extensionAttributes encapsulates common traits for particular extensions.
+type extensionAttributes struct {
+	xName         string
+	kind          types.Kind
+	allowedValues sets.String
 }
 
-// Enum values per extension
-var allowedExtensionValues = map[string]sets.String{
-	"x-kubernetes-patch-strategy": sets.NewString("merge", "retainKeys"),
-	"x-kubernetes-list-type":      sets.NewString("atomic", "set", "map"),
+// Extension tag to openapi extension attributes
+var tagToExtension = map[string]extensionAttributes{
+	"patchMergeKey": extensionAttributes{
+		xName: "x-kubernetes-patch-merge-key",
+		kind:  types.Slice,
+	},
+	"patchStrategy": extensionAttributes{
+		xName:         "x-kubernetes-patch-strategy",
+		kind:          types.Slice,
+		allowedValues: sets.NewString("merge", "retainKeys"),
+	},
+	"listMapKey": extensionAttributes{
+		xName: "x-kubernetes-list-map-keys",
+		kind:  types.Slice,
+	},
+	"listType": extensionAttributes{
+		xName:         "x-kubernetes-list-type",
+		kind:          types.Slice,
+		allowedValues: sets.NewString("atomic", "set", "map"),
+	},
 }
 
 // Extension encapsulates information necessary to generate an OpenAPI extension.
@@ -48,10 +63,25 @@ type extension struct {
 	values []string // Example: [atomic]
 }
 
+func (e extension) hasAllowedValues() bool {
+	xAttrs, exists := tagToExtension[e.idlTag]
+	if !exists || xAttrs.allowedValues == nil {
+		return false
+	}
+	return len(xAttrs.allowedValues) > 0
+}
+
+func (e extension) allowedValues() sets.String {
+	xAttrs, exists := tagToExtension[e.idlTag]
+	if !exists {
+		return nil
+	}
+	return xAttrs.allowedValues
+}
+
 func (e extension) validateAllowedValues() error {
 	// allowedValues not set means no restrictions on values.
-	allowedValues, exists := allowedExtensionValues[e.xName]
-	if !exists {
+	if !e.hasAllowedValues() {
 		return nil
 	}
 	// Check for missing value.
@@ -59,9 +89,37 @@ func (e extension) validateAllowedValues() error {
 		return fmt.Errorf("%s needs a value, none given.", e.idlTag)
 	}
 	// For each extension value, validate that it is allowed.
+	allowedValues := e.allowedValues()
 	if !allowedValues.HasAll(e.values...) {
 		return fmt.Errorf("%v not allowed for %s. Allowed values: %v",
 			e.values, e.idlTag, allowedValues.List())
+	}
+	return nil
+}
+
+func (e extension) hasKind() bool {
+	xAttrs, exists := tagToExtension[e.idlTag]
+	if !exists {
+		return false
+	}
+	return len(xAttrs.kind) > 0
+}
+
+func (e extension) kind() types.Kind {
+	xAttrs, exists := tagToExtension[e.idlTag]
+	if !exists {
+		return ""
+	}
+	return xAttrs.kind
+}
+
+func (e extension) validateType(t types.Kind) error {
+	if !e.hasKind() {
+		return nil
+	}
+	if t != e.kind() {
+		return fmt.Errorf("%s not allowed for type %s. Must be on type %s",
+			e.idlTag, t, e.kind())
 	}
 	return nil
 }
@@ -82,7 +140,9 @@ func sortedMapKeys(m map[string][]string) []string {
 	return keys
 }
 
-// Parses comments to return openapi extensions.
+// Parses comments to return openapi extensions. Only returns
+// extension parse errors. Validation happens separately
+// after creation.
 // NOTE: Non-empty errors does not mean extensions is empty.
 func parseExtensions(comments []string) ([]extension, []error) {
 	extensions := []extension{}
@@ -108,21 +168,31 @@ func parseExtensions(comments []string) ([]extension, []error) {
 	// Next, generate extensions from "idlTags" (e.g. +listType)
 	tagValues := types.ExtractCommentTags("+", comments)
 	for _, idlTag := range sortedMapKeys(tagValues) {
-		xName, exists := tagToExtension[idlTag]
+		xAttrs, exists := tagToExtension[idlTag]
 		if !exists {
 			continue
 		}
 		values := tagValues[idlTag]
 		e := extension{
-			idlTag: idlTag, // listType
-			xName:  xName,  // x-kubernetes-list-type
-			values: values, // [atomic]
-		}
-		if err := e.validateAllowedValues(); err != nil {
-			// For now, only log the extension validation errors.
-			errors = append(errors, err)
+			idlTag: idlTag,       // listType
+			xName:  xAttrs.xName, // x-kubernetes-list-type
+			values: values,       // [atomic]
 		}
 		extensions = append(extensions, e)
 	}
 	return extensions, errors
+}
+
+func validateMemberExtensions(m *types.Member, extensions []extension) []error {
+	errors := []error{}
+	for _, e := range extensions {
+		if err := e.validateAllowedValues(); err != nil {
+			errors = append(errors, err)
+		}
+		if err := e.validateType(m.Type.Kind); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	return errors
 }

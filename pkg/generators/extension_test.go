@@ -138,7 +138,7 @@ func TestMultipleTagExtensions(t *testing.T) {
 
 }
 
-func TestExtensionErrors(t *testing.T) {
+func TestParseExtensionErrors(t *testing.T) {
 
 	var tests = []struct {
 		comments     []string
@@ -158,33 +158,12 @@ func TestExtensionErrors(t *testing.T) {
 			},
 			errorMessage: "x-kubernetes-wrong-separator;error",
 		},
-		{
-			// disallowed is not one of the allowed values for listType.
-			comments: []string{
-				"+listType=disallowed",
-			},
-			errorMessage: "listType",
-		},
-		{
-			// Missing list type value should be an error.
-			comments: []string{
-				"+listType",
-			},
-			errorMessage: "listType",
-		},
-		{
-			// badStrategy is not one of the allowed values for patchStrategy.
-			comments: []string{
-				"+patchStrategy=badStrategy",
-			},
-			errorMessage: "patchStrategy",
-		},
 	}
 
 	for _, test := range tests {
 		_, errors := parseExtensions(test.comments)
 		if len(errors) == 0 {
-			t.Errorf("Expected errors while parsing: %v\n", test.comments)
+			t.Fatalf("Expected errors while parsing: %v\n", test.comments)
 		}
 		error := errors[0]
 		if !strings.Contains(error.Error(), test.errorMessage) {
