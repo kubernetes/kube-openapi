@@ -68,7 +68,7 @@ func (e extension) hasAllowedValues() bool {
 	if !exists || xAttrs.allowedValues == nil {
 		return false
 	}
-	return len(xAttrs.allowedValues) > 0
+	return xAttrs.allowedValues.Len() > 0
 }
 
 func (e extension) allowedValues() sets.String {
