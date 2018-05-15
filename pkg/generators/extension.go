@@ -36,12 +36,16 @@ type extensionAttributes struct {
 
 const LIST_TYPE = "listType"
 const LIST_MAP_KEY = "listMapKey"
-const PATCH_STRATEGY = "patchStrategy"
-const PATCH_MERGE_KEY = "patchMergeKey"
 
 const LIST_TYPE_ATOMIC = "atomic"
 const LIST_TYPE_SET = "set"
 const LIST_TYPE_MAP = "map"
+
+const PATCH_STRATEGY = "patchStrategy"
+const PATCH_MERGE_KEY = "patchMergeKey"
+
+const PATCH_MERGE_STRATEGY = "merge"
+const PATCH_RETAIN_KEYS_STRATEGY = "retainKeys"
 
 // Extension tag to openapi extension attributes
 var tagToExtension = map[string]extensionAttributes{
@@ -52,7 +56,7 @@ var tagToExtension = map[string]extensionAttributes{
 	PATCH_STRATEGY: extensionAttributes{
 		xName:         "x-kubernetes-patch-strategy",
 		kind:          types.Slice,
-		allowedValues: sets.NewString("merge", "retainKeys"),
+		allowedValues: sets.NewString(PATCH_MERGE_STRATEGY, PATCH_RETAIN_KEYS_STRATEGY),
 	},
 	LIST_MAP_KEY: extensionAttributes{
 		xName: "x-kubernetes-list-map-keys",
@@ -123,7 +127,7 @@ func (e extension) hasMultipleValues() bool {
 }
 
 func (e extension) getSingleValue() (string, error) {
-	if e.hasMultipleValues() || len(e.values) == 0 {
+	if len(e.values) != 1 {
 		return "", fmt.Errorf("extension does not have one value: %v", e)
 	}
 	return e.values[0], nil
@@ -202,22 +206,22 @@ func validateMemberExtensions(extensions []extension, m *types.Member) []error {
 	_, listMapKeyExists := extensionsByType[LIST_MAP_KEY]
 	if !listTypeExists && listMapKeyExists {
 		// Example: missing +listType, +listMapKey=foo
-		err := fmt.Errorf("listMapKey exists for non-map listType")
+		err := fmt.Errorf("%s: listMapKey exists for non-map listType", m.Name)
 		errors = append(errors, err)
 	} else if listTypeExists {
 		if listTypeExtension.hasMultipleValues() {
 			// Example: +listType=atomic, +listType=set
-			err := fmt.Errorf("multiple list types not allowed for single member")
+			err := fmt.Errorf("multiple list types not allowed for single member: %s", m.Name)
 			errors = append(errors, err)
 		} else {
 			listType, _ := listTypeExtension.getSingleValue()
 			if listType == LIST_TYPE_MAP && !listMapKeyExists {
 				// Example: +listType=map, missing +listMapKey
-				err := fmt.Errorf("list type map missing map key")
+				err := fmt.Errorf("list type map missing map key: %s", m.Name)
 				errors = append(errors, err)
 			} else if listType != LIST_TYPE_MAP && listMapKeyExists {
 				// Example: +listType=set, +listMapKey=foo
-				err := fmt.Errorf("non-map list type with map keys")
+				err := fmt.Errorf("non-map list type with map keys: %s", m.Name)
 				errors = append(errors, err)
 			}
 		}
