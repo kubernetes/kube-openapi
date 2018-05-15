@@ -34,25 +34,34 @@ type extensionAttributes struct {
 	allowedValues sets.String
 }
 
+const LIST_TYPE = "listType"
+const LIST_MAP_KEY = "listMapKey"
+const PATCH_STRATEGY = "patchStrategy"
+const PATCH_MERGE_KEY = "patchMergeKey"
+
+const LIST_TYPE_ATOMIC = "atomic"
+const LIST_TYPE_SET = "set"
+const LIST_TYPE_MAP = "map"
+
 // Extension tag to openapi extension attributes
 var tagToExtension = map[string]extensionAttributes{
-	"patchMergeKey": extensionAttributes{
+	PATCH_MERGE_KEY: extensionAttributes{
 		xName: "x-kubernetes-patch-merge-key",
 		kind:  types.Slice,
 	},
-	"patchStrategy": extensionAttributes{
+	PATCH_STRATEGY: extensionAttributes{
 		xName:         "x-kubernetes-patch-strategy",
 		kind:          types.Slice,
 		allowedValues: sets.NewString("merge", "retainKeys"),
 	},
-	"listMapKey": extensionAttributes{
+	LIST_MAP_KEY: extensionAttributes{
 		xName: "x-kubernetes-list-map-keys",
 		kind:  types.Slice,
 	},
-	"listType": extensionAttributes{
+	LIST_TYPE: extensionAttributes{
 		xName:         "x-kubernetes-list-type",
 		kind:          types.Slice,
-		allowedValues: sets.NewString("atomic", "set", "map"),
+		allowedValues: sets.NewString(LIST_TYPE_ATOMIC, LIST_TYPE_SET, LIST_TYPE_MAP),
 	},
 }
 
@@ -113,6 +122,13 @@ func (e extension) hasMultipleValues() bool {
 	return len(e.values) > 1
 }
 
+func (e extension) getSingleValue() (string, error) {
+	if e.hasMultipleValues() || len(e.values) == 0 {
+		return "", fmt.Errorf("extension does not have one value: %v", e)
+	}
+	return e.values[0], nil
+}
+
 // Returns sorted list of map keys. Needed for deterministic testing.
 func sortedMapKeys(m map[string][]string) []string {
 	keys := make([]string, len(m))
@@ -159,9 +175,9 @@ func parseExtensions(comments []string) ([]extension, []error) {
 		}
 		values := tagValues[idlTag]
 		e := extension{
-			idlTag: idlTag,       // listType
-			xName:  xAttrs.xName, // x-kubernetes-list-type
-			values: values,       // [atomic]
+			idlTag: idlTag,
+			xName:  xAttrs.xName,
+			values: values,
 		}
 		extensions = append(extensions, e)
 	}
@@ -169,6 +185,7 @@ func parseExtensions(comments []string) ([]extension, []error) {
 }
 
 func validateMemberExtensions(extensions []extension, m *types.Member) []error {
+	extensionsByType := map[string]extension{}
 	errors := []error{}
 	for _, e := range extensions {
 		if err := e.validateAllowedValues(); err != nil {
@@ -176,6 +193,33 @@ func validateMemberExtensions(extensions []extension, m *types.Member) []error {
 		}
 		if err := e.validateType(m.Type.Kind); err != nil {
 			errors = append(errors, err)
+		}
+		// There is only one extension per tag (but each might have multiple values)
+		extensionsByType[e.idlTag] = e
+	}
+	// List type validation
+	listTypeExtension, listTypeExists := extensionsByType[LIST_TYPE]
+	_, listMapKeyExists := extensionsByType[LIST_MAP_KEY]
+	if !listTypeExists && listMapKeyExists {
+		// Example: missing +listType, +listMapKey=foo
+		err := fmt.Errorf("listMapKey exists for non-map listType")
+		errors = append(errors, err)
+	} else if listTypeExists {
+		if listTypeExtension.hasMultipleValues() {
+			// Example: +listType=atomic, +listType=set
+			err := fmt.Errorf("multiple list types not allowed for single member")
+			errors = append(errors, err)
+		} else {
+			listType, _ := listTypeExtension.getSingleValue()
+			if listType == LIST_TYPE_MAP && !listMapKeyExists {
+				// Example: +listType=map, missing +listMapKey
+				err := fmt.Errorf("list type map missing map key")
+				errors = append(errors, err)
+			} else if listType != LIST_TYPE_MAP && listMapKeyExists {
+				// Example: +listType=set, +listMapKey=foo
+				err := fmt.Errorf("non-map list type with map keys")
+				errors = append(errors, err)
+			}
 		}
 	}
 	return errors

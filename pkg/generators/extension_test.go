@@ -94,6 +94,9 @@ func TestSingleTagExtension(t *testing.T) {
 		if !reflect.DeepEqual(actual.values, test.extensionValues) {
 			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
 		}
+		if v, _ := actual.getSingleValue(); v != test.extensionValues[0] {
+			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
+		}
 		if actual.hasMultipleValues() {
 			t.Errorf("%s: hasMultipleValues() should be false\n", actual.xName)
 		}
@@ -133,6 +136,9 @@ func TestMultipleTagExtensions(t *testing.T) {
 		}
 		if !reflect.DeepEqual(actual.values, test.extensionValues) {
 			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
+		}
+		if _, err := actual.getSingleValue(); err == nil {
+			t.Errorf("%s: getSingleValue() should return error\n", actual.xName)
 		}
 		if !actual.hasMultipleValues() {
 			t.Errorf("%s: hasMultipleValues() should be true\n", actual.xName)
@@ -357,7 +363,7 @@ func TestExtensionKind(t *testing.T) {
 
 func TestValidateMemberExtensions(t *testing.T) {
 
-	patchStrategyExtension := extension{
+	patchStrategyMergeExtension := extension{
 		idlTag: "patchStrategy",
 		xName:  "x-kubernetes-patch-strategy",
 		values: []string{"merge"},
@@ -367,10 +373,15 @@ func TestValidateMemberExtensions(t *testing.T) {
 		xName:  "x-kubernetes-patch-merge-key",
 		values: []string{"key1", "key2"},
 	}
-	listTypeExtension := extension{
+	listTypeAtomicExtension := extension{
 		idlTag: "listType",
 		xName:  "x-kubernetes-list-type",
 		values: []string{"atomic"},
+	}
+	listTypeMapExtension := extension{
+		idlTag: "listType",
+		xName:  "x-kubernetes-list-type",
+		values: []string{"map"},
 	}
 	listMapKeysExtension := extension{
 		idlTag: "listMapKey",
@@ -389,33 +400,47 @@ func TestValidateMemberExtensions(t *testing.T) {
 			Kind: types.Slice,
 		},
 	}
-	mapField := types.Member{
-		Name: "Containers",
-		Type: &types.Type{
-			Kind: types.Map,
-		},
-	}
 
 	var successTests = []struct {
 		extensions []extension
 		member     types.Member
 	}{
-		// Test single member extension
+		// Test simple member extensions
 		{
-			extensions: []extension{patchStrategyExtension},
+			extensions: []extension{
+				patchStrategyMergeExtension,
+				patchMergeKeyExtension,
+			},
+			member: sliceField,
+		},
+		{
+			extensions: []extension{listTypeAtomicExtension},
+			member:     sliceField,
+		},
+		{
+			extensions: []extension{
+				listTypeMapExtension,
+				listMapKeysExtension,
+			},
+			member: sliceField,
+		},
+		{
+			extensions: []extension{genExtension},
 			member:     sliceField,
 		},
 		// Test multiple member extensions
 		{
 			extensions: []extension{
+				patchStrategyMergeExtension,
 				patchMergeKeyExtension,
-				listTypeExtension,
+				listTypeMapExtension,
 				listMapKeysExtension,
 				genExtension, // Should not generate errors during type validation
 			},
 			member: sliceField,
 		},
 	}
+
 	for _, test := range successTests {
 		errors := validateMemberExtensions(test.extensions, &test.member)
 		if len(errors) > 0 {
@@ -424,29 +449,81 @@ func TestValidateMemberExtensions(t *testing.T) {
 		}
 	}
 
+}
+
+func TestValidateMemberExtensionsErrors(t *testing.T) {
+
+	listTypeAtomicExtension := extension{
+		idlTag: "listType",
+		xName:  "x-kubernetes-list-type",
+		values: []string{"atomic"},
+	}
+	listTypeMapExtension := extension{
+		idlTag: "listType",
+		xName:  "x-kubernetes-list-type",
+		values: []string{"map"},
+	}
+	listMapKeysExtension := extension{
+		idlTag: "listMapKey",
+		xName:  "x-kubernetes-map-keys",
+		values: []string{"key1"},
+	}
+	listTypeMultipleErrorExtension := extension{
+		idlTag: "listType",
+		xName:  "x-kubernetes-list-type",
+		values: []string{"atomic", "set"},
+	}
+
+	sliceField := types.Member{
+		Name: "Containers",
+		Type: &types.Type{
+			Kind: types.Slice,
+		},
+	}
+	mapField := types.Member{
+		Name: "Containers",
+		Type: &types.Type{
+			Kind: types.Map,
+		},
+	}
+
 	var failureTests = []struct {
 		extensions []extension
 		member     types.Member
 	}{
-		// Test single member extension
+		// List type extension must be defined on a slice.
 		{
-			extensions: []extension{patchStrategyExtension},
+			extensions: []extension{listTypeAtomicExtension},
 			member:     mapField,
 		},
-		// Test multiple member extensions
+		// Map keys defined, but missing listType=map
+		{
+			extensions: []extension{listMapKeysExtension},
+			member:     sliceField,
+		},
+		// listType=map, with no map keys defined.
+		{
+			extensions: []extension{listTypeMapExtension},
+			member:     sliceField,
+		},
+		// listType=atomic, with map keys defined.
 		{
 			extensions: []extension{
-				patchMergeKeyExtension,
-				listTypeExtension,
+				listTypeAtomicExtension,
 				listMapKeysExtension,
 			},
-			member: mapField,
+			member: sliceField,
+		},
+		// Multiple list types
+		{
+			extensions: []extension{listTypeMultipleErrorExtension},
+			member:     sliceField,
 		},
 	}
 	for _, test := range failureTests {
 		errors := validateMemberExtensions(test.extensions, &test.member)
-		if len(errors) != len(test.extensions) {
-			t.Errorf("validateMemberExtensions: %v should have produced all errors. Errors: %v",
+		if len(errors) == 0 {
+			t.Errorf("validateMemberExtensions: %v should have produced errors. Errors: %v",
 				test.extensions, errors)
 		}
 	}
