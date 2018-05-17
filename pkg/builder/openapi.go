@@ -53,6 +53,22 @@ func BuildOpenAPISpec(webServices []*restful.WebService, config *common.Config) 
 	return o.finalizeSwagger()
 }
 
+// BuildOpenAPIDefinitionsForResource builds a partial OpenAPI spec given a sample object and common.Config to customize it.
+func BuildOpenAPIDefinitionsForResource(model interface{}, config *common.Config) (*spec.Definitions, error) {
+	o := newOpenAPI(config)
+	// We can discard the return value of toSchema because all we care about is the side effect of calling it.
+	// All the models created for this resource get added to o.swagger.Definitions
+	_, err := o.toSchema(model)
+	if err != nil {
+		return nil, err
+	}
+	swagger, err := o.finalizeSwagger()
+	if err != nil {
+		return nil, err
+	}
+	return &swagger.Definitions, nil
+}
+
 // newOpenAPI sets up the openAPI object so we can build the spec.
 func newOpenAPI(config *common.Config) openAPI {
 	o := openAPI{

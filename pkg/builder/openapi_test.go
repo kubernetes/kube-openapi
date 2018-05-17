@@ -453,3 +453,23 @@ func TestBuildOpenAPISpec(t *testing.T) {
 	}
 	assert.Equal(string(expected_json), string(actual_json))
 }
+
+func TestBuildOpenAPIDefinitionsForResource(t *testing.T) {
+	config, _, assert := setUp(t, true)
+	expected := &spec.Definitions{
+		"builder.TestInput":  getTestInputDefinition(),
+	}
+	swagger, err := BuildOpenAPIDefinitionsForResource(TestInput{}, config)
+	if !assert.NoError(err) {
+		return
+	}
+	expected_json, err := json.Marshal(expected)
+	if !assert.NoError(err) {
+		return
+	}
+	actual_json, err := json.Marshal(swagger)
+	if !assert.NoError(err) {
+		return
+	}
+	assert.Equal(string(expected_json), string(actual_json))
+}
