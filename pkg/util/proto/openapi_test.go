@@ -17,6 +17,7 @@ limitations under the License.
 package proto_test
 
 import (
+	"fmt"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
@@ -28,6 +29,7 @@ import (
 
 var fakeSchema = testing.Fake{Path: filepath.Join("testing", "swagger.json")}
 var fakeSchemaNext = testing.Fake{Path: filepath.Join("testing", "swagger_next.json")}
+var fakeOneOfSchema = testing.Fake{Path: filepath.Join("testing", "swagger_oneof.json")}
 
 var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func() {
 	var models proto.Models
@@ -261,5 +263,33 @@ var _ = Describe("Path", func() {
 		field := array.FieldPath("subKey")
 
 		Expect(field.Get()).To(Equal([]string{"key", "[12]", ".subKey"}))
+	})
+})
+
+var _ = Describe("OneOf", func() {
+	var models proto.Models
+	BeforeEach(func() {
+		s, err := fakeOneOfSchema.OpenAPISchema()
+		Expect(err).To(BeNil())
+		models, err = proto.NewOpenAPIData(s)
+		Expect(err).To(BeNil())
+	})
+
+	model := "A"
+	var schema proto.Schema
+	It("has a model named A", func() {
+		schema = models.LookupModel(model)
+		Expect(schema).ToNot(BeNil())
+	})
+	It("is a `oneof`", func() {
+		fmt.Println(schema.GetExtensions())
+		a := schema.(*proto.OneOf)
+		Expect(a).ToNot(BeNil())
+		Expect(a.Discriminator).To(Equal("fruit"))
+	})
+	It("should have fields like a Kind", func() {
+		a := schema.(*proto.OneOf)
+		Expect(a).ToNot(BeNil())
+		Expect(a.Fields).To(HaveKey("apricot"))
 	})
 })

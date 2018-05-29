@@ -66,6 +66,15 @@ type SchemaVisitorArbitrary interface {
 	VisitArbitrary(*Arbitrary)
 }
 
+// SchemaVisitorOneOf is an additional visitor interface which handles
+// oneof types. For backwards compatibility, it's a separate interface
+// which is checked for at runtime. If the visitor doesn't support
+// oneof, the structure will be transformed into a "Kind".
+type SchemaVisitorOneOf interface {
+	SchemaVisitorArbitrary
+	VisitOneOf(*OneOf)
+}
+
 // Schema is the base definition of an openapi type.
 type Schema interface {
 	// Giving a visitor here will let you visit the actual type.
@@ -273,4 +282,24 @@ type Reference interface {
 
 	Reference() string
 	SubSchema() Schema
+}
+
+type OneOf struct {
+	Kind
+
+	// Discriminator field, or empty if the oneof is not discriminated.
+	Discriminator string
+}
+
+func (o *OneOf) Accept(v SchemaVisitor) {
+	if visitor, ok := v.(SchemaVisitorOneOf); ok {
+		visitor.VisitOneOf(o)
+	} else {
+		// The visitor doesn't support OneOf, let's pretend it's a Kind.
+		v.VisitKind(&o.Kind)
+	}
+}
+
+func (o *OneOf) GetName() string {
+	return "OneOf"
 }

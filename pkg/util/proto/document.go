@@ -25,6 +25,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const oneOfExtension = "x-kubernetes-oneof"
+
 func newSchemaError(path *Path, format string, a ...interface{}) error {
 	err := fmt.Sprintf(format, a...)
 	if path.Len() == 0 {
@@ -206,11 +208,25 @@ func (d *Definitions) parseKind(s *openapi_v2.Schema, path *Path) (Schema, error
 		}
 	}
 
-	return &Kind{
+	kind := &Kind{
 		BaseSchema:     d.parseBaseSchema(s, path),
 		RequiredFields: s.GetRequired(),
 		Fields:         fields,
-	}, nil
+	}
+
+	if discriminator, ok := kind.GetExtensions()[oneOfExtension]; ok {
+		if _, ok := discriminator.(string); !ok {
+			return nil, fmt.Errorf("Can't convert %s extension to string: %v",
+				oneOfExtension,
+				discriminator,
+			)
+		}
+		return &OneOf{
+			Kind:          *kind,
+			Discriminator: discriminator.(string),
+		}, nil
+	}
+	return kind, nil
 }
 
 func (d *Definitions) parseArbitrary(s *openapi_v2.Schema, path *Path) (Schema, error) {

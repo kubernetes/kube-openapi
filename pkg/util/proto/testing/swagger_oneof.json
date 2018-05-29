@@ -1,0 +1,49 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Kubernetes",
+    "version": "v1.8.0"
+  },
+  "paths": {},
+  "definitions": {
+    "A": {
+      "description": "The first letter of the alphabet.",
+      "type": "object",
+      "properties": {
+        "apple": {
+          "description": "The round fruit of a tree of the rose family, which typically has thin red or green skin and crisp flesh. Many varieties have been developed as dessert or cooking fruit or for making cider.",
+          "type": "string"
+        },
+        "apricot": {
+          "description": "A juicy, soft fruit, resembling a small peach, of an orange-yellow color.",
+          "type": "string"
+        },
+        "fruit": {
+          "description": "The sweet and fleshy product of a tree or other plant that contains seed and can be eaten as food.",
+          "type": "string"
+        }
+      },
+      "x-kubernetes-oneof": "fruit",
+      "x-kubernetes-group-version-kind": [
+        {
+          "group": "alphabet",
+          "kind": "letter",
+          "version": "roman"
+        }
+      ]
+    }
+  },
+  "securityDefinitions": {
+    "BearerToken": {
+      "description": "Bearer Token authentication",
+      "type": "apiKey",
+      "name": "authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "BearerToken": []
+    }
+  ]
+}
