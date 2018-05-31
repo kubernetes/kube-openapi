@@ -29,7 +29,7 @@ import (
 	"k8s.io/kube-openapi/pkg/util/proto/validation"
 )
 
-var fakeSchema = testing.Fake{Path: filepath.Join("..", "testing", "swagger.json")}
+var fakeSchema = testing.Fake{Path: filepath.Join("..", "testdata", "swagger.json")}
 
 func Validate(models proto.Models, model string, data string) []error {
 	var obj interface{}
