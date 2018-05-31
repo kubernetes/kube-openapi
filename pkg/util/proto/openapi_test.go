@@ -26,8 +26,8 @@ import (
 	"k8s.io/kube-openapi/pkg/util/proto/testing"
 )
 
-var fakeSchema = testing.Fake{Path: filepath.Join("testing", "swagger.json")}
-var fakeSchemaNext = testing.Fake{Path: filepath.Join("testing", "swagger_next.json")}
+var fakeSchema = testing.Fake{Path: filepath.Join("testdata", "swagger.json")}
+var fakeSchemaNext = testing.Fake{Path: filepath.Join("testdata", "swagger_next.json")}
 
 var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func() {
 	var models proto.Models
