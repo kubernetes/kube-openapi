@@ -17,33 +17,81 @@ package validate
 import (
 	re "regexp"
 	"sync"
+	"sync/atomic"
 )
 
 // Cache for compiled regular expressions
 var (
 	cacheMutex = &sync.Mutex{}
-	reDict     = map[string]*re.Regexp{}
+	reDict     = atomic.Value{} //map[string]*re.Regexp
 )
 
 func compileRegexp(pattern string) (*re.Regexp, error) {
-	cacheMutex.Lock()
-	defer cacheMutex.Unlock()
-	// Save repeated regexp compilation
-	if reDict[pattern] != nil {
-		return reDict[pattern], nil
+	cache, ok := reDict.Load().(map[string]*re.Regexp)
+	if !ok {
+		r, err := re.Compile(pattern)
+		if err != nil {
+			return nil, err
+		}
+		cacheRegexp(r)
+
+		return r, nil
 	}
-	var err error
-	reDict[pattern], err = re.Compile(pattern)
-	return reDict[pattern], err
+
+	if r := cache[pattern]; r != nil {
+		return r, nil
+	}
+
+	r, err := re.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+	cacheRegexp(r)
+	return r, nil
 }
 
 func mustCompileRegexp(pattern string) *re.Regexp {
+	cache, ok := reDict.Load().(map[string]*re.Regexp)
+	if !ok {
+		r := re.MustCompile(pattern)
+		cacheRegexp(r)
+		return r
+	}
+
+	if r := cache[pattern]; r != nil {
+		return r
+	}
+
+	r := re.MustCompile(pattern)
+	cacheRegexp(r)
+	return r
+}
+
+func cacheRegexp(r *re.Regexp) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
-	// Save repeated regexp compilation, with panic on error
-	if reDict[pattern] != nil {
-		return reDict[pattern]
+
+	cache, ok := reDict.Load().(map[string]*re.Regexp)
+	if !ok {
+		cache = map[string]*re.Regexp{
+			r.String(): r,
+		}
+
+		reDict.Store(cache)
+		return
 	}
-	reDict[pattern] = re.MustCompile(pattern)
-	return reDict[pattern]
+
+	if cr := cache[r.String()]; cr == nil {
+		newCache := map[string]*re.Regexp{
+			r.String(): r,
+		}
+
+		for k, v := range cache {
+			newCache[k] = v
+		}
+
+		reDict.Store(newCache)
+	}
+
+	return
 }
