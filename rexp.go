@@ -27,19 +27,10 @@ var (
 )
 
 func compileRegexp(pattern string) (*re.Regexp, error) {
-	cache, ok := reDict.Load().(map[string]*re.Regexp)
-	if !ok {
-		r, err := re.Compile(pattern)
-		if err != nil {
-			return nil, err
+	if cache, ok := reDict.Load().(map[string]*re.Regexp); ok {
+		if r := cache[pattern]; r != nil {
+			return r, nil
 		}
-		cacheRegexp(r)
-
-		return r, nil
-	}
-
-	if r := cache[pattern]; r != nil {
-		return r, nil
 	}
 
 	r, err := re.Compile(pattern)
@@ -51,15 +42,10 @@ func compileRegexp(pattern string) (*re.Regexp, error) {
 }
 
 func mustCompileRegexp(pattern string) *re.Regexp {
-	cache, ok := reDict.Load().(map[string]*re.Regexp)
-	if !ok {
-		r := re.MustCompile(pattern)
-		cacheRegexp(r)
-		return r
-	}
-
-	if r := cache[pattern]; r != nil {
-		return r
+	if cache, ok := reDict.Load().(map[string]*re.Regexp); ok {
+		if r := cache[pattern]; r != nil {
+			return r
+		}
 	}
 
 	r := re.MustCompile(pattern)
@@ -71,27 +57,17 @@ func cacheRegexp(r *re.Regexp) {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
 
-	cache, ok := reDict.Load().(map[string]*re.Regexp)
-	if !ok {
-		cache = map[string]*re.Regexp{
-			r.String(): r,
-		}
-
-		reDict.Store(cache)
-		return
-	}
-
-	if cr := cache[r.String()]; cr == nil {
+	if cache, ok := reDict.Load().(map[string]*re.Regexp); !ok || cache[r.String()] == nil {
 		newCache := map[string]*re.Regexp{
 			r.String(): r,
 		}
 
-		for k, v := range cache {
-			newCache[k] = v
+		if ok {
+			for k, v := range cache {
+				newCache[k] = v
+			}
 		}
 
 		reDict.Store(newCache)
 	}
-
-	return
 }
