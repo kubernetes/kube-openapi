@@ -10,7 +10,7 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations untader the License.
+// limitations under the License.
 
 package validate
 
@@ -62,10 +62,8 @@ func cacheRegexp(r *re.Regexp) {
 			r.String(): r,
 		}
 
-		if ok {
-			for k, v := range cache {
-				newCache[k] = v
-			}
+		for k, v := range cache {
+			newCache[k] = v
 		}
 
 		reDict.Store(newCache)
