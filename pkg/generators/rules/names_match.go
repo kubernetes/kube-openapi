@@ -38,6 +38,15 @@ var (
 		// Special case for object and list meta
 		"metadata",
 	)
+
+	// List of substrings that aren't allowed in Go name and JSON name
+	disallowedNameSubstrings = sets.NewString(
+		// Underscore is not allowed in either name
+		"_",
+		// Dash is not allowed in either name. Note that since dash is a valid JSON tag, this should be checked
+		// after JSON tag blacklist check.
+		"-",
+	)
 )
 
 /*
@@ -116,6 +125,9 @@ func namesMatch(goName, jsonName string) bool {
 	if jsonNameBlacklist.Has(jsonName) {
 		return true
 	}
+	if !isAllowedName(goName) || !isAllowedName(jsonName) {
+		return false
+	}
 	if strings.ToLower(goName) != strings.ToLower(jsonName) {
 		return false
 	}
@@ -145,4 +157,15 @@ func namesMatch(goName, jsonName string) bool {
 // isCaptical returns true if one character is capital
 func isCapital(b byte) bool {
 	return b >= 'A' && b <= 'Z'
+}
+
+// isAllowedName checks the list of disallowedNameSubstrings and returns true if name doesn't contain
+// any disallowed substring.
+func isAllowedName(name string) bool {
+	for _, substr := range disallowedNameSubstrings.UnsortedList() {
+		if strings.Contains(name, substr) {
+			return false
+		}
+	}
+	return true
 }

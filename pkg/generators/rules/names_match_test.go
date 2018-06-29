@@ -205,7 +205,7 @@ func TestNamesMatch(t *testing.T) {
 		},
 		// NOTE: JSON tags in jsonTagBlacklist should skip evaluation
 		{
-			name: "blacklist_tag_-",
+			name: "blacklist_tag_dash",
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
@@ -219,7 +219,7 @@ func TestNamesMatch(t *testing.T) {
 		},
 		// {"PodSpec", "-", false},
 		{
-			name: "invalid_json_name_-",
+			name: "invalid_json_name_dash",
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
@@ -308,6 +308,35 @@ func TestNamesMatch(t *testing.T) {
 				},
 			},
 			expected: []string{},
+		},
+		// NOTE: names with disallowed substrings should fail evaluation
+		// {"Pod-Spec", "pod-Spec", false},
+		{
+			name: "disallowed_substring_dash",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					types.Member{
+						Name: "Pod-Spec",
+						Tags: `json:"pod-Spec"`,
+					},
+				},
+			},
+			expected: []string{"Pod-Spec"},
+		},
+		// {"Pod_Spec", "pod_Spec", false},
+		{
+			name: "disallowed_substring_underscore",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					types.Member{
+						Name: "Pod_Spec",
+						Tags: `json:"pod_Spec"`,
+					},
+				},
+			},
+			expected: []string{"Pod_Spec"},
 		},
 	}
 

@@ -24,10 +24,10 @@ import (
 	"flag"
 	"log"
 
-	"github.com/spf13/pflag"
+	generatorargs "k8s.io/kube-openapi/cmd/openapi-gen/args"
 	"k8s.io/kube-openapi/pkg/generators"
 
-	generatorargs "k8s.io/kube-openapi/cmd/openapi-gen/args"
+	"github.com/spf13/pflag"
 )
 
 func main() {

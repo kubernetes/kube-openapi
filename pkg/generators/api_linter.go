@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"io"
 
+	"k8s.io/kube-openapi/pkg/generators/rules"
+
 	"github.com/golang/glog"
 	"k8s.io/gengo/types"
-	"k8s.io/kube-openapi/pkg/generators/rules"
 )
 
 // apiLinter is the framework hosting mutliple API rules and recording API rule
