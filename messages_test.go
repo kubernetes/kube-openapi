@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/go-openapi/loads"
@@ -107,6 +108,7 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 	}
 
 	tested := ExpectedMap{}
+	holdOn := sync.Mutex{}
 	yerr := yaml.Unmarshal(expectedConfig, &tested)
 	if yerr != nil {
 		t.Logf("Cannot unmarshall expected messages from config file : %v", yerr)
@@ -131,37 +133,45 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 	err := filepath.Walk(filepath.Join("fixtures", "validation"),
 		func(path string, info os.FileInfo, err error) error {
 			t.Run(path, func(t *testing.T) {
-				t.Parallel()
+				if !DebugTest {
+					// when running in dev mode, run serially...
+					t.Parallel()
+				}
 				basename := info.Name()
-				_, found := tested[basename]
 				errs := 0
+
+				holdOn.Lock()
+				thisTest, found := tested[basename]
+				holdOn.Unlock()
 
 				defer func() {
 					if found {
+						holdOn.Lock()
 						tested[basename].Tested = true
 						tested[basename].Failed = (errs != 0)
+						holdOn.Unlock()
 					}
 
 				}()
 
-				if !info.IsDir() && found && tested[basename].ExpectedValid == false {
+				if !info.IsDir() && found && !thisTest.ExpectedValid {
 					// Checking invalid specs
 					t.Logf("Testing messages for invalid spec: %s", path)
 					if DebugTest {
-						if tested[basename].Comment != "" {
-							t.Logf("\tDEVMODE: Comment: %s", tested[basename].Comment)
+						if thisTest.Comment != "" {
+							t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
 						}
-						if tested[basename].Todo != "" {
-							t.Logf("\tDEVMODE: Todo: %s", tested[basename].Todo)
+						if thisTest.Todo != "" {
+							t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
 						}
 					}
 					doc, err := loads.Spec(path)
 
 					// Check specs with load errors (error is located in pkg loads or spec)
-					if tested[basename].ExpectedLoadError == true {
+					if thisTest.ExpectedLoadError {
 						// Expect a load error: no further validation may possibly be conducted.
 						if assert.Error(t, err, "Expected this spec to return a load error") {
-							errs += verifyLoadErrors(t, err, tested[basename].ExpectedMessages)
+							errs += verifyLoadErrors(t, err, thisTest.ExpectedMessages)
 							if errs == 0 {
 								// spec does not load as expected
 								return
@@ -190,13 +200,13 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 						}
 
 						errs += verifyErrorsVsWarnings(t, res, warn)
-						errs += verifyErrors(t, res, tested[basename].ExpectedMessages, "error", continueOnErrors)
-						errs += verifyErrors(t, warn, tested[basename].ExpectedWarnings, "warning", continueOnErrors)
+						errs += verifyErrors(t, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+						errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
 
 						// DEVMODE allows developers to experiment and tune expected results
 						if DebugTest && errs > 0 {
-							reportTest(t, path, res, tested[basename].ExpectedMessages, "error", continueOnErrors)
-							reportTest(t, path, warn, tested[basename].ExpectedWarnings, "warning", continueOnErrors)
+							reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+							reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
 						}
 					} else {
 						errs++
@@ -207,15 +217,14 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 					}
 				} else {
 					// Expecting no message (e.g.valid spec): 0 message expected
-					if !info.IsDir() && found && tested[basename].ExpectedValid {
-						tested[basename].Tested = true
+					if !info.IsDir() && found && thisTest.ExpectedValid {
 						t.Logf("Testing valid spec: %s", path)
 						if DebugTest {
-							if tested[basename].Comment != "" {
-								t.Logf("\tDEVMODE: Comment: %s", tested[basename].Comment)
+							if thisTest.Comment != "" {
+								t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
 							}
-							if tested[basename].Todo != "" {
-								t.Logf("\tDEVMODE: Todo: %s", tested[basename].Todo)
+							if thisTest.Todo != "" {
+								t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
 							}
 						}
 						doc, err := loads.Spec(path)
@@ -226,10 +235,10 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 							if !assert.True(t, res.IsValid(), "Expected this spec to be valid") {
 								errs++
 							}
-							errs += verifyErrors(t, warn, tested[basename].ExpectedWarnings, "warning", continueOnErrors)
+							errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
 							if DebugTest && errs > 0 {
-								reportTest(t, path, res, tested[basename].ExpectedMessages, "error", continueOnErrors)
-								reportTest(t, path, warn, tested[basename].ExpectedWarnings, "warning", continueOnErrors)
+								reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+								reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
 							}
 						} else {
 							errs++
@@ -442,25 +451,51 @@ func verifyLoadErrors(t *testing.T, err error, expectedMessages []ExpectedMessag
 	return
 }
 
-// Test unitary fixture for dev and bug fixing
-func Test_SingleFixture(t *testing.T) {
-	t.SkipNow()
-	path := filepath.Join("fixtures", "validation", "fixture-342.yaml")
+func testIssue(t *testing.T, path string, expectedNumErrors, expectedNumWarnings int) {
 	doc, err := loads.Spec(path)
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
 		validator.SetContinueOnErrors(true)
 		res, _ := validator.Validate(doc)
-		t.Log("Returned errors:")
-		for _, e := range res.Errors {
-			t.Logf("%v", e)
+		if !assert.Len(t, res.Errors, expectedNumErrors) {
+			t.Log("Returned errors:")
+			for _, e := range res.Errors {
+				t.Logf("%v", e)
+			}
 		}
-		t.Log("Returned warnings:")
-		for _, e := range res.Warnings {
-			t.Logf("%v", e)
+		if !assert.Len(t, res.Warnings, expectedNumWarnings) {
+			t.Log("Returned warnings:")
+			for _, e := range res.Warnings {
+				t.Logf("%v", e)
+			}
 		}
 
 	} else {
 		t.Logf("Load error: %v", err)
 	}
+}
+
+// test go-swagger/go-swagger#1614 (circular refs)
+func Test_Issue1614(t *testing.T) {
+	path := filepath.Join("fixtures", "bugs", "1614", "gitea.json")
+	testIssue(t, path, 0, 3)
+}
+
+// Test go-swagger/go-swagger#1621 (remote $ref)
+func Test_Issue1621(t *testing.T) {
+	path := filepath.Join("fixtures", "bugs", "1621", "fixture-1621.yaml")
+	testIssue(t, path, 0, 0)
+}
+
+// Test go-swagger/go-swagger#1429 (remote $ref)
+func Test_Issue1429(t *testing.T) {
+	path := filepath.Join("fixtures", "bugs", "1429", "swagger.yaml")
+	testIssue(t, path, 0, 0)
+}
+
+// Test unitary fixture for dev and bug fixing
+func Test_SingleFixture(t *testing.T) {
+	t.SkipNow()
+	path := filepath.Join("fixtures", "validation", "fixture-1171.yaml")
+	testIssue(t, path, -1, -1)
 }
