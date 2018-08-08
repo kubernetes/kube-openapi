@@ -2140,7 +2140,7 @@
           "$ref": "#/definitions/io.k8s.api.core.v1.ConfigMapEnvSource"
         },
         "prefix": {
-          "description": "An optional identifer to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER.",
+          "description": "An optional identifier to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER.",
           "type": "string"
         },
         "secretRef": {
