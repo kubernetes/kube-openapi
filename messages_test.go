@@ -22,7 +22,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"sync"
 	"testing"
 
 	"github.com/go-openapi/loads"
@@ -108,7 +107,6 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 	}
 
 	tested := ExpectedMap{}
-	holdOn := sync.Mutex{}
 	yerr := yaml.Unmarshal(expectedConfig, &tested)
 	if yerr != nil {
 		t.Logf("Cannot unmarshall expected messages from config file : %v", yerr)
@@ -128,33 +126,32 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 		}
 	}
 	if errs > 0 {
+		// bad config
+		t.Fail()
 		return
 	}
 	err := filepath.Walk(filepath.Join("fixtures", "validation"),
 		func(path string, info os.FileInfo, err error) error {
+			basename := info.Name()
+			thisTest, found := tested[basename]
+
+			if info.IsDir() || !found {
+				// skip
+				return nil
+			}
+			defer func() {
+				thisTest.Tested = true
+				thisTest.Failed = (errs != 0)
+			}()
+
 			t.Run(path, func(t *testing.T) {
 				if !DebugTest {
 					// when running in dev mode, run serially...
 					t.Parallel()
 				}
-				basename := info.Name()
 				errs := 0
 
-				holdOn.Lock()
-				thisTest, found := tested[basename]
-				holdOn.Unlock()
-
-				defer func() {
-					if found {
-						holdOn.Lock()
-						tested[basename].Tested = true
-						tested[basename].Failed = (errs != 0)
-						holdOn.Unlock()
-					}
-
-				}()
-
-				if !info.IsDir() && found && !thisTest.ExpectedValid {
+				if !thisTest.ExpectedValid {
 					// Checking invalid specs
 					t.Logf("Testing messages for invalid spec: %s", path)
 					if DebugTest {
@@ -217,32 +214,30 @@ func testMessageQuality(t *testing.T, haltOnErrors bool, continueOnErrors bool) 
 					}
 				} else {
 					// Expecting no message (e.g.valid spec): 0 message expected
-					if !info.IsDir() && found && thisTest.ExpectedValid {
-						t.Logf("Testing valid spec: %s", path)
-						if DebugTest {
-							if thisTest.Comment != "" {
-								t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
-							}
-							if thisTest.Todo != "" {
-								t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
-							}
+					t.Logf("Testing valid spec: %s", path)
+					if DebugTest {
+						if thisTest.Comment != "" {
+							t.Logf("\tDEVMODE: Comment: %s", thisTest.Comment)
 						}
-						doc, err := loads.Spec(path)
-						if assert.NoError(t, err, "Expected this spec to load without error") {
-							validator := NewSpecValidator(doc.Schema(), strfmt.Default)
-							validator.SetContinueOnErrors(continueOnErrors)
-							res, warn := validator.Validate(doc)
-							if !assert.True(t, res.IsValid(), "Expected this spec to be valid") {
-								errs++
-							}
-							errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
-							if DebugTest && errs > 0 {
-								reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
-								reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
-							}
-						} else {
+						if thisTest.Todo != "" {
+							t.Logf("\tDEVMODE: Todo: %s", thisTest.Todo)
+						}
+					}
+					doc, err := loads.Spec(path)
+					if assert.NoError(t, err, "Expected this spec to load without error") {
+						validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+						validator.SetContinueOnErrors(continueOnErrors)
+						res, warn := validator.Validate(doc)
+						if !assert.True(t, res.IsValid(), "Expected this spec to be valid") {
 							errs++
 						}
+						errs += verifyErrors(t, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
+						if DebugTest && errs > 0 {
+							reportTest(t, path, res, thisTest.ExpectedMessages, "error", continueOnErrors)
+							reportTest(t, path, warn, thisTest.ExpectedWarnings, "warning", continueOnErrors)
+						}
+					} else {
+						errs++
 					}
 				}
 				if haltOnErrors && errs > 0 {
