@@ -50,6 +50,20 @@ func TestServeError(t *testing.T) {
 	// assert.Equal(t, "application/json", recorder.Header().Get("content-type"))
 	assert.Equal(t, `{"code":601,"message":"someType is an invalid type name"}`, recorder.Body.String())
 
+	// same, but override DefaultHTTPCode
+	func() {
+		oldDefaultHTTPCode := DefaultHTTPCode
+		defer func() { DefaultHTTPCode = oldDefaultHTTPCode }()
+		DefaultHTTPCode = http.StatusBadRequest
+
+		err = InvalidTypeName("someType")
+		recorder = httptest.NewRecorder()
+		ServeError(recorder, nil, err)
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		// assert.Equal(t, "application/json", recorder.Header().Get("content-type"))
+		assert.Equal(t, `{"code":601,"message":"someType is an invalid type name"}`, recorder.Body.String())
+	}()
+
 	// defaults to internal server error
 	simpleErr := fmt.Errorf("some error")
 	recorder = httptest.NewRecorder()
