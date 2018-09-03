@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 )
 
@@ -136,7 +137,8 @@ func ServeError(rw http.ResponseWriter, r *http.Request, err error) {
 			rw.Write(errorAsJSON(e))
 		}
 	case Error:
-		if e == nil {
+		value := reflect.ValueOf(e)
+		if value.Kind() == reflect.Ptr && value.IsNil() {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write(errorAsJSON(New(http.StatusInternalServerError, "Unknown error")))
 			return

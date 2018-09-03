@@ -23,6 +23,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type customError struct {
+	apiError
+}
+
 func TestServeError(t *testing.T) {
 	// method not allowed wins
 	// err abides by the Error interface
@@ -130,6 +134,12 @@ func TestServeError(t *testing.T) {
 	// check guard against nil type
 	recorder = httptest.NewRecorder()
 	ServeError(recorder, nil, nil)
+	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	assert.Equal(t, `{"code":500,"message":"Unknown error"}`, recorder.Body.String())
+
+	recorder = httptest.NewRecorder()
+	var z *customError
+	ServeError(recorder, nil, z)
 	assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	assert.Equal(t, `{"code":500,"message":"Unknown error"}`, recorder.Body.String())
 }
