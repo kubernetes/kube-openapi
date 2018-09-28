@@ -257,7 +257,9 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 	specCloned := false
 	// Paths may be empty, due to [ACL constraints](http://goo.gl/8us55a#securityFiltering).
 	if source.Paths == nil {
-		source.Paths = &spec.Paths{}
+		// When a source spec does not have any path, that means none of the definitions
+		// are used thus we should not do anything
+		return nil
 	}
 	if dest.Paths == nil {
 		dest.Paths = &spec.Paths{}
