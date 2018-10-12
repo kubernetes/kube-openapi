@@ -114,8 +114,8 @@ func IsUUID5(str string) bool {
 
 // Validates an email address.
 func IsEmail(str string) bool {
-	_, e := mail.ParseAddress(str)
-	return e == nil
+	addr, e := mail.ParseAddress(str)
+	return e == nil && addr.Address != ""
 }
 
 func init() {
