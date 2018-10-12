@@ -121,6 +121,7 @@ func TestFormatEmail(t *testing.T) {
 		"postmaster@☁→❄→☃→☀→☺→☂→☹→✝.ws",
 		"root@localhost",
 		"john@com",
+		"api@piston.ninja",
 	}
 
 	for _, eml := range validEmails {
