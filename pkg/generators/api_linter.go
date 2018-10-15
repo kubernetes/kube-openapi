@@ -41,6 +41,7 @@ func newAPILinter() *apiLinter {
 	return &apiLinter{
 		rules: []APIRule{
 			&rules.NamesMatch{},
+			&rules.OmitEmptyMatchCase{},
 		},
 	}
 }
