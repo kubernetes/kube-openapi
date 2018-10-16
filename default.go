@@ -112,7 +112,7 @@ func IsUUID5(str string) bool {
 	return rxUUID5.MatchString(str)
 }
 
-// Validates an email address.
+// IsEmail validates an email address.
 func IsEmail(str string) bool {
 	addr, e := mail.ParseAddress(str)
 	return e == nil && addr.Address != ""
@@ -197,13 +197,7 @@ func init() {
 	Default.Add("password", &pw, func(_ string) bool { return true })
 }
 
-/* unused:
-var formatCheckers = map[string]Validator{
-	"byte": govalidator.IsBase64,
-}
-*/
-
-// Base64 represents a base64 encoded string
+// Base64 represents a base64 encoded string, using URLEncoding alphabet
 //
 // swagger:strfmt byte
 type Base64 []byte
