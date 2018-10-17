@@ -200,14 +200,6 @@ func (g *openAPIGen) Namers(c *generator.Context) namer.NameSystems {
 	}
 }
 
-func (g *openAPIGen) Filter(c *generator.Context, t *types.Type) bool {
-	// There is a conflict between this codegen and codecgen, we should avoid types generated for codecgen
-	if strings.HasPrefix(t.Name.Name, "codecSelfer") {
-		return false
-	}
-	return true
-}
-
 func (g *openAPIGen) isOtherPackage(pkg string) bool {
 	if pkg == g.targetPackage {
 		return false
