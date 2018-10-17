@@ -169,7 +169,6 @@ type openAPIGen struct {
 	// TargetPackage is the package that will get GetOpenAPIDefinitions function returns all open API definitions.
 	targetPackage  string
 	imports        namer.ImportTracker
-	types          []*types.Type
 	linter         *apiLinter
 	reportFilename string
 }
@@ -206,7 +205,6 @@ func (g *openAPIGen) Filter(c *generator.Context, t *types.Type) bool {
 	if strings.HasPrefix(t.Name.Name, "codecSelfer") {
 		return false
 	}
-	g.types = append(g.types, t)
 	return true
 }
 
@@ -242,7 +240,7 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 	sw.Do("func GetOpenAPIDefinitions(ref $.ReferenceCallback|raw$) map[string]$.OpenAPIDefinition|raw$ {\n", argsFromType(nil))
 	sw.Do("return map[string]$.OpenAPIDefinition|raw${\n", argsFromType(nil))
 
-	for _, t := range g.types {
+	for _, t := range c.Order {
 		err := newOpenAPITypeWriter(sw).generateCall(t)
 		if err != nil {
 			return err
