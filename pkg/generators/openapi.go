@@ -133,7 +133,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 			PackagePath: arguments.OutputPackagePath,
 			HeaderText:  header,
 			GeneratorFunc: func(c *generator.Context) (generators []generator.Generator) {
-				return []generator.Generator{NewOpenAPIGen(
+				return []generator.Generator{newOpenAPIGen(
 					arguments.OutputFileBaseName,
 					arguments.OutputPackagePath,
 					newAPILinter(),
@@ -174,7 +174,7 @@ type openAPIGen struct {
 	reportFilename string
 }
 
-func NewOpenAPIGen(sanitizedName string, targetPackage string, linter *apiLinter, reportFilename string) generator.Generator {
+func newOpenAPIGen(sanitizedName string, targetPackage string, linter *apiLinter, reportFilename string) generator.Generator {
 	return &openAPIGen{
 		DefaultGen: generator.DefaultGen{
 			OptionalName: sanitizedName,
