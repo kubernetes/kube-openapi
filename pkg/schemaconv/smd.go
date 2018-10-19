@@ -171,8 +171,7 @@ func (c *convert) VisitPrimitive(p *proto.Primitive) {
 	case proto.Number:
 		a.Scalar = ptr(schema.Numeric)
 	case proto.String:
-		// TODO: find the format value we actually use
-		if p.Format == "intorstring" {
+		if p.Format == "int-or-string" {
 			a.Untyped = &schema.Untyped{}
 		} else {
 			a.Scalar = ptr(schema.String)

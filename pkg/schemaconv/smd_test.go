@@ -17,6 +17,7 @@ limitations under the License.
 package schemaconv
 
 import (
+	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -27,7 +28,8 @@ import (
 )
 
 var (
-	fakeSchema = prototesting.Fake{Path: filepath.Join("..", "util", "proto", "testdata", "swagger.json")}
+	fakeSchema            = prototesting.Fake{Path: filepath.Join("..", "util", "proto", "testdata", "swagger.json")}
+	expectedNewSchemaPath = filepath.Join("testdata", "new-schema.yaml")
 )
 
 func TestToSchema(t *testing.T) {
@@ -44,9 +46,19 @@ func TestToSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	str, err := yaml.Marshal(ns)
+	got, err := yaml.Marshal(ns)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(string(str))
+	t.Log(string(got))
+
+	expect, err := ioutil.ReadFile(expectedNewSchemaPath)
+	if err != nil {
+		t.Fatalf("Unable to read golden data file %q: %v", expectedNewSchemaPath, err)
+	}
+
+	if string(expect) != string(got) {
+		t.Errorf("Computed schema did not match %q.", expectedNewSchemaPath)
+		t.Logf("To recompute this file, run:\n\tgo run ./cmd/openapi2smd/openapi2smd.go < pkg/util/proto/testdata/swagger.json > pkg/schemaconv/testdata/new-schema.yaml")
+	}
 }
