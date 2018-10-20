@@ -17,7 +17,10 @@ limitations under the License.
 package schemaconv
 
 import (
+	"errors"
+	"fmt"
 	"path"
+	"strings"
 
 	"k8s.io/kube-openapi/pkg/util/proto"
 	"sigs.k8s.io/structured-merge-diff/schema"
@@ -27,41 +30,64 @@ import (
 // merge (i.e. kubectl apply v2).
 func ToSchema(models proto.Models) (*schema.Schema, error) {
 	c := convert{
-		input: models,
+		input:  models,
+		output: &schema.Schema{},
 	}
 	if err := c.convertAll(); err != nil {
 		return nil, err
 	}
 
-	return &c.output, nil
+	return c.output, nil
 }
 
 type convert struct {
 	input  proto.Models
-	output schema.Schema
+	output *schema.Schema
 
-	current []*schema.Atom
+	currentName   string
+	current       *schema.Atom
+	errorMessages []string
 }
 
-func (c *convert) push(a *schema.Atom) { c.current = append(c.current, a) }
-func (c *convert) top() *schema.Atom   { return c.current[len(c.current)-1] }
-func (c *convert) pop()                { c.current = c.current[0 : len(c.current)-1] }
+func (c *convert) push(name string, a *schema.Atom) *convert {
+	return &convert{
+		input:       c.input,
+		output:      c.output,
+		currentName: name,
+		current:     a,
+	}
+}
+
+func (c *convert) top() *schema.Atom { return c.current }
+
+func (c *convert) pop(c2 *convert) {
+	c.errorMessages = append(c.errorMessages, c2.errorMessages...)
+}
 
 func (c *convert) convertAll() error {
 	for _, name := range c.input.ListModels() {
 		model := c.input.LookupModel(name)
 		c.insertTypeDef(name, model)
 	}
+	if len(c.errorMessages) > 0 {
+		return errors.New(strings.Join(c.errorMessages, "\n"))
+	}
 	return nil
+}
+
+func (c *convert) reportError(format string, args ...interface{}) {
+	c.errorMessages = append(c.errorMessages,
+		c.currentName+": "+fmt.Sprintf(format, args...),
+	)
 }
 
 func (c *convert) insertTypeDef(name string, model proto.Schema) {
 	def := schema.TypeDef{
 		Name: name,
 	}
-	c.push(&def.Atom)
-	model.Accept(c)
-	c.pop()
+	c2 := c.push(name, &def.Atom)
+	model.Accept(c2)
+	c.pop(c2)
 	if def.Atom == (schema.Atom{}) {
 		// This could happen if there were a top-level reference.
 		return
@@ -77,9 +103,9 @@ func (c *convert) makeRef(model proto.Schema) schema.TypeRef {
 		tr.NamedType = &n
 	} else {
 		// compute the type inline
-		c.push(&tr.Inlined)
-		model.Accept(c)
-		c.pop()
+		c2 := c.push("inlined in "+c.currentName, &tr.Inlined)
+		model.Accept(c2)
+		c.pop(c2)
 
 		if tr == (schema.TypeRef{}) {
 			// emit warning?
@@ -104,6 +130,20 @@ func (c *convert) VisitKind(k *proto.Kind) {
 	// TODO: Get element relationship when we start adding it to the spec.
 }
 
+func toStringSlice(o interface{}) (out []string, ok bool) {
+	switch t := o.(type) {
+	case []interface{}:
+		for _, v := range t {
+			switch vt := v.(type) {
+			case string:
+				out = append(out, vt)
+			}
+		}
+		return out, true
+	}
+	return nil, false
+}
+
 func (c *convert) VisitArray(a *proto.Array) {
 	atom := c.top()
 	atom.List = &schema.List{
@@ -122,32 +162,34 @@ func (c *convert) VisitArray(a *proto.Array) {
 		} else if val == "map" {
 			l.ElementRelationship = schema.Associative
 			if keys, ok := ext["x-kubernetes-list-map-keys"]; ok {
-				if keyNames, ok := keys.([]string); ok {
+				if keyNames, ok := toStringSlice(keys); ok {
 					l.Keys = keyNames
 				} else {
-					// emit warning
+					c.reportError("uninterpreted map keys: %#v", keys)
 				}
 			} else {
-				// emit warning
+				c.reportError("missing map keys")
 			}
 		} else {
-			// TODO: emit warning?
+			c.reportError("unknown list type %v", val)
 			l.ElementRelationship = schema.Atomic
 		}
 	} else if val, ok := ext["x-kubernetes-patch-strategy"]; ok {
-		if val == "merge" {
+		if val == "merge" || val == "merge,retainKeys" {
 			l.ElementRelationship = schema.Associative
 			if key, ok := ext["x-kubernetes-patch-merge-key"]; ok {
 				if keyName, ok := key.(string); ok {
 					l.Keys = []string{keyName}
 				} else {
-					// emit warning
+					c.reportError("uninterpreted merge key: %#v", key)
 				}
 			} else {
-				// emit warning
+				// It's not an error for this to be absent, it
+				// means it's a set.
 			}
+		} else if val == "retainKeys" {
 		} else {
-			// TODO: emit warning?
+			c.reportError("unknown patch strategy %v", val)
 			l.ElementRelationship = schema.Atomic
 		}
 	}

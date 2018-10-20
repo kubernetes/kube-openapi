@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	fakeSchema            = prototesting.Fake{Path: filepath.Join("..", "util", "proto", "testdata", "swagger.json")}
+	fakeSchema            = prototesting.Fake{Path: filepath.Join("testdata", "swagger.json")}
 	expectedNewSchemaPath = filepath.Join("testdata", "new-schema.yaml")
 )
 
