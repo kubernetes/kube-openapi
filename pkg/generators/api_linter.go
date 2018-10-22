@@ -27,6 +27,67 @@ import (
 	"k8s.io/gengo/types"
 )
 
+const apiViolationFileType = "api-violation"
+
+type apiViolationFile struct{}
+
+func (apiViolationFile) AssembleFile(f *generator.File, path string) error {
+	return nil
+}
+
+func (apiViolationFile) VerifyFile(f *generator.File, path string) error {
+	return nil
+}
+
+func newAPIViolationGen(reportFilename string) *apiViolationGen {
+	return &apiViolationGen{
+		reportFilename: reportFilename,
+		linter:         newAPILinter(),
+	}
+}
+
+type apiViolationGen struct {
+	generator.DefaultGen
+
+	linter         *apiLinter
+	reportFilename string
+}
+
+func (v *apiViolationGen) FileType() string { return apiViolationFileType }
+func (v *apiViolationGen) FileName() string { return v.reportFilename }
+
+func (v *apiViolationGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
+	glog.V(5).Infof("validating API rules for type %v", t)
+	if err := v.linter.validate(t); err != nil {
+		return err
+	}
+}
+
+// Finalize prints the API rule violations to report file (if specified from
+// arguments) or stdout (default)
+func (v *apiViolationGen) Finalize(c *generator.Context, w io.Writer) error {
+	// If report file isn't specified, return error to force user to choose either stdout ("-") or a file name
+	if len(v.reportFilename) == 0 {
+		return fmt.Errorf("empty report file name: please provide a valid file name or use the default \"-\" (stdout)")
+	}
+	// If stdout is specified, print violations and return error
+	if v.reportFilename == "-" {
+		return g.linter.report(os.Stdout)
+	}
+	// Otherwise, print violations to report file and return nil
+	f, err := os.Create(v.reportFilename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	g.linter.report(f)
+	// NOTE: we don't return error here because we assume that the report file will
+	// get evaluated afterwards to determine if error should be raised. For example,
+	// you can have make rules that compare the report file with existing known
+	// violations (whitelist) and determine no error if no change is detected.
+	return nil
+}
+
 // apiLinter is the framework hosting multiple API rules and recording API rule
 // violations
 type apiLinter struct {
