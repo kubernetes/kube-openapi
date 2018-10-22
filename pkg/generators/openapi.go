@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -126,6 +125,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 	if customArgs, ok := arguments.CustomArgs.(*generatorargs.CustomArgs); ok {
 		reportFilename = customArgs.ReportFilename
 	}
+	context.FileTypes[apiViolationFileType] = apiViolationFile{}
 
 	return generator.Packages{
 		&generator.DefaultPackage{
@@ -138,9 +138,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 						arguments.OutputFileBaseName,
 						arguments.OutputPackagePath,
 					),
-					newAPIViolationGen(
-						reportFilename,
-					),
+					newAPIViolationGen(reportFilename),
 				}
 			},
 			FilterFunc: func(c *generator.Context, t *types.Type) bool {

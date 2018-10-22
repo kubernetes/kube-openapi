@@ -17,13 +17,17 @@ limitations under the License.
 package generators
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"sort"
 
 	"k8s.io/kube-openapi/pkg/generators/rules"
 
 	"github.com/golang/glog"
+	"k8s.io/gengo/generator"
 	"k8s.io/gengo/types"
 )
 
@@ -32,11 +36,50 @@ const apiViolationFileType = "api-violation"
 type apiViolationFile struct{}
 
 func (apiViolationFile) AssembleFile(f *generator.File, path string) error {
-	return nil
+	glog.V(2).Infof("Assembling file %q", path)
+	if path == "-" {
+		_, err := io.Copy(os.Stdout, &f.Body)
+		return err
+	}
+
+	output, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer output.Close()
+	_, err = io.Copy(output, &f.Body)
+	return err
 }
 
 func (apiViolationFile) VerifyFile(f *generator.File, path string) error {
-	return nil
+	if path == "-" {
+		// Nothing to verify against.
+		return nil
+	}
+
+	formatted := f.Body.Bytes()
+	existing, err := ioutil.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("unable to read file %q for comparison: %v", path, err)
+	}
+	if bytes.Compare(formatted, existing) == 0 {
+		return nil
+	}
+
+	// Be nice and find the first place where they differ
+	// (Copied from gengo's default file type)
+	i := 0
+	for i < len(formatted) && i < len(existing) && formatted[i] == existing[i] {
+		i++
+	}
+	eDiff, fDiff := existing[i:], formatted[i:]
+	if len(eDiff) > 100 {
+		eDiff = eDiff[:100]
+	}
+	if len(fDiff) > 100 {
+		fDiff = fDiff[:100]
+	}
+	return fmt.Errorf("output for %q differs; first existing/expected diff: \n  %q\n  %q", path, string(eDiff), string(fDiff))
 }
 
 func newAPIViolationGen(reportFilename string) *apiViolationGen {
@@ -61,30 +104,17 @@ func (v *apiViolationGen) GenerateType(c *generator.Context, t *types.Type, w io
 	if err := v.linter.validate(t); err != nil {
 		return err
 	}
+	return nil
 }
 
 // Finalize prints the API rule violations to report file (if specified from
 // arguments) or stdout (default)
 func (v *apiViolationGen) Finalize(c *generator.Context, w io.Writer) error {
-	// If report file isn't specified, return error to force user to choose either stdout ("-") or a file name
-	if len(v.reportFilename) == 0 {
-		return fmt.Errorf("empty report file name: please provide a valid file name or use the default \"-\" (stdout)")
-	}
-	// If stdout is specified, print violations and return error
-	if v.reportFilename == "-" {
-		return g.linter.report(os.Stdout)
-	}
-	// Otherwise, print violations to report file and return nil
-	f, err := os.Create(v.reportFilename)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	g.linter.report(f)
 	// NOTE: we don't return error here because we assume that the report file will
 	// get evaluated afterwards to determine if error should be raised. For example,
 	// you can have make rules that compare the report file with existing known
 	// violations (whitelist) and determine no error if no change is detected.
+	v.linter.report(w)
 	return nil
 }
 
