@@ -97,7 +97,9 @@ type apiViolationGen struct {
 }
 
 func (v *apiViolationGen) FileType() string { return apiViolationFileType }
-func (v *apiViolationGen) FileName() string { return v.reportFilename }
+func (v *apiViolationGen) Filename() string {
+	return v.reportFilename
+}
 
 func (v *apiViolationGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
 	glog.V(5).Infof("validating API rules for type %v", t)

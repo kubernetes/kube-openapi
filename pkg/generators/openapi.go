@@ -109,6 +109,21 @@ func DefaultNameSystem() string {
 	return "sorting_namer"
 }
 
+func apiTypeFilterFunc(c *generator.Context, t *types.Type) bool {
+	// There is a conflict between this codegen and codecgen, we should avoid types generated for codecgen
+	if strings.HasPrefix(t.Name.Name, "codecSelfer") {
+		return false
+	}
+	pkg := c.Universe.Package(t.Name.Package)
+	if hasOpenAPITagValue(pkg.Comments, tagValueTrue) {
+		return !hasOpenAPITagValue(t.CommentLines, tagValueFalse)
+	}
+	if hasOpenAPITagValue(t.CommentLines, tagValueTrue) {
+		return true
+	}
+	return false
+}
+
 func Packages(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
 	boilerplate, err := arguments.LoadGoBoilerplate()
 	if err != nil {
@@ -126,6 +141,13 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		reportFilename = customArgs.ReportFilename
 	}
 	context.FileTypes[apiViolationFileType] = apiViolationFile{}
+	siblingPath := ""
+	if len(arguments.OutputBase) > 0 {
+		siblingPath = strings.Repeat(
+			".."+string([]rune{filepath.Separator}),
+			len(filepath.SplitList(arguments.OutputBase)),
+		)
+	}
 
 	return generator.Packages{
 		&generator.DefaultPackage{
@@ -138,23 +160,16 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 						arguments.OutputFileBaseName,
 						arguments.OutputPackagePath,
 					),
-					newAPIViolationGen(reportFilename),
 				}
 			},
-			FilterFunc: func(c *generator.Context, t *types.Type) bool {
-				// There is a conflict between this codegen and codecgen, we should avoid types generated for codecgen
-				if strings.HasPrefix(t.Name.Name, "codecSelfer") {
-					return false
-				}
-				pkg := context.Universe.Package(t.Name.Package)
-				if hasOpenAPITagValue(pkg.Comments, tagValueTrue) {
-					return !hasOpenAPITagValue(t.CommentLines, tagValueFalse)
-				}
-				if hasOpenAPITagValue(t.CommentLines, tagValueTrue) {
-					return true
-				}
-				return false
+			FilterFunc: apiTypeFilterFunc,
+		},
+		&generator.DefaultPackage{
+			PackagePath: siblingPath,
+			GeneratorFunc: func(c *generator.Context) (generators []generator.Generator) {
+				return []generator.Generator{newAPIViolationGen(reportFilename)}
 			},
+			FilterFunc: apiTypeFilterFunc,
 		},
 	}
 }
