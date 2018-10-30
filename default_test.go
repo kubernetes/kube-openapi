@@ -73,7 +73,12 @@ func TestFormatHostname(t *testing.T) {
 		veryLongStr,
 		longAddrSegment,
 	}
+	validHostnames := []string{
+		"somewhere.com",
+		"888.com",
+	}
 	testStringFormat(t, &hostname, "hostname", str, []string{}, invalidHostnames)
+	testStringFormat(t, &hostname, "hostname", str, validHostnames, []string{})
 }
 
 func TestFormatIPv4(t *testing.T) {
