@@ -188,6 +188,24 @@ func schema__testdata_listtype_Item(ref common.ReferenceCallback) common.OpenAPI
 							Format: "int32",
 						},
 					},
+					"a": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"b": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+					"c": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
 				},
 				Required: []string{"Protocol", "Port"},
 			},
