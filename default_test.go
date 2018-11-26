@@ -70,10 +70,10 @@ func TestFormatHostname(t *testing.T) {
 	longAddrSegment := strings.Join([]string{"x", "y", longStr}, ".")
 	invalidHostnames := []string{
 		"somewhere.com!",
-		veryLongStr,
-		longAddrSegment,
 		"user@email.domain",
 		"1.1.1.1",
+		veryLongStr,
+		longAddrSegment,
 	}
 	validHostnames := []string{
 		"somewhere.com",
@@ -98,6 +98,7 @@ func TestFormatHostname(t *testing.T) {
 		"ôlà.ôlà",
 		"ôlà.ôlà.ôlà",
 	}
+
 	testStringFormat(t, &hostname, "hostname", str, []string{}, invalidHostnames)
 	testStringFormat(t, &hostname, "hostname", str, validHostnames, []string{})
 }
