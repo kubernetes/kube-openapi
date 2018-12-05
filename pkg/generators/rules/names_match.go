@@ -104,7 +104,7 @@ func (n *NamesMatch) Validate(t *types.Type) ([]string, error) {
 				continue
 			}
 			jsonName := strings.Split(jsonTag, ",")[0]
-			if !namesMatch(goName, jsonName) {
+			if !GoAndJSONNameMatch(goName, jsonName) {
 				fields = append(fields, goName)
 			}
 		}
@@ -112,7 +112,7 @@ func (n *NamesMatch) Validate(t *types.Type) ([]string, error) {
 	return fields, nil
 }
 
-// namesMatch evaluates if goName and jsonName match the API rule
+// GoAndJSONNameMatch evaluates if goName and jsonName match the API rule
 // TODO: Use an off-the-shelf CamelCase solution instead of implementing this logic. The following existing
 //       packages have been tried out:
 //		github.com/markbates/inflect
@@ -122,7 +122,7 @@ func (n *NamesMatch) Validate(t *types.Type) ([]string, error) {
 //	 Please see https://github.com/kubernetes/kube-openapi/pull/83#issuecomment-400842314 for more details
 //	 about why they don't satisfy our need. What we need can be a function that detects an acronym at the
 //	 beginning of a string.
-func namesMatch(goName, jsonName string) bool {
+func GoAndJSONNameMatch(goName, jsonName string) bool {
 	if jsonNameBlacklist.Has(jsonName) {
 		return true
 	}
