@@ -21,6 +21,7 @@
   },
   "definitions": {
    "dummytype.Bar": {
+    "type": "object",
     "required": [
      "ViolationBehind",
      "Violation"
@@ -35,6 +36,7 @@
     }
    },
    "dummytype.Baz": {
+    "type": "object",
     "required": [
      "Violation",
      "ViolationBehind"
@@ -49,6 +51,7 @@
     }
    },
    "dummytype.Foo": {
+    "type": "object",
     "required": [
      "Second",
      "First"
@@ -64,6 +67,7 @@
     }
    },
    "dummytype.Waldo": {
+    "type": "object",
     "required": [
      "First",
      "Second"
@@ -79,6 +83,7 @@
     }
    },
    "listtype.AtomicList": {
+    "type": "object",
     "required": [
      "Field"
     ],
@@ -93,6 +98,7 @@
     }
    },
    "listtype.Item": {
+    "type": "object",
     "required": [
      "Protocol",
      "Port"
@@ -120,6 +126,7 @@
     }
    },
    "listtype.MapList": {
+    "type": "object",
     "required": [
      "Field"
     ],
@@ -135,6 +142,7 @@
     }
    },
    "listtype.SetList": {
+    "type": "object",
     "required": [
      "Field"
     ],
