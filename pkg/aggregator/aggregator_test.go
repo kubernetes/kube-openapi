@@ -136,7 +136,7 @@ definitions:
 `), &spec1_filtered)
 
 	ast := assert.New(t)
-	FilterSpecByPaths(spec1, []string{"/test"})
+	spec1 = FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
 	ast.Equal(DebugSpec{spec1_filtered}, DebugSpec{spec1})
 }
 
@@ -241,7 +241,7 @@ definitions:
 `), &spec1Filtered)
 
 	ast := assert.New(t)
-	FilterSpecByPaths(spec1, []string{"/test"})
+	spec1 = FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
 	ast.Equal(DebugSpec{spec1Filtered}, DebugSpec{spec1})
 }
 
@@ -1282,7 +1282,7 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := CloneSpec(fooSpec)
+	actual, err := cloneSpec(fooSpec)
 	if !ast.NoError(err) {
 		return
 	}
@@ -1387,7 +1387,7 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := CloneSpec(fooSpec)
+	actual, err := cloneSpec(fooSpec)
 	if !ast.NoError(err) {
 		return
 	}
@@ -1494,7 +1494,7 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := CloneSpec(fooSpec)
+	actual, err := cloneSpec(fooSpec)
 	if !ast.NoError(err) {
 		return
 	}
@@ -1605,14 +1605,14 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := CloneSpec(fooSpec)
+	actual, err := cloneSpec(fooSpec)
 	if !ast.NoError(err) {
 		return
 	}
 	if !ast.Error(MergeSpecs(actual, barSpec)) {
 		return
 	}
-	actual, err = CloneSpec(fooSpec)
+	actual, err = cloneSpec(fooSpec)
 	if !ast.NoError(err) {
 		return
 	}
@@ -1651,8 +1651,8 @@ definitions:
 `), &fooSpec)
 
 	ast := assert.New(t)
-	foo2Spec, err := CloneSpec(fooSpec)
-	actual, err := CloneSpec(fooSpec)
+	foo2Spec, err := cloneSpec(fooSpec)
+	actual, err := cloneSpec(fooSpec)
 	if !ast.NoError(err) {
 		return
 	}
