@@ -30,11 +30,10 @@ import (
 // usedDefinitionForSpec returns a map with all used definitions in the provided spec as keys and true as values.
 func usedDefinitionForSpec(sp *spec.Swagger) map[string]bool {
 	usedDefinitions := map[string]bool{}
-	walkOnAllReferences(func(ref spec.Ref) spec.Ref {
+	walkOnAllReferences(func(ref *spec.Ref) {
 		if refStr := ref.String(); refStr != "" && strings.HasPrefix(refStr, definitionPrefix) {
 			usedDefinitions[refStr[len(definitionPrefix):]] = true
 		}
-		return ref
 	}, sp)
 	return usedDefinitions
 }
@@ -82,7 +81,7 @@ func FilterSpecByPaths(sp *spec.Swagger, keepPathPrefixes []string) {
 func renameDefinition(s *spec.Swagger, old, new string) {
 	oldRef := definitionPrefix + old
 	newRef := definitionPrefix + new
-	walkOnAllReferences(func(ref spec.Ref) spec.Ref {
+	replaceReferences(func(ref spec.Ref) spec.Ref {
 		if ref.String() == oldRef {
 			return spec.MustCreateRef(newRef)
 		}
