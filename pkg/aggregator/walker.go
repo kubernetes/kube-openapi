@@ -17,8 +17,6 @@ limitations under the License.
 package aggregator
 
 import (
-	"strings"
-
 	"github.com/go-openapi/spec"
 )
 
@@ -26,61 +24,43 @@ const (
 	definitionPrefix = "#/definitions/"
 )
 
-// Run a walkRefCallback method on all references of an OpenAPI spec
-type referenceWalker struct {
-	// walkRefCallback will be called on each reference and the return value
-	// will replace that reference. This will allow the callers to change
-	// all/some references of an spec (e.g. useful in renaming definitions).
-	walkRefCallback func(ref spec.Ref) spec.Ref
+// Run a readonlyReferenceWalker method on all references of an OpenAPI spec
+type readonlyReferenceWalker struct {
+	// walkRefCallback will be called on each reference. The input will never be nil.
+	walkRefCallback func(ref *spec.Ref)
 
 	// The spec to walk through.
 	root *spec.Swagger
-
-	// Keep track of visited references
-	alreadyVisited map[string]bool
 }
 
-func walkOnAllReferences(walkRef func(ref spec.Ref) spec.Ref, sp *spec.Swagger) {
-	walker := &referenceWalker{walkRefCallback: walkRef, root: sp, alreadyVisited: map[string]bool{}}
+func walkOnAllReferences(walkRef func(ref *spec.Ref), sp *spec.Swagger) {
+	walker := &readonlyReferenceWalker{
+		walkRefCallback: walkRef,
+		root:            sp,
+	}
 	walker.Start()
 }
 
-func (s *referenceWalker) walkRef(ref spec.Ref) spec.Ref {
-	refStr := ref.String()
-	// References that start with #/definitions/ has a definition
-	// inside the same spec file. If that is the case, walk through
-	// those definitions too.
-	// We do not support external references yet.
-	if !s.alreadyVisited[refStr] && strings.HasPrefix(refStr, definitionPrefix) {
-		s.alreadyVisited[refStr] = true
-		k := refStr[len(definitionPrefix):]
-		def := s.root.Definitions[k]
-		s.walkSchema(&def)
-		// Make sure we don't assign to nil map
-		if s.root.Definitions == nil {
-			s.root.Definitions = spec.Definitions{}
-		}
-		s.root.Definitions[k] = def
-	}
-	return s.walkRefCallback(ref)
-}
-
-func (s *referenceWalker) walkSchema(schema *spec.Schema) {
+func (s *readonlyReferenceWalker) walkSchema(schema *spec.Schema) {
 	if schema == nil {
 		return
 	}
-	schema.Ref = s.walkRef(schema.Ref)
-	for k, v := range schema.Definitions {
-		s.walkSchema(&v)
-		schema.Definitions[k] = v
+	s.walkRefCallback(&schema.Ref)
+	var v *spec.Schema
+	if len(schema.Definitions)+len(schema.Properties)+len(schema.PatternProperties) > 0 {
+		v = &spec.Schema{}
 	}
-	for k, v := range schema.Properties {
-		s.walkSchema(&v)
-		schema.Properties[k] = v
+	for k := range schema.Definitions {
+		*v = schema.Definitions[k]
+		s.walkSchema(v)
 	}
-	for k, v := range schema.PatternProperties {
-		s.walkSchema(&v)
-		schema.PatternProperties[k] = v
+	for k := range schema.Properties {
+		*v = schema.Properties[k]
+		s.walkSchema(v)
+	}
+	for k := range schema.PatternProperties {
+		*v = schema.PatternProperties[k]
+		s.walkSchema(v)
 	}
 	for i := range schema.AllOf {
 		s.walkSchema(&schema.AllOf[i])
@@ -110,28 +90,28 @@ func (s *referenceWalker) walkSchema(schema *spec.Schema) {
 	}
 }
 
-func (s *referenceWalker) walkParams(params []spec.Parameter) {
+func (s *readonlyReferenceWalker) walkParams(params []spec.Parameter) {
 	if params == nil {
 		return
 	}
 	for _, param := range params {
-		param.Ref = s.walkRef(param.Ref)
+		s.walkRefCallback(&param.Ref)
 		s.walkSchema(param.Schema)
 		if param.Items != nil {
-			param.Items.Ref = s.walkRef(param.Items.Ref)
+			s.walkRefCallback(&param.Items.Ref)
 		}
 	}
 }
 
-func (s *referenceWalker) walkResponse(resp *spec.Response) {
+func (s *readonlyReferenceWalker) walkResponse(resp *spec.Response) {
 	if resp == nil {
 		return
 	}
-	resp.Ref = s.walkRef(resp.Ref)
+	s.walkRefCallback(&resp.Ref)
 	s.walkSchema(resp.Schema)
 }
 
-func (s *referenceWalker) walkOperation(op *spec.Operation) {
+func (s *readonlyReferenceWalker) walkOperation(op *spec.Operation) {
 	if op == nil {
 		return
 	}
@@ -145,7 +125,7 @@ func (s *referenceWalker) walkOperation(op *spec.Operation) {
 	}
 }
 
-func (s *referenceWalker) Start() {
+func (s *readonlyReferenceWalker) Start() {
 	if s.root.Paths == nil {
 		return
 	}
