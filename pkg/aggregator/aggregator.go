@@ -17,7 +17,6 @@ limitations under the License.
 package aggregator
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -28,14 +27,30 @@ import (
 )
 
 // usedDefinitionForSpec returns a map with all used definitions in the provided spec as keys and true as values.
-func usedDefinitionForSpec(sp *spec.Swagger) map[string]bool {
+func usedDefinitionForSpec(root *spec.Swagger) map[string]bool {
 	usedDefinitions := map[string]bool{}
-	walkOnAllReferences(func(ref spec.Ref) spec.Ref {
-		if refStr := ref.String(); refStr != "" && strings.HasPrefix(refStr, definitionPrefix) {
-			usedDefinitions[refStr[len(definitionPrefix):]] = true
+	alreadyVisited := map[string]bool{}
+
+	walker := &readonlyReferenceWalker{
+		root: root,
+	}
+	walker.walkRefCallback = func(ref *spec.Ref) {
+		refStr := ref.String()
+		if refStr == "" || !strings.HasPrefix(refStr, definitionPrefix) {
+			return
 		}
-		return ref
-	}, sp)
+
+		defName := refStr[len(definitionPrefix):]
+		usedDefinitions[defName] = true
+
+		if _, found := root.Definitions[defName]; found && !alreadyVisited[refStr] {
+			alreadyVisited[refStr] = true
+			def := root.Definitions[defName]
+			walker.walkSchema(&def)
+		}
+	}
+	walker.Start()
+
 	return usedDefinitions
 }
 
@@ -43,6 +58,18 @@ func usedDefinitionForSpec(sp *spec.Swagger) map[string]bool {
 // i.e. if a Path removed by this function, all definitions used by it and not used
 // anywhere else will also be removed.
 func FilterSpecByPaths(sp *spec.Swagger, keepPathPrefixes []string) {
+	*sp = *FilterSpecByPathsWithoutSideEffects(sp, keepPathPrefixes)
+}
+
+// FilterSpecByPathsWithoutSideEffects removes unnecessary paths and definitions used by those paths.
+// i.e. if a Path removed by this function, all definitions used by it and not used
+// anywhere else will also be removed.
+// It does not modify the input, but the output shares data structures with the input.
+func FilterSpecByPathsWithoutSideEffects(sp *spec.Swagger, keepPathPrefixes []string) *spec.Swagger {
+	if sp.Paths == nil {
+		return sp
+	}
+
 	// Walk all references to find all used definitions. This function
 	// want to only deal with unused definitions resulted from filtering paths.
 	// Thus a definition will be removed only if it has been used before but
@@ -51,71 +78,89 @@ func FilterSpecByPaths(sp *spec.Swagger, keepPathPrefixes []string) {
 
 	// First remove unwanted paths
 	prefixes := util.NewTrie(keepPathPrefixes)
-	orgPaths := sp.Paths
-	if orgPaths == nil {
-		return
-	}
-	sp.Paths = &spec.Paths{
-		VendorExtensible: orgPaths.VendorExtensible,
+	ret := *sp
+	ret.Paths = &spec.Paths{
+		VendorExtensible: sp.Paths.VendorExtensible,
 		Paths:            map[string]spec.PathItem{},
 	}
-	for path, pathItem := range orgPaths.Paths {
+	for path, pathItem := range sp.Paths.Paths {
 		if !prefixes.HasPrefix(path) {
 			continue
 		}
-		sp.Paths.Paths[path] = pathItem
+		ret.Paths.Paths[path] = pathItem
 	}
 
 	// Walk all references to find all definition references.
-	usedDefinitions := usedDefinitionForSpec(sp)
+	usedDefinitions := usedDefinitionForSpec(&ret)
 
 	// Remove unused definitions
-	orgDefinitions := sp.Definitions
-	sp.Definitions = spec.Definitions{}
-	for k, v := range orgDefinitions {
+	ret.Definitions = spec.Definitions{}
+	for k, v := range sp.Definitions {
 		if usedDefinitions[k] || !initialUsedDefinitions[k] {
-			sp.Definitions[k] = v
+			ret.Definitions[k] = v
 		}
 	}
+
+	return &ret
 }
 
-func renameDefinition(s *spec.Swagger, old, new string) {
+// renameDefinition renames references, without mutating the input.
+// The output might share data structures with the input.
+func renameDefinition(s *spec.Swagger, old, new string) *spec.Swagger {
 	oldRef := definitionPrefix + old
 	newRef := definitionPrefix + new
-	walkOnAllReferences(func(ref spec.Ref) spec.Ref {
+
+	if _, ok := s.Definitions[old]; !ok {
+		return s
+	}
+
+	ret := &spec.Swagger{}
+	*ret = *s
+
+	ret = replaceReferences(func(ref *spec.Ref) *spec.Ref {
 		if ref.String() == oldRef {
-			return spec.MustCreateRef(newRef)
+			ret := spec.MustCreateRef(newRef)
+			return &ret
 		}
 		return ref
-	}, s)
-	// Make sure we don't assign to nil map
-	if s.Definitions == nil {
-		s.Definitions = spec.Definitions{}
+	}, ret)
+
+	renamedDefinitions := make(spec.Definitions, len(ret.Definitions))
+	for k, v := range ret.Definitions {
+		if k == old {
+			k = new
+		}
+		renamedDefinitions[k] = v
 	}
-	s.Definitions[new] = s.Definitions[old]
-	delete(s.Definitions, old)
+	ret.Definitions = renamedDefinitions
+
+	return ret
 }
 
 // MergeSpecsIgnorePathConflict is the same as MergeSpecs except it will ignore any path
 // conflicts by keeping the paths of destination. It will rename definition conflicts.
+// The source is not mutated.
 func MergeSpecsIgnorePathConflict(dest, source *spec.Swagger) error {
 	return mergeSpecs(dest, source, true, true)
 }
 
 // MergeSpecsFailOnDefinitionConflict is differ from MergeSpecs as it fails if there is
 // a definition conflict.
+// The source is not mutated.
 func MergeSpecsFailOnDefinitionConflict(dest, source *spec.Swagger) error {
 	return mergeSpecs(dest, source, false, false)
 }
 
 // MergeSpecs copies paths and definitions from source to dest, rename definitions if needed.
 // dest will be mutated, and source will not be changed. It will fail on path conflicts.
+// The source is not mutated.
 func MergeSpecs(dest, source *spec.Swagger) error {
 	return mergeSpecs(dest, source, true, false)
 }
 
+// mergeSpecs merged source into dest while resolving conflicts.
+// The source is not mutated.
 func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConflicts bool) (err error) {
-	specCloned := false
 	// Paths may be empty, due to [ACL constraints](http://goo.gl/8us55a#securityFiltering).
 	if source.Paths == nil {
 		// When a source spec does not have any path, that means none of the definitions
@@ -140,12 +185,7 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 			return nil
 		}
 		if hasConflictingPath {
-			source, err = CloneSpec(source)
-			if err != nil {
-				return err
-			}
-			specCloned = true
-			FilterSpecByPaths(source, keepPaths)
+			source = FilterSpecByPathsWithoutSideEffects(source, keepPaths)
 		}
 	}
 	// Check for model conflicts
@@ -162,13 +202,6 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 	}
 
 	if conflicts {
-		if !specCloned {
-			source, err = CloneSpec(source)
-			if err != nil {
-				return err
-			}
-		}
-		specCloned = true
 		usedNames := map[string]bool{}
 		for k := range dest.Definitions {
 			usedNames[k] = true
@@ -211,7 +244,7 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 			}
 		}
 		for _, r := range renames {
-			renameDefinition(source, r.from, r.to)
+			source = renameDefinition(source, r.from, r.to)
 		}
 	}
 	for k, v := range source.Definitions {
@@ -234,19 +267,4 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 		dest.Paths.Paths[k] = v
 	}
 	return nil
-}
-
-// CloneSpec clones OpenAPI spec
-func CloneSpec(source *spec.Swagger) (*spec.Swagger, error) {
-	// TODO(mehdy): Find a faster way to clone an spec
-	bytes, err := json.Marshal(source)
-	if err != nil {
-		return nil, err
-	}
-	var ret spec.Swagger
-	err = json.Unmarshal(bytes, &ret)
-	if err != nil {
-		return nil, err
-	}
-	return &ret, nil
 }
