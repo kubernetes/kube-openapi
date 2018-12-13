@@ -104,13 +104,23 @@ func FilterSpecByPathsWithoutSideEffects(sp *spec.Swagger, keepPathPrefixes []st
 	return &ret
 }
 
+type rename struct {
+	from, to string
+}
+
 // renameDefinition renames references, without mutating the input.
 // The output might share data structures with the input.
-func renameDefinition(s *spec.Swagger, old, new string) *spec.Swagger {
-	oldRef := definitionPrefix + old
-	newRef := definitionPrefix + new
+func renameDefinition(s *spec.Swagger, renames map[string]string) *spec.Swagger {
+	refRenames := make(map[string]string, len(renames))
+	foundOne := false
+	for k, v := range renames {
+		refRenames[definitionPrefix+k] = definitionPrefix + v
+		if _, ok := s.Definitions[k]; ok {
+			foundOne = true
+		}
+	}
 
-	if _, ok := s.Definitions[old]; !ok {
+	if !foundOne {
 		return s
 	}
 
@@ -118,7 +128,8 @@ func renameDefinition(s *spec.Swagger, old, new string) *spec.Swagger {
 	*ret = *s
 
 	ret = replaceReferences(func(ref *spec.Ref) *spec.Ref {
-		if ref.String() == oldRef {
+		refName := ref.String()
+		if newRef, found := refRenames[refName]; found {
 			ret := spec.MustCreateRef(newRef)
 			return &ret
 		}
@@ -127,8 +138,8 @@ func renameDefinition(s *spec.Swagger, old, new string) *spec.Swagger {
 
 	renamedDefinitions := make(spec.Definitions, len(ret.Definitions))
 	for k, v := range ret.Definitions {
-		if k == old {
-			k = new
+		if newRef, found := renames[k]; found {
+			k = newRef
 		}
 		renamedDefinitions[k] = v
 	}
@@ -206,10 +217,7 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 		for k := range dest.Definitions {
 			usedNames[k] = true
 		}
-		type Rename struct {
-			from, to string
-		}
-		renames := []Rename{}
+		renames := map[string]string{}
 
 	OUTERLOOP:
 		for k, v := range source.Definitions {
@@ -228,7 +236,7 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 					newName = fmt.Sprintf("%s_v%d", k, i)
 					v2, found = dest.Definitions[newName]
 					if found && reflect.DeepEqual(v, v2) {
-						renames = append(renames, Rename{from: k, to: newName})
+						renames[k] = newName
 						continue OUTERLOOP
 					}
 				}
@@ -239,13 +247,11 @@ func mergeSpecs(dest, source *spec.Swagger, renameModelConflicts, ignorePathConf
 					newName = fmt.Sprintf("%s_v%d", k, i)
 					_, foundInSource = source.Definitions[newName]
 				}
-				renames = append(renames, Rename{from: k, to: newName})
+				renames[k] = newName
 				usedNames[newName] = true
 			}
 		}
-		for _, r := range renames {
-			source = renameDefinition(source, r.from, r.to)
-		}
+		source = renameDefinition(source, renames)
 	}
 	for k, v := range source.Definitions {
 		if _, found := dest.Definitions[k]; !found {
