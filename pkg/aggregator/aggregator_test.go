@@ -136,8 +136,10 @@ definitions:
 `), &spec1_filtered)
 
 	ast := assert.New(t)
-	spec1 = FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
-	ast.Equal(DebugSpec{spec1_filtered}, DebugSpec{spec1})
+	orig_spec1, _ := cloneSpec(spec1)
+	new_spec1 := FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
+	ast.Equal(DebugSpec{spec1_filtered}, DebugSpec{new_spec1})
+	ast.Equal(DebugSpec{orig_spec1}, DebugSpec{spec1}, "unexpected mutation of input")
 }
 
 func TestFilterSpecsWithUnusedDefinitions(t *testing.T) {
@@ -241,8 +243,10 @@ definitions:
 `), &spec1Filtered)
 
 	ast := assert.New(t)
-	spec1 = FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
-	ast.Equal(DebugSpec{spec1Filtered}, DebugSpec{spec1})
+	orig_spec1, _ := cloneSpec(spec1)
+	new_spec1 := FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
+	ast.Equal(DebugSpec{spec1Filtered}, DebugSpec{new_spec1})
+	ast.Equal(DebugSpec{orig_spec1}, DebugSpec{spec1}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsSimple(t *testing.T) {
@@ -372,10 +376,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsEmptyDefinitions(t *testing.T) {
@@ -474,10 +480,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsEmptyPaths(t *testing.T) {
@@ -572,10 +580,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsReuseModel(t *testing.T) {
@@ -703,10 +713,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsRenameModel(t *testing.T) {
@@ -839,10 +851,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1}, DebugSpec{spec1}.String())
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsRenameModelWithExistingV2InDestination(t *testing.T) {
@@ -918,10 +932,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsRenameModelWithExistingV2InSource(t *testing.T) {
@@ -997,10 +1013,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 // This tests if there are three specs, where the first two use the same object definition,
@@ -1084,6 +1102,8 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
+	orig_spec3, _ := cloneSpec(spec3)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
@@ -1091,6 +1111,8 @@ definitions:
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of spec2 input")
+	ast.Equal(DebugSpec{orig_spec3}, DebugSpec{spec3}, "unexpected mutation of spec3 input")
 }
 
 // This tests if there are three specs, where the last two use the same object definition,
@@ -1172,6 +1194,8 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
+	orig_spec3, _ := cloneSpec(spec3)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
@@ -1179,6 +1203,9 @@ definitions:
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of spec2 input")
+	ast.Equal(DebugSpec{orig_spec3}, DebugSpec{spec3}, "unexpected mutation of spec3 input")
+
 }
 
 func TestSafeMergeSpecsSimple(t *testing.T) {
@@ -1282,14 +1309,15 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := cloneSpec(fooSpec)
+	orig_barSpec, err := cloneSpec(barSpec)
 	if !ast.NoError(err) {
 		return
 	}
-	if !ast.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
+	if !ast.NoError(MergeSpecsFailOnDefinitionConflict(fooSpec, barSpec)) {
 		return
 	}
-	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
+	ast.Equal(DebugSpec{expected}, DebugSpec{fooSpec})
+	ast.Equal(DebugSpec{orig_barSpec}, DebugSpec{barSpec}, "unexpected mutation of input")
 }
 
 func TestSafeMergeSpecsReuseModel(t *testing.T) {
@@ -1387,14 +1415,15 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := cloneSpec(fooSpec)
+	orig_barSpec, err := cloneSpec(barSpec)
 	if !ast.NoError(err) {
 		return
 	}
-	if !ast.NoError(MergeSpecsFailOnDefinitionConflict(actual, barSpec)) {
+	if !ast.NoError(MergeSpecsFailOnDefinitionConflict(fooSpec, barSpec)) {
 		return
 	}
-	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
+	ast.Equal(DebugSpec{expected}, DebugSpec{fooSpec})
+	ast.Equal(DebugSpec{orig_barSpec}, DebugSpec{barSpec}, "unexpected mutation of input")
 }
 
 func TestSafeMergeSpecsReuseModelFails(t *testing.T) {
@@ -1494,11 +1523,7 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := cloneSpec(fooSpec)
-	if !ast.NoError(err) {
-		return
-	}
-	ast.Error(MergeSpecsFailOnDefinitionConflict(actual, barSpec))
+	ast.Error(MergeSpecsFailOnDefinitionConflict(fooSpec, barSpec))
 }
 
 func TestMergeSpecsIgnorePathConflicts(t *testing.T) {
@@ -1605,21 +1630,19 @@ definitions:
   `), &expected)
 
 	ast := assert.New(t)
-	actual, err := cloneSpec(fooSpec)
-	if !ast.NoError(err) {
-		return
-	}
+	actual, _ := cloneSpec(fooSpec)
+	orig_barSpec, _ := cloneSpec(barSpec)
 	if !ast.Error(MergeSpecs(actual, barSpec)) {
 		return
 	}
-	actual, err = cloneSpec(fooSpec)
-	if !ast.NoError(err) {
-		return
-	}
+	ast.Equal(DebugSpec{orig_barSpec}, DebugSpec{barSpec}, "unexpected mutation of input")
+
+	actual, _ = cloneSpec(fooSpec)
 	if !ast.NoError(MergeSpecsIgnorePathConflict(actual, barSpec)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
+	ast.Equal(DebugSpec{orig_barSpec}, DebugSpec{barSpec}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsIgnorePathConflictsAllConflicting(t *testing.T) {
@@ -1651,15 +1674,13 @@ definitions:
 `), &fooSpec)
 
 	ast := assert.New(t)
-	foo2Spec, err := cloneSpec(fooSpec)
-	actual, err := cloneSpec(fooSpec)
-	if !ast.NoError(err) {
-		return
-	}
+	foo2Spec, _ := cloneSpec(fooSpec)
+	actual, _ := cloneSpec(fooSpec)
 	if !ast.NoError(MergeSpecsIgnorePathConflict(actual, foo2Spec)) {
 		return
 	}
 	ast.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
+	ast.Equal(DebugSpec{fooSpec}, DebugSpec{foo2Spec}, "unexpected mutation of input")
 }
 
 func TestMergeSpecsIgnorePathConflictsWithKubeSpec(t *testing.T) {
@@ -1906,10 +1927,12 @@ definitions:
 `), &expected)
 
 	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
 func loadTestData() ([]*spec.Swagger, *spec.Swagger) {
@@ -1934,6 +1957,16 @@ func loadTestData() ([]*spec.Swagger, *spec.Swagger) {
 	expected := loadSpec("openapi.json")
 
 	return specs, expected
+}
+
+func TestCloneSpec(t *testing.T) {
+	_, sp := loadTestData()
+	clone, err := cloneSpec(sp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	ast := assert.New(t)
+	ast.Equal(DebugSpec{sp}, DebugSpec{clone})
 }
 
 func cloneSpec(source *spec.Swagger) (*spec.Swagger, error) {
