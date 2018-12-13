@@ -19,6 +19,8 @@ package aggregator
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/ghodss/yaml"
@@ -1660,6 +1662,59 @@ definitions:
 	ast.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
 }
 
+func TestMergeSpecsIgnorePathConflictsWithKubeSpec(t *testing.T) {
+	ast := assert.New(t)
+
+	specs, expected := loadTestData()
+	sp, specs := specs[0], specs[1:]
+
+	origSpecs := make([]*spec.Swagger, len(specs))
+	for i := range specs {
+		cpy, err := cloneSpec(specs[i])
+		if err != nil {
+			t.Fatal(err)
+		}
+		ast.NoError(err)
+		origSpecs[i] = cpy
+	}
+
+	for i := range specs {
+		if err := MergeSpecsIgnorePathConflict(sp, specs[i]); err != nil {
+			t.Fatalf("merging spec %d failed: %v", i, err)
+		}
+	}
+
+	ast.Equal(DebugSpec{expected}, DebugSpec{sp})
+
+	for i := range specs {
+		ast.Equal(DebugSpec{origSpecs[i]}, DebugSpec{specs[i]}, "unexpected mutation of specs[%d]", i)
+	}
+}
+
+func BenchmarkMergeSpecsIgnorePathConflictsWithKubeSpec(b *testing.B) {
+	b.StopTimer()
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	specs, _ := loadTestData()
+	start, specs := specs[0], specs[1:]
+
+	for n := 0; n < b.N; n++ {
+		sp, err := cloneSpec(start)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		b.StartTimer()
+		for i := range specs {
+			if err := MergeSpecsIgnorePathConflict(sp, specs[i]); err != nil {
+				panic(err)
+			}
+		}
+		b.StopTimer()
+	}
+}
+
 func TestMergeSpecReplacesAllPossibleRefs(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
 	yaml.Unmarshal([]byte(`
@@ -1855,4 +1910,41 @@ definitions:
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+}
+
+func loadTestData() ([]*spec.Swagger, *spec.Swagger) {
+	loadSpec := func(fileName string) *spec.Swagger {
+		bs, err := ioutil.ReadFile(filepath.Join("../../test/integration/testdata/aggregator", fileName))
+		if err != nil {
+			panic(err)
+		}
+		sp := spec.Swagger{}
+
+		if err := json.Unmarshal(bs, &sp); err != nil {
+			panic(err)
+		}
+		return &sp
+	}
+
+	specs := []*spec.Swagger{
+		loadSpec("openapi-0.json"),
+		loadSpec("openapi-1.json"),
+		loadSpec("openapi-2.json"),
+	}
+	expected := loadSpec("openapi.json")
+
+	return specs, expected
+}
+
+func cloneSpec(source *spec.Swagger) (*spec.Swagger, error) {
+	bytes, err := json.Marshal(source)
+	if err != nil {
+		return nil, err
+	}
+	var ret spec.Swagger
+	err = json.Unmarshal(bytes, &ret)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
 }
