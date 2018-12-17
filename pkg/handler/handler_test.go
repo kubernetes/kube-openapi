@@ -33,7 +33,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	if err := json.Unmarshal(returnedJSON, &decodedJSON); err != nil {
 		t.Fatal(err)
 	}
-	returnedPb, err := toProtoBinary(decodedJSON)
+	returnedPb, err := ToProtoBinary(decodedJSON)
 	if err != nil {
 		t.Errorf("Unexpected error in preparing returnedPb: %v", err)
 	}
