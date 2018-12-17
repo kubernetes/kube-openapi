@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"crypto/sha512"
-	"encoding/json"
 	"fmt"
 	"mime"
 	"net/http"
@@ -28,15 +27,15 @@ import (
 	"sync"
 	"time"
 
-	yaml "gopkg.in/yaml.v2"
-
 	"github.com/NYTimes/gziphandler"
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
 	"github.com/golang/protobuf/proto"
 	openapi_v2 "github.com/googleapis/gnostic/OpenAPIv2"
 	"github.com/googleapis/gnostic/compiler"
+	"github.com/json-iterator/go"
 	"github.com/munnerz/goautoneg"
+	yaml "gopkg.in/yaml.v2"
 
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
@@ -159,11 +158,15 @@ func (o *OpenAPIService) getSwaggerPbGzBytes() ([]byte, string, time.Time) {
 }
 
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
-	specBytes, err := json.MarshalIndent(openapiSpec, " ", " ")
+	specBytes, err := jsoniter.Marshal(openapiSpec)
 	if err != nil {
 		return err
 	}
-	specPb, err := toProtoBinary(specBytes)
+	var json map[string]interface{}
+	if err := jsoniter.Unmarshal(specBytes, &json); err != nil {
+		return err
+	}
+	specPb, err := toProtoBinary(json)
 	if err != nil {
 		return err
 	}
@@ -189,13 +192,30 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	return nil
 }
 
-func toProtoBinary(spec []byte) ([]byte, error) {
-	var info yaml.MapSlice
-	err := yaml.Unmarshal(spec, &info)
-	if err != nil {
-		return nil, err
+func jsonToYAML(j map[string]interface{}) yaml.MapSlice {
+	info := make(yaml.MapSlice, 0, len(j))
+	for k, v := range j {
+		info = append(info, yaml.MapItem{k, jsonToYAMLValue(v)})
 	}
-	document, err := openapi_v2.NewDocument(info, compiler.NewContext("$root", nil))
+	return info
+}
+
+func jsonToYAMLValue(j interface{}) interface{} {
+	switch j := j.(type) {
+	case map[string]interface{}:
+		return jsonToYAML(j)
+	case []interface{}:
+		s := make(yaml.MapSlice, len(j))
+		for i := range j {
+			s[i] = yaml.MapItem{i, jsonToYAMLValue(j[i])}
+		}
+		return s
+	}
+	return j
+}
+
+func toProtoBinary(json map[string]interface{}) ([]byte, error) {
+	document, err := openapi_v2.NewDocument(jsonToYAML(json), compiler.NewContext("$root", nil))
 	if err != nil {
 		return nil, err
 	}
