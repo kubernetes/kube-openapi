@@ -39,8 +39,11 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	_, err = RegisterOpenAPIVersionedService(&s, "/openapi/v2", mux)
+	o, err := NewOpenAPIService(&s)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
 		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
 	}
 	server := httptest.NewServer(mux)
