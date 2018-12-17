@@ -193,7 +193,7 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	if err := jsoniter.Unmarshal(specBytes, &json); err != nil {
 		return err
 	}
-	specPb, err := toProtoBinary(json)
+	specPb, err := ToProtoBinary(json)
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func jsonToYAMLValue(j interface{}) interface{} {
 	return j
 }
 
-func toProtoBinary(json map[string]interface{}) ([]byte, error) {
+func ToProtoBinary(json map[string]interface{}) ([]byte, error) {
 	document, err := openapi_v2.NewDocument(jsonToYAML(json), compiler.NewContext("$root", nil))
 	if err != nil {
 		return nil, err
