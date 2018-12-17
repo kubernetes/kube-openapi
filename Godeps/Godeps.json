@@ -1,15 +1,15 @@
 {
 	"ImportPath": "k8s.io/kube-openapi",
-	"GoVersion": "go1.8",
-	"GodepVersion": "v79",
+	"GoVersion": "go1.11",
+	"GodepVersion": "v80",
 	"Packages": [
 		"./..."
 	],
 	"Deps": [
 		{
-		        "ImportPath": "bitbucket.org/ww/goautoneg",
-		        "Comment": "null-5",
-		        "Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
+			"ImportPath": "bitbucket.org/ww/goautoneg",
+			"Comment": "null-5",
+			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
 		},
 		{
 			"ImportPath": "github.com/NYTimes/gziphandler",
@@ -59,6 +59,10 @@
 			"Rev": "1d0bd113de87027671077d3c71eb3ac5d7dbba72"
 		},
 		{
+			"ImportPath": "github.com/golang/glog",
+			"Rev": "44145f04b68cf362d9c4df2182967c2275eaefed"
+		},
+		{
 			"ImportPath": "github.com/golang/protobuf/proto",
 			"Rev": "4bd1920723d7b7c925de087aa32e2187708897f7"
 		},
@@ -91,6 +95,11 @@
 			"Rev": "68f4ded48ba9414dab2ae69b3f0d69971da73aa5"
 		},
 		{
+			"ImportPath": "github.com/json-iterator/go",
+			"Comment": "1.1.3-22-gf2b4162",
+			"Rev": "f2b4162afba35581b6d4a50d3b8f34e33c144682"
+		},
+		{
 			"ImportPath": "github.com/mailru/easyjson/buffer",
 			"Rev": "d5b7844b561a7bc640052f1b935f7b800330d7e0"
 		},
@@ -101,6 +110,16 @@
 		{
 			"ImportPath": "github.com/mailru/easyjson/jwriter",
 			"Rev": "d5b7844b561a7bc640052f1b935f7b800330d7e0"
+		},
+		{
+			"ImportPath": "github.com/modern-go/concurrent",
+			"Comment": "1.0.3",
+			"Rev": "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94"
+		},
+		{
+			"ImportPath": "github.com/modern-go/reflect2",
+			"Comment": "1.0.0-9-g05fbef0",
+			"Rev": "05fbef0ca5da472bbf96c9322b84a53edc03c9fd"
 		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
@@ -199,6 +218,16 @@
 		},
 		{
 			"ImportPath": "github.com/onsi/gomega/format",
+			"Comment": "v1.2.0-2-gdcabb60",
+			"Rev": "dcabb60a477c2b6f456df65037cb6708210fbb02"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega/gbytes",
+			"Comment": "v1.2.0-2-gdcabb60",
+			"Rev": "dcabb60a477c2b6f456df65037cb6708210fbb02"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega/gexec",
 			"Comment": "v1.2.0-2-gdcabb60",
 			"Rev": "dcabb60a477c2b6f456df65037cb6708210fbb02"
 		},
@@ -378,6 +407,10 @@
 			"Rev": "75356185a9af8f0464efa792e2e9508d5b4be83c"
 		},
 		{
+			"ImportPath": "k8s.io/gengo/examples/set-gen/sets",
+			"Rev": "75356185a9af8f0464efa792e2e9508d5b4be83c"
+		},
+		{
 			"ImportPath": "k8s.io/gengo/generator",
 			"Rev": "75356185a9af8f0464efa792e2e9508d5b4be83c"
 		},
@@ -396,6 +429,10 @@
 		{
 			"ImportPath": "k8s.io/klog",
 			"Rev": "b9b56d5dfc9208f60ea747056670942d8b0afdc8"
+		},
+		{
+			"ImportPath": "sigs.k8s.io/structured-merge-diff/schema",
+			"Rev": "d43a45b8663b01dd7d86e7cc1656dd8651280ed7"
 		}
 	]
 }
