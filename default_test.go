@@ -74,6 +74,28 @@ func TestFormatHostname(t *testing.T) {
 		"1.1.1.1",
 		veryLongStr,
 		longAddrSegment,
+		// dashes
+		"www.example-.org",
+		"www.--example.org",
+		"-www.example.org",
+		"www-.example.org",
+		"www.d-.org",
+		"www.-d.org",
+		"www-",
+		"-www",
+		// other characters (not in symbols)
+		"www.ex ample.org",
+		"_www.example.org",
+		"www.ex;ample.org",
+		"www.example_underscored.org",
+		// short top-level domains
+		"www.詹姆斯.x",
+		"a.b.c.d",
+		"-xyz",
+		"xyz-",
+		"x.",
+		"a.b.c.dot-",
+		"a.b.c.é;ö",
 	}
 	validHostnames := []string{
 		"somewhere.com",
@@ -89,6 +111,9 @@ func TestFormatHostname(t *testing.T) {
 		"1.2.3.4.com",
 		"99.domain.com",
 		"99.99.domain.com",
+		"1wwworg.example.com", // valid, per RFC1123
+		"1000wwworg.example.com",
+		"xn--bcher-kva.example.com", // puny encoded
 		"xn-80ak6aa92e.co",
 		"xn-80ak6aa92e.com",
 		"xn--ls8h.la",
@@ -97,6 +122,23 @@ func TestFormatHostname(t *testing.T) {
 		"www.example.ôlà",
 		"ôlà.ôlà",
 		"ôlà.ôlà.ôlà",
+		"ex$ample",
+		"localhost",
+		"example",
+		"x",
+		"x-y",
+		"a.b.c.dot",
+		"www.example.org",
+		"a.b.c.d.e.f.g.dot",
+		// extended symbol alphabet
+		"ex=ample.com",
+		"<foo>",
+		"www.example-hyphenated.org",
+		// localized hostnames
+		"www.詹姆斯.org",
+		"www.élégigôö.org",
+		// long top-level domains
+		"www.詹姆斯.london",
 	}
 
 	testStringFormat(t, &hostname, "hostname", str, []string{}, invalidHostnames)
