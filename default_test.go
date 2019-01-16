@@ -434,3 +434,311 @@ func testInvalid(t *testing.T, name, value string) {
 		t.Errorf("expected %q of type %s to be invalid", value, name)
 	}
 }
+
+func TestDeepCopyBase64(t *testing.T) {
+	b64 := Base64("ZWxpemFiZXRocG9zZXk=")
+	in := &b64
+
+	out := new(Base64)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *Base64
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyURI(t *testing.T) {
+	uri := URI("http://somewhere.com")
+	in := &uri
+
+	out := new(URI)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *URI
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyEmail(t *testing.T) {
+	email := Email("somebody@somewhere.com")
+	in := &email
+
+	out := new(Email)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *Email
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyHostname(t *testing.T) {
+	hostname := Hostname("somewhere.com")
+	in := &hostname
+
+	out := new(Hostname)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *Hostname
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyIPv4(t *testing.T) {
+	ipv4 := IPv4("192.168.254.1")
+	in := &ipv4
+
+	out := new(IPv4)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *IPv4
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyIPv6(t *testing.T) {
+	ipv6 := IPv6("::1")
+	in := &ipv6
+
+	out := new(IPv6)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *IPv6
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyMAC(t *testing.T) {
+	mac := MAC("01:02:03:04:05:06")
+	in := &mac
+
+	out := new(MAC)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *MAC
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyUUID(t *testing.T) {
+	first5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhere.com"))
+	uuid := UUID(first5.String())
+	in := &uuid
+
+	out := new(UUID)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *UUID
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyUUID3(t *testing.T) {
+	first3 := uuid.NewMD5(uuid.NameSpace_URL, []byte("somewhere.com"))
+	uuid3 := UUID3(first3.String())
+	in := &uuid3
+
+	out := new(UUID3)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *UUID3
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyUUID4(t *testing.T) {
+	first4 := uuid.NewRandom()
+	uuid4 := UUID4(first4.String())
+	in := &uuid4
+
+	out := new(UUID4)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *UUID4
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyUUID5(t *testing.T) {
+	first5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhere.com"))
+	uuid5 := UUID5(first5.String())
+	in := &uuid5
+
+	out := new(UUID5)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *UUID5
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyISBN(t *testing.T) {
+	isbn := ISBN("0321751043")
+	in := &isbn
+
+	out := new(ISBN)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *ISBN
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyISBN10(t *testing.T) {
+	isbn10 := ISBN10("0321751043")
+	in := &isbn10
+
+	out := new(ISBN10)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *ISBN10
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyISBN13(t *testing.T) {
+	isbn13 := ISBN13("978-0321751041")
+	in := &isbn13
+
+	out := new(ISBN13)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *ISBN13
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyCreditCard(t *testing.T) {
+	creditCard := CreditCard("4111-1111-1111-1111")
+	in := &creditCard
+
+	out := new(CreditCard)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *CreditCard
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopySSN(t *testing.T) {
+	ssn := SSN("111-11-1111")
+	in := &ssn
+
+	out := new(SSN)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *SSN
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyHexColor(t *testing.T) {
+	hexColor := HexColor("#FFFFFF")
+	in := &hexColor
+
+	out := new(HexColor)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *HexColor
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyRGBColor(t *testing.T) {
+	rgbColor := RGBColor("rgb(255,255,255)")
+	in := &rgbColor
+
+	out := new(RGBColor)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *RGBColor
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyPassword(t *testing.T) {
+	password := Password("super secret stuff here")
+	in := &password
+
+	out := new(Password)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *Password
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
