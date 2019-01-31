@@ -31,78 +31,124 @@ import (
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
 
+func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visible bool)) {
+	invisible := 0 // == 0 means visible, > 0 means invisible
+	f.Funcs(
+		func(ref *spec.Ref, c fuzz.Continue) {
+			refFunc(ref, c, invisible == 0)
+		},
+		func(sa *spec.SchemaOrStringArray, c fuzz.Continue) {
+			*sa = spec.SchemaOrStringArray{}
+			if c.RandBool() {
+				c.Fuzz(&sa.Schema)
+			} else {
+				c.Fuzz(&sa.Property)
+			}
+			if sa.Schema == nil && len(sa.Property) == 0 {
+				*sa = spec.SchemaOrStringArray{Schema: &spec.Schema{}}
+			}
+		},
+		func(url *spec.SchemaURL, c fuzz.Continue) {
+			*url = spec.SchemaURL("http://url")
+		},
+		func(s *spec.Swagger, c fuzz.Continue) {
+			// fuzz everything first with invisible==true
+			invisible++
+			c.FuzzNoCustom(s)
+			invisible--
+
+			// only fuzz those fields we walk into with invisible==false
+			c.Fuzz(&s.Parameters)
+			c.Fuzz(&s.Responses)
+			c.Fuzz(&s.Definitions)
+			c.Fuzz(&s.Paths)
+		},
+		func(p *spec.Parameter, c fuzz.Continue) {
+			// fuzz everything first with invisible==true
+			invisible++
+			c.FuzzNoCustom(p)
+			invisible--
+
+			// only fuzz those fields we walk into with invisible==false
+			c.Fuzz(&p.Ref)
+			c.Fuzz(&p.Schema)
+			if c.RandBool() {
+				p.Items = &spec.Items{}
+				c.Fuzz(&p.Items.Ref)
+			} else {
+				p.Items = nil
+			}
+		},
+		func(s *spec.Response, c fuzz.Continue) {
+			// fuzz everything first with invisible==true
+			invisible++
+			c.FuzzNoCustom(s)
+			invisible--
+
+			// only fuzz those fields we walk into with invisible==false
+			c.Fuzz(&s.Ref)
+			c.Fuzz(&s.Description)
+			c.Fuzz(&s.Schema)
+			c.Fuzz(&s.Examples)
+		},
+		func(s *spec.Dependencies, c fuzz.Continue) {
+			// fuzz everything first with invisible==true
+			invisible++
+			c.FuzzNoCustom(s)
+			invisible--
+
+			// and nothing with invisible==false
+		},
+		func(i *interface{}, c fuzz.Continue) {
+			// do nothing for examples and defaults. These are free form JSON fields.
+		},
+	)
+}
+
 func TestReplaceReferences(t *testing.T) {
-	re, err := regexp.Compile("\"\\$ref\":\"(http://ref-[^\"]*)\"")
+	visibleRE, err := regexp.Compile("\"\\$ref\":\"(http://ref-[^\"]*)\"")
+	if err != nil {
+		t.Fatalf("failed to compile ref regex: %v", err)
+	}
+	invisibleRE, err := regexp.Compile("\"\\$ref\":\"(http://invisible-[^\"]*)\"")
 	if err != nil {
 		t.Fatalf("failed to compile ref regex: %v", err)
 	}
 
-	for i := 0; i < 100; i++ {
-		f := fuzz.New()
-		seed := time.Now().UnixNano()
-		//seed = int64(1548861570869173000)
-		f.RandSource(rand.New(rand.NewSource(seed)))
-
-		refNum := 0
-		f.Funcs(
-			func(ref *spec.Ref, c fuzz.Continue) {
-				r, err := spec.NewRef(fmt.Sprintf("http://ref-%d", refNum))
-				if err != nil {
-					t.Fatalf("failed to fuzz ref: %v", err)
-				}
-				*ref = r
-				refNum++
-			},
-			func(sa *spec.SchemaOrStringArray, c fuzz.Continue) {
-				*sa = spec.SchemaOrStringArray{}
-				if c.RandBool() {
-					c.Fuzz(&sa.Schema)
-				} else {
-					c.Fuzz(&sa.Property)
-				}
-				if sa.Schema == nil && len(sa.Property) == 0 {
-					*sa = spec.SchemaOrStringArray{Schema: &spec.Schema{}}
-				}
-			},
-			func(url *spec.SchemaURL, c fuzz.Continue) {
-				*url = spec.SchemaURL("http://url")
-			},
-			func(s *spec.Swagger, c fuzz.Continue) {
-				// only fuzz those fields we walk into (we skip some like extensions)
-				c.Fuzz(&s.Parameters)
-				c.Fuzz(&s.Responses)
-				c.Fuzz(&s.Definitions)
-				c.Fuzz(&s.Paths)
-			},
-			func(p *spec.Parameter, c fuzz.Continue) {
-				// only fuzz those fields we walk into
-				c.Fuzz(&p.Ref)
-				c.Fuzz(&p.Schema)
-				if c.RandBool() {
-					p.Items = &spec.Items{}
-					c.Fuzz(&p.Items.Ref)
-				}
-			},
-			func(s *spec.Response, c fuzz.Continue) {
-				c.FuzzNoCustom(s)
-				// we don't walk into headers
-				s.Headers = nil
-			},
-			func(s *spec.Dependencies, c fuzz.Continue) {
-				c.FuzzNoCustom(s)
-				// we don't walk into dependencies
-				*s = nil
-			},
-			func(i *interface{}, c fuzz.Continue) {
-				// do nothing for examples and defaults.
-			},
-		)
-		f.NilChance(0.92)
-		f.NumElements(0, 3)
-
-		fuzzedRefs := sets.NewString()
+	for i := 0; i < 1000; i++ {
+		var visibleRefs, invisibleRefs sets.String
+		var seed int64
 		var s *spec.Swagger
 		for {
+			visibleRefs = sets.NewString()
+			invisibleRefs = sets.NewString()
+
+			f := fuzz.New()
+			seed = time.Now().UnixNano()
+			//seed = int64(1548953540354558000)
+			f.RandSource(rand.New(rand.NewSource(seed)))
+
+			fuzzFuncs(f,
+				func(ref *spec.Ref, c fuzz.Continue, visible bool) {
+					var url string
+					if visible {
+						// this is a ref that is seen by the walker (we have some exceptions where we don't walk into)
+						url = fmt.Sprintf("http://ref-%d", visibleRefs.Len())
+					} else {
+						// this is a ref that is not seen by the walker (we have some exceptions where we don't walk into)
+						url = fmt.Sprintf("http://invisible-%d", invisibleRefs.Len())
+					}
+
+					r, err := spec.NewRef(url)
+					if err != nil {
+						t.Fatalf("failed to fuzz ref: %v", err)
+					}
+					*ref = r
+				},
+			)
+			f.NilChance(0.92)
+			f.NumElements(0, 3)
+
 			// create random swagger spec with random URL references, but at least one ref
 			s = &spec.Swagger{}
 			f.Fuzz(s)
@@ -119,22 +165,24 @@ func TestReplaceReferences(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to marshal swagger: %v", err)
 			}
-			findings := re.FindAllStringSubmatch(string(bs), -1)
-			if len(findings) > 0 {
-				for _, m := range findings {
-					fuzzedRefs.Insert(m[1])
+			for _, m := range invisibleRE.FindAllStringSubmatch(string(bs), -1) {
+				invisibleRefs.Insert(m[1])
+			}
+			if res := visibleRE.FindAllStringSubmatch(string(bs), -1); len(res) > 0 {
+				for _, m := range res {
+					visibleRefs.Insert(m[1])
 				}
 				break
 			}
 		}
 
 		t.Run(fmt.Sprintf("iteration %d", i), func(t *testing.T) {
-			mutatedRef := fuzzedRefs.List()[rand.Intn(fuzzedRefs.Len())]
+			mutatedRef := visibleRefs.List()[rand.Intn(visibleRefs.Len())]
 			origString, err := json.Marshal(s)
 			if err != nil {
 				t.Fatalf("failed to marshal swagger: %v", err)
 			}
-			t.Logf("created schema with %d refs, mutating %q, seed %d: %s", fuzzedRefs.Len(), mutatedRef, seed, string(origString))
+			t.Logf("created schema with %d walked refs, %d invisible refs, mutating %q, seed %d: %s", visibleRefs.Len(), invisibleRefs.Len(), mutatedRef, seed, string(origString))
 
 			// convert to json string, replace one of the refs, and unmarshal back
 			mutatedString := strings.Replace(string(origString), "\""+mutatedRef+"\"", "\"http://mutated-ref\"", -1)
@@ -164,8 +212,11 @@ func TestReplaceReferences(t *testing.T) {
 			if !reflect.DeepEqual(mutatedViaJSON, mutatedViaWalker) {
 				t.Errorf("mutation via walker differ from JSON text replacement (got A, expected B): %s", objectDiff(mutatedViaWalker, mutatedViaJSON))
 			}
-			if !seenRefs.Equal(fuzzedRefs) {
-				t.Errorf("expected to see the same refs in the walker as during fuzzing. Not seen: %v", fuzzedRefs.Difference(seenRefs).List())
+			if !seenRefs.HasAll(visibleRefs.List()...) {
+				t.Errorf("expected to see the same refs in the walker as during fuzzing. Not seen: %v", visibleRefs.Difference(seenRefs).List())
+			}
+			if shouldNotSee := seenRefs.Intersection(invisibleRefs); shouldNotSee.Len() > 0 {
+				t.Errorf("refs seen that the walker is not expected to see: %v", shouldNotSee.List())
 			}
 		})
 	}
