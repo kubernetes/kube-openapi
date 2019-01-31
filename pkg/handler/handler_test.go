@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-openapi/spec"
+	json "github.com/json-iterator/go"
 )
 
 var returnedSwagger = []byte(`{
@@ -25,18 +25,25 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
 	}
 
-	returnedJSON, err := json.MarshalIndent(s, " ", " ")
+	returnedJSON, err := json.Marshal(s)
 	if err != nil {
 		t.Errorf("Unexpected error in preparing returnedJSON: %v", err)
 	}
-	returnedPb, err := toProtoBinary(returnedJSON)
+	var decodedJSON map[string]interface{}
+	if err := json.Unmarshal(returnedJSON, &decodedJSON); err != nil {
+		t.Fatal(err)
+	}
+	returnedPb, err := ToProtoBinary(decodedJSON)
 	if err != nil {
 		t.Errorf("Unexpected error in preparing returnedPb: %v", err)
 	}
 
 	mux := http.NewServeMux()
-	_, err = RegisterOpenAPIVersionedService(&s, "/openapi/v2", mux)
+	o, err := NewOpenAPIService(&s)
 	if err != nil {
+		t.Fatal(err)
+	}
+	if err = o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
 		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
 	}
 	server := httptest.NewServer(mux)
@@ -83,7 +90,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
 		}
 		if !reflect.DeepEqual(body, tc.respBody) {
-			t.Errorf("Accept: %v: Response body mismatches, want: %v, got: %v", tc.acceptHeader, tc.respBody, body)
+			t.Errorf("Accept: %v: Response body mismatches, \nwant: %s, \ngot:  %s", tc.acceptHeader, string(tc.respBody), string(body))
 		}
 	}
 }
