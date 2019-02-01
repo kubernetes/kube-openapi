@@ -19,6 +19,7 @@ package aggregator
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -33,6 +34,32 @@ import (
 
 func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visible bool)) {
 	invisible := 0 // == 0 means visible, > 0 means invisible
+	depth := 0
+	maxDepth := 3
+	nilChance := func(depth int) float64 {
+		return math.Pow(0.9, math.Max(0.0, float64(maxDepth-depth)))
+	}
+	updateFuzzer := func(depth int) {
+		f.NilChance(nilChance(depth))
+		f.NumElements(0, max(0, maxDepth-depth))
+	}
+	updateFuzzer(depth)
+	enter := func(o interface{}, recursive bool, c fuzz.Continue) {
+		if recursive {
+			depth++
+			updateFuzzer(depth)
+		}
+
+		invisible++
+		c.FuzzNoCustom(o)
+		invisible--
+	}
+	leave := func(recursive bool) {
+		if recursive {
+			depth--
+			updateFuzzer(depth)
+		}
+	}
 	f.Funcs(
 		func(ref *spec.Ref, c fuzz.Continue) {
 			refFunc(ref, c, invisible == 0)
@@ -52,10 +79,8 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			*url = spec.SchemaURL("http://url")
 		},
 		func(s *spec.Swagger, c fuzz.Continue) {
-			// fuzz everything first with invisible==true
-			invisible++
-			c.FuzzNoCustom(s)
-			invisible--
+			enter(s, false, c)
+			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
 			c.Fuzz(&s.Parameters)
@@ -64,10 +89,8 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			c.Fuzz(&s.Paths)
 		},
 		func(p *spec.Parameter, c fuzz.Continue) {
-			// fuzz everything first with invisible==true
-			invisible++
-			c.FuzzNoCustom(p)
-			invisible--
+			enter(p, false, c)
+			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
 			c.Fuzz(&p.Ref)
@@ -80,10 +103,8 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			}
 		},
 		func(s *spec.Response, c fuzz.Continue) {
-			// fuzz everything first with invisible==true
-			invisible++
-			c.FuzzNoCustom(s)
-			invisible--
+			enter(s, false, c)
+			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
 			c.Fuzz(&s.Ref)
@@ -92,12 +113,32 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			c.Fuzz(&s.Examples)
 		},
 		func(s *spec.Dependencies, c fuzz.Continue) {
-			// fuzz everything first with invisible==true
-			invisible++
-			c.FuzzNoCustom(s)
-			invisible--
+			enter(s, false, c)
+			defer leave(false)
 
 			// and nothing with invisible==false
+		},
+		func(p *spec.SimpleSchema, c fuzz.Continue) {
+			// gofuzz is broken and calls this even for *SimpleSchema fields, ignoring NilChance, leading to infinite recursion
+			if c.Float64() > nilChance(depth) {
+				return
+			}
+
+			enter(p, true, c)
+			defer leave(true)
+
+			c.FuzzNoCustom(p)
+		},
+		func(s *spec.SchemaProps, c fuzz.Continue) {
+			// gofuzz is broken and calls this even for *SchemaProps fields, ignoring NilChance, leading to infinite recursion
+			if c.Float64() > nilChance(depth) {
+				return
+			}
+
+			enter(s, true, c)
+			defer leave(true)
+
+			c.FuzzNoCustom(s)
 		},
 		func(i *interface{}, c fuzz.Continue) {
 			// do nothing for examples and defaults. These are free form JSON fields.
@@ -150,8 +191,6 @@ func TestReplaceReferences(t *testing.T) {
 					*ref = r
 				},
 			)
-			f.NilChance(0.92)
-			f.NumElements(0, 3)
 
 			// create random swagger spec with random URL references, but at least one ref
 			s = &spec.Swagger{}
@@ -271,4 +310,11 @@ func objectDiff(a, b interface{}) string {
 		panic(fmt.Sprintf("b: %v", err))
 	}
 	return stringDiff(string(ab), string(bb))
+}
+
+func max(i, j int) int {
+	if i > j {
+		return i
+	}
+	return j
 }
