@@ -173,6 +173,7 @@ func TestReplaceReferences(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		var visibleRefs, invisibleRefs sets.String
 		var seed int64
+		var randSource rand.Source
 		var s *spec.Swagger
 		for {
 			visibleRefs = sets.NewString()
@@ -180,8 +181,9 @@ func TestReplaceReferences(t *testing.T) {
 
 			f := fuzz.New()
 			seed = time.Now().UnixNano()
-			//seed = int64(1548953540354558000)
-			f.RandSource(rand.New(rand.NewSource(seed)))
+			//seed = int64(1549012506261785182)
+			randSource = rand.New(rand.NewSource(seed))
+			f.RandSource(randSource)
 
 			visibleRefsNum := 0
 			invisibleRefsNum := 0
@@ -234,15 +236,26 @@ func TestReplaceReferences(t *testing.T) {
 		}
 
 		t.Run(fmt.Sprintf("iteration %d", i), func(t *testing.T) {
-			mutatedRef := visibleRefs.List()[rand.Intn(visibleRefs.Len())]
+			mutatedRefs := sets.NewString()
+			mutationProbability := rand.New(randSource).Float64()
+			for _, vr := range visibleRefs.List() {
+				if rand.New(randSource).Float64() > mutationProbability {
+					mutatedRefs.Insert(vr)
+				}
+			}
+
 			origString, err := json.Marshal(s)
 			if err != nil {
 				t.Fatalf("failed to marshal swagger: %v", err)
 			}
-			t.Logf("created schema with %d walked refs, %d invisible refs, mutating %q, seed %d: %s", visibleRefs.Len(), invisibleRefs.Len(), mutatedRef, seed, string(origString))
+			t.Logf("created schema with %d walked refs, %d invisible refs, mutating %v, seed %d: %s", visibleRefs.Len(), invisibleRefs.Len(), mutatedRefs.List(), seed, string(origString))
 
 			// convert to json string, replace one of the refs, and unmarshal back
-			mutatedString := strings.Replace(string(origString), "\""+mutatedRef+"\"", "\"http://mutated-ref\"", -1)
+			mutatedString := string(origString)
+			for _, r := range mutatedRefs.List() {
+				mr := strings.Replace(r, "ref", "mutated", -1)
+				mutatedString = strings.Replace(mutatedString, "\""+r+"\"", "\""+mr+"\"", -1)
+			}
 			mutatedViaJSON := &spec.Swagger{}
 			if err := json.Unmarshal([]byte(mutatedString), mutatedViaJSON); err != nil {
 				t.Fatalf("failed to unmarshal mutated spec: %v", err)
@@ -253,8 +266,8 @@ func TestReplaceReferences(t *testing.T) {
 			walker := mutatingReferenceWalker{
 				walkRefCallback: func(ref *spec.Ref) *spec.Ref {
 					seenRefs.Insert(ref.String())
-					if ref.String() == mutatedRef {
-						r, err := spec.NewRef("http://mutated-ref")
+					if mutatedRefs.Has(ref.String()) {
+						r, err := spec.NewRef(strings.Replace(ref.String(), "ref", "mutated", -1))
 						if err != nil {
 							t.Fatalf("failed to create ref: %v", err)
 						}
