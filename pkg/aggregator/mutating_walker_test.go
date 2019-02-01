@@ -128,15 +128,19 @@ func TestReplaceReferences(t *testing.T) {
 			//seed = int64(1548953540354558000)
 			f.RandSource(rand.New(rand.NewSource(seed)))
 
+			visibleRefsNum := 0
+			invisibleRefsNum := 0
 			fuzzFuncs(f,
 				func(ref *spec.Ref, c fuzz.Continue, visible bool) {
 					var url string
 					if visible {
 						// this is a ref that is seen by the walker (we have some exceptions where we don't walk into)
-						url = fmt.Sprintf("http://ref-%d", visibleRefs.Len())
+						url = fmt.Sprintf("http://ref-%d", visibleRefsNum)
+						visibleRefsNum++
 					} else {
 						// this is a ref that is not seen by the walker (we have some exceptions where we don't walk into)
-						url = fmt.Sprintf("http://invisible-%d", invisibleRefs.Len())
+						url = fmt.Sprintf("http://invisible-%d", invisibleRefsNum)
+						invisibleRefsNum++
 					}
 
 					r, err := spec.NewRef(url)
