@@ -88,6 +88,20 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			c.Fuzz(&s.Definitions)
 			c.Fuzz(&s.Paths)
 		},
+		func(p *spec.PathItem, c fuzz.Continue) {
+			enter(p, false, c)
+			defer leave(false)
+
+			// only fuzz those fields we walk into with invisible==false
+			c.Fuzz(&p.Parameters)
+			c.Fuzz(&p.Delete)
+			c.Fuzz(&p.Get)
+			c.Fuzz(&p.Head)
+			c.Fuzz(&p.Options)
+			c.Fuzz(&p.Patch)
+			c.Fuzz(&p.Post)
+			c.Fuzz(&p.Put)
+		},
 		func(p *spec.Parameter, c fuzz.Continue) {
 			enter(p, false, c)
 			defer leave(false)
