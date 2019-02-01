@@ -29,18 +29,18 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"./testdata/dummytype.Bar":       schema__testdata_dummytype_Bar(ref),
-		"./testdata/dummytype.Baz":       schema__testdata_dummytype_Baz(ref),
-		"./testdata/dummytype.Foo":       schema__testdata_dummytype_Foo(ref),
-		"./testdata/dummytype.Waldo":     schema__testdata_dummytype_Waldo(ref),
-		"./testdata/listtype.AtomicList": schema__testdata_listtype_AtomicList(ref),
-		"./testdata/listtype.Item":       schema__testdata_listtype_Item(ref),
-		"./testdata/listtype.MapList":    schema__testdata_listtype_MapList(ref),
-		"./testdata/listtype.SetList":    schema__testdata_listtype_SetList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Bar":       schema_test_integration_testdata_dummytype_Bar(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Baz":       schema_test_integration_testdata_dummytype_Baz(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Foo":       schema_test_integration_testdata_dummytype_Foo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Waldo":     schema_test_integration_testdata_dummytype_Waldo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.AtomicList": schema_test_integration_testdata_listtype_AtomicList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.Item":       schema_test_integration_testdata_listtype_Item(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.MapList":    schema_test_integration_testdata_listtype_MapList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.SetList":    schema_test_integration_testdata_listtype_SetList(ref),
 	}
 }
 
-func schema__testdata_dummytype_Bar(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_dummytype_Bar(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -66,7 +66,7 @@ func schema__testdata_dummytype_Bar(ref common.ReferenceCallback) common.OpenAPI
 	}
 }
 
-func schema__testdata_dummytype_Baz(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_dummytype_Baz(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -92,7 +92,7 @@ func schema__testdata_dummytype_Baz(ref common.ReferenceCallback) common.OpenAPI
 	}
 }
 
-func schema__testdata_dummytype_Foo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_dummytype_Foo(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -118,7 +118,7 @@ func schema__testdata_dummytype_Foo(ref common.ReferenceCallback) common.OpenAPI
 	}
 }
 
-func schema__testdata_dummytype_Waldo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_dummytype_Waldo(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -144,7 +144,7 @@ func schema__testdata_dummytype_Waldo(ref common.ReferenceCallback) common.OpenA
 	}
 }
 
-func schema__testdata_listtype_AtomicList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_listtype_AtomicList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -176,7 +176,7 @@ func schema__testdata_listtype_AtomicList(ref common.ReferenceCallback) common.O
 	}
 }
 
-func schema__testdata_listtype_Item(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_listtype_Item(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -220,7 +220,7 @@ func schema__testdata_listtype_Item(ref common.ReferenceCallback) common.OpenAPI
 	}
 }
 
-func schema__testdata_listtype_MapList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_listtype_MapList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -238,7 +238,7 @@ func schema__testdata_listtype_MapList(ref common.ReferenceCallback) common.Open
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("./testdata/listtype.Item"),
+										Ref: ref("k8s.io/kube-openapi/test/integration/testdata/listtype.Item"),
 									},
 								},
 							},
@@ -249,11 +249,11 @@ func schema__testdata_listtype_MapList(ref common.ReferenceCallback) common.Open
 			},
 		},
 		Dependencies: []string{
-			"./testdata/listtype.Item"},
+			"k8s.io/kube-openapi/test/integration/testdata/listtype.Item"},
 	}
 }
 
-func schema__testdata_listtype_SetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_test_integration_testdata_listtype_SetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{

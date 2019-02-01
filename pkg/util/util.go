@@ -21,8 +21,30 @@ import (
 	"strings"
 )
 
+// [DEPRECATED] ToCanonicalName converts Golang package/type canonical name into REST friendly OpenAPI name.
+// This method is deprecated because it has a misleading name. Please use ToRESTFriendlyName
+// instead
+//
+// NOTE: actually the "canonical name" in this method should be named "REST friendly OpenAPI name",
+// which is different from "canonical name" defined in GetCanonicalTypeName. The "canonical name" defined
+// in GetCanonicalTypeName means Go type names with full package path.
+//
+// Examples of REST friendly OpenAPI name:
+//	Input:  k8s.io/api/core/v1.Pod
+//	Output: io.k8s.api.core.v1.Pod
+//
+//	Input:  k8s.io/api/core/v1
+//	Output: io.k8s.api.core.v1
+//
+//	Input:  csi.storage.k8s.io/v1alpha1.CSINodeInfo
+//	Output: io.k8s.storage.csi.v1alpha1.CSINodeInfo
+func ToCanonicalName(name string) string {
+	return ToRESTFriendlyName(name)
+}
+
 // ToRESTFriendlyName converts Golang package/type canonical name into REST friendly OpenAPI name.
-// Examples:
+//
+// Examples of REST friendly OpenAPI name:
 //	Input:  k8s.io/api/core/v1.Pod
 //	Output: io.k8s.api.core.v1.Pod
 //

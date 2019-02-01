@@ -121,7 +121,7 @@ type typeNamer struct {
 }
 
 func (t *typeNamer) OpenAPICanonicalTypeName() string {
-	return fmt.Sprintf("./testdata/%s.%s", t.pkg, t.name)
+	return fmt.Sprintf("k8s.io/kube-openapi/test/integration/testdata/%s.%s", t.pkg, t.name)
 }
 
 func buildRouteForType(ws *restful.WebService, pkg, name string) *restful.RouteBuilder {
