@@ -29,8 +29,6 @@ import (
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
 	openapi "k8s.io/kube-openapi/pkg/common"
-
-	"k8s.io/klog"
 )
 
 // This is the comment tag that carries parameters for open API generation.
@@ -184,7 +182,6 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 }
 
 func (g *openAPIGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
-	klog.V(5).Infof("generating for type %v", t)
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	err := newOpenAPITypeWriter(sw).generate(t)
 	if err != nil {
@@ -289,7 +286,6 @@ func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]
 			required = append(required, name)
 		}
 		if err = g.generateProperty(&m, t); err != nil {
-			klog.Errorf("Error when generating: %v, %v\n", name, m)
 			return required, err
 		}
 	}

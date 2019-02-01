@@ -24,7 +24,6 @@ import (
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
-	"k8s.io/klog"
 
 	generatorargs "k8s.io/kube-openapi/cmd/openapi-gen/args"
 )
@@ -54,7 +53,7 @@ func DefaultNameSystem() string {
 func Packages(context *generator.Context, arguments *args.GeneratorArgs) generator.Packages {
 	boilerplate, err := arguments.LoadGoBoilerplate()
 	if err != nil {
-		klog.Fatalf("Failed loading boilerplate: %v", err)
+		return
 	}
 	header := append([]byte(fmt.Sprintf("// +build !%s\n\n", arguments.GeneratedBuildTag)), boilerplate...)
 	header = append(header, []byte(
