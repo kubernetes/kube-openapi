@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/go-openapi/spec"
 	json "github.com/json-iterator/go"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var returnedSwagger = []byte(`{
@@ -93,4 +95,72 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			t.Errorf("Accept: %v: Response body mismatches, \nwant: %s, \ngot:  %s", tc.acceptHeader, string(tc.respBody), string(body))
 		}
 	}
+}
+
+func TestJsonToYAML(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    map[string]interface{}
+		expected yaml.MapSlice
+	}{
+		{"nil", nil, nil},
+		{"empty", map[string]interface{}{}, yaml.MapSlice{}},
+		{
+			"values",
+			map[string]interface{}{
+				"int64":   int64(42),
+				"float64": float64(42.0),
+				"string":  string("foo"),
+				"bool":    true,
+				"slice":   []interface{}{"foo", "bar"},
+				"map":     map[string]interface{}{"foo": "bar"},
+			},
+			yaml.MapSlice{
+				{"int64", int64(42)},
+				{"float64", float64(42.0)},
+				{"string", string("foo")},
+				{"bool", true},
+				{"slice", []interface{}{"foo", "bar"}},
+				{"map", yaml.MapSlice{{"foo", "bar"}}},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := jsonToYAML(tt.input)
+			sortMapSlicesInPlace(tt.expected)
+			sortMapSlicesInPlace(got)
+			if !reflect.DeepEqual(got, tt.expected) {
+				t.Errorf("jsonToYAML() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func sortMapSlicesInPlace(x interface{}) {
+	switch x := x.(type) {
+	case []interface{}:
+		for i := range x {
+			sortMapSlicesInPlace(x[i])
+		}
+	case yaml.MapSlice:
+		sort.Slice(x, func(a, b int) bool {
+			return x[a].Key.(string) < x[b].Key.(string)
+		})
+	}
+}
+
+func TestToProtoBinary(t *testing.T) {
+	bs, err := ioutil.ReadFile("../../test/integration/testdata/aggregator/openapi.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var j map[string]interface{}
+	if err := json.Unmarshal(bs, &j); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ToProtoBinary(j); err != nil {
+		t.Fatal()
+	}
+	// TODO: add some kind of roundtrip test here
 }
