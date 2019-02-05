@@ -268,7 +268,7 @@ func (g openAPIGeneratorJSON) generateExtensions(CommentLines []string) (*spec.V
 	}
 	extensions := []NameValue{}
 	for _, val := range tagValues {
-		if strings.HasPrefix(val, tagExtensionPrefix) {
+		if strings.HasPrefix(val, extensionPrefix) {
 			parts := strings.SplitN(val, ":", 2)
 			if len(parts) != 2 {
 				return nil, fmt.Errorf("invalid extension value: %v", val)
@@ -276,19 +276,19 @@ func (g openAPIGeneratorJSON) generateExtensions(CommentLines []string) (*spec.V
 			extensions = append(extensions, NameValue{parts[0], parts[1]})
 		}
 	}
-	patchMergeKeyTag, err := getSingleTagsValue(CommentLines, tagPatchMergeKey)
+	patchMergeKeyTag, err := getSingleTagsValue(CommentLines, "patchMergeKey")
 	if err != nil {
 		return nil, err
 	}
 	if len(patchMergeKeyTag) > 0 {
-		extensions = append(extensions, NameValue{tagExtensionPrefix + patchMergeKeyExtensionName, patchMergeKeyTag})
+		extensions = append(extensions, NameValue{tagToExtension["patchMergeKey"].xName, patchMergeKeyTag})
 	}
-	patchStrategyTag, err := getSingleTagsValue(CommentLines, tagPatchStrategy)
+	patchStrategyTag, err := getSingleTagsValue(CommentLines, "patchStrategy")
 	if err != nil {
 		return nil, err
 	}
 	if len(patchStrategyTag) > 0 {
-		extensions = append(extensions, NameValue{tagExtensionPrefix + patchStrategyExtensionName, patchStrategyTag})
+		extensions = append(extensions, NameValue{tagToExtension["patchStrategy"].xName, patchStrategyTag})
 	}
 	vE := &spec.VendorExtensible{
 		Extensions: map[string]interface{}{},
