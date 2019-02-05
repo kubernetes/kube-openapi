@@ -221,11 +221,11 @@ func jsonToYAML(j map[string]interface{}) yaml.MapSlice {
 	if j == nil {
 		return nil
 	}
-	info := make(yaml.MapSlice, 0, len(j))
+	ret := make(yaml.MapSlice, 0, len(j))
 	for k, v := range j {
-		info = append(info, yaml.MapItem{k, jsonToYAMLValue(v)})
+		ret = append(ret, yaml.MapItem{k, jsonToYAMLValue(v)})
 	}
-	return info
+	return ret
 }
 
 func jsonToYAMLValue(j interface{}) interface{} {
@@ -233,11 +233,11 @@ func jsonToYAMLValue(j interface{}) interface{} {
 	case map[string]interface{}:
 		return jsonToYAML(j)
 	case []interface{}:
-		s := make(yaml.MapSlice, len(j))
+		ret := make([]interface{}, len(j))
 		for i := range j {
-			s[i] = yaml.MapItem{i, jsonToYAMLValue(j[i])}
+			ret[i] = jsonToYAMLValue(j[i])
 		}
-		return s
+		return ret
 	}
 	return j
 }
