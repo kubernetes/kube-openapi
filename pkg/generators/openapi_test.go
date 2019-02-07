@@ -591,7 +591,7 @@ Properties: map[string]spec.Schema{
 "WithListField": {
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
-"x-kubernetes-list-map-keys": []string{
+"x-kubernetes-list-map-keys": []interface{}{
 "port",
 "protocol",
 },

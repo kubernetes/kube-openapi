@@ -409,7 +409,7 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension) {
 	for _, extension := range extensions {
 		g.Do("\"$.$\": ", extension.xName)
 		if extension.hasMultipleValues() {
-			g.Do("[]string{\n", nil)
+			g.Do("[]interface{}{\n", nil)
 		}
 		for _, value := range extension.values {
 			g.Do("\"$.$\",\n", value)
