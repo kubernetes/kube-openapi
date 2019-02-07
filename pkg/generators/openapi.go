@@ -363,13 +363,14 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			return err
 		}
 		g.Do("},\n", nil)
-		g.Do("Dependencies: []string{\n", args)
+
 		// Map order is undefined, sort them or we may get a different file generated each time.
 		keys := []string{}
 		for k := range g.refTypes {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
+		deps := []string{}
 		for _, k := range keys {
 			v := g.refTypes[k]
 			if t, _ := openapi.GetOpenAPITypeFormat(v.String()); t != "" {
@@ -377,9 +378,16 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				// Will eliminate special case of time.Time
 				continue
 			}
-			g.Do("\"$.$\",", k)
+			deps = append(deps, k)
 		}
-		g.Do("},\n}\n}\n\n", nil)
+		if len(deps) > 0 {
+			g.Do("Dependencies: []string{\n", args)
+			for _, k := range deps {
+				g.Do("\"$.$\",", k)
+			}
+			g.Do("},\n", nil)
+		}
+		g.Do("}\n}\n\n", nil)
 	}
 	return nil
 }

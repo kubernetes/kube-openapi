@@ -307,8 +307,6 @@ Extensions: spec.Extensions{
 },
 },
 },
-Dependencies: []string{
-},
 }
 }
 
@@ -581,8 +579,6 @@ Extensions: spec.Extensions{
 },
 },
 },
-Dependencies: []string{
-},
 }
 }
 
@@ -650,8 +646,6 @@ Extensions: spec.Extensions{
 "x-kubernetes-type-tag": "type_test",
 },
 },
-},
-Dependencies: []string{
 },
 }
 }
