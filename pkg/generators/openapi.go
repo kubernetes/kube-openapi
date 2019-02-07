@@ -562,7 +562,7 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 		return fmt.Errorf("map with non-string keys are not supported by OpenAPI in %v", t)
 	}
 	g.Do("Type: []string{\"object\"},\n", nil)
-	g.Do("AdditionalProperties: &spec.SchemaOrBool{\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
+	g.Do("AdditionalProperties: &spec.SchemaOrBool{\nAllows: true,\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
 	typeString, format := openapi.GetOpenAPITypeFormat(elemType.String())
 	if typeString != "" {
 		g.generateSimpleProperty(typeString, format)

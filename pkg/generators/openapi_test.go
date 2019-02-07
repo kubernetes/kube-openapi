@@ -472,6 +472,7 @@ SchemaProps: spec.SchemaProps{
 Description: "A map pointer",
 Type: []string{"object"},
 AdditionalProperties: &spec.SchemaOrBool{
+Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
 Type: []string{"string"},
