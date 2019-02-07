@@ -24,7 +24,22 @@ import (
 	"github.com/go-openapi/spec"
 
 	"k8s.io/kube-openapi/pkg/util"
+	"k8s.io/utils/semantic"
 )
+
+// SchemaEquality defines the equality between OpenAPI schemata.
+var SchemaEquality = semantic.EqualitiesOrDie()
+
+func init() {
+	err := SchemaEquality.AddFuncs(
+		func(a, b *spec.Ref) bool {
+			return a.String() == b.String()
+		},
+	)
+	if err != nil {
+		panic(err)
+	}
+}
 
 // usedDefinitionForSpec returns a map with all used definitions in the provided spec as keys and true as values.
 func usedDefinitionForSpec(root *spec.Swagger) map[string]bool {
