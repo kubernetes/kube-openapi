@@ -183,12 +183,12 @@ func (o *OpenAPIService) getSwaggerPbGzBytes() ([]byte, string, time.Time) {
 }
 
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
-	specBytes, err := jsoniter.Marshal(openapiSpec)
+	specBytes, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(openapiSpec)
 	if err != nil {
 		return err
 	}
 	var json map[string]interface{}
-	if err := jsoniter.Unmarshal(specBytes, &json); err != nil {
+	if err := jsoniter.ConfigCompatibleWithStandardLibrary.Unmarshal(specBytes, &json); err != nil {
 		return err
 	}
 	specPb, err := ToProtoBinary(json)
