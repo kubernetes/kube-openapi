@@ -221,3 +221,40 @@ func TestDecodeHook(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, exp, test)
 }
+
+func TestDecodeDateTimeHook(t *testing.T) {
+	testCases := []struct {
+		Name  string
+		Input string
+	}{
+		{
+			"empty datetime",
+			"",
+		},
+		{
+			"invalid non empty datetime",
+			"2019-01-01",
+		},
+	}
+	registry := NewFormats()
+	type layout struct {
+		DateTime *DateTime `json:"datetime,omitempty"`
+	}
+	for i := range testCases {
+		tc := testCases[i]
+		t.Run(tc.Name, func(t *testing.T) {
+			test := new(layout)
+			cfg := &mapstructure.DecoderConfig{
+				DecodeHook:       registry.MapStructureHookFunc(),
+				WeaklyTypedInput: false,
+				Result:           test,
+			}
+			d, err := mapstructure.NewDecoder(cfg)
+			assert.Nil(t, err)
+			input := make(map[string]interface{})
+			input["datetime"] = tc.Input
+			err = d.Decode(input)
+			assert.Error(t, err, "error expected got none")
+		})
+	}
+}
