@@ -56,17 +56,17 @@ func VendorExtensionToMap(e []*openapi_v2.NamedAny) map[string]interface{} {
 	return values
 }
 
-// Definitions is an implementation of `Models`. It looks for
+// definitions is an implementation of `Models`. It looks for
 // models in an openapi Schema.
-type Definitions struct {
+type definitions struct {
 	models map[string]Schema
 }
 
-var _ Models = &Definitions{}
+var _ Models = &definitions{}
 
 // NewOpenAPIData creates a new `Models` out of the openapi document.
 func NewOpenAPIData(doc *openapi_v2.Document) (Models, error) {
-	definitions := Definitions{
+	definitions := definitions{
 		models: map[string]Schema{},
 	}
 
@@ -91,7 +91,7 @@ func NewOpenAPIData(doc *openapi_v2.Document) (Models, error) {
 
 // We believe the schema is a reference, verify that and returns a new
 // Schema
-func (d *Definitions) parseReference(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) parseReference(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	// TODO(wrong): a schema with a $ref can have properties. We can ignore them (would be incomplete), but we cannot return an error.
 	if len(s.GetProperties().GetAdditionalProperties()) > 0 {
 		return nil, newSchemaError(path, "unallowed embedded type definition")
@@ -116,7 +116,7 @@ func (d *Definitions) parseReference(s *openapi_v2.Schema, path *Path) (Schema, 
 	}, nil
 }
 
-func (d *Definitions) parseBaseSchema(s *openapi_v2.Schema, path *Path) BaseSchema {
+func (d *definitions) parseBaseSchema(s *openapi_v2.Schema, path *Path) BaseSchema {
 	return BaseSchema{
 		Description: s.GetDescription(),
 		Extensions:  VendorExtensionToMap(s.GetVendorExtension()),
@@ -125,7 +125,7 @@ func (d *Definitions) parseBaseSchema(s *openapi_v2.Schema, path *Path) BaseSche
 }
 
 // We believe the schema is a map, verify and return a new schema
-func (d *Definitions) parseMap(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) parseMap(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	if len(s.GetType().GetValue()) != 0 && s.GetType().GetValue()[0] != object {
 		return nil, newSchemaError(path, "invalid object type")
 	}
@@ -148,7 +148,7 @@ func (d *Definitions) parseMap(s *openapi_v2.Schema, path *Path) (Schema, error)
 	}, nil
 }
 
-func (d *Definitions) parsePrimitive(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) parsePrimitive(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	var t string
 	if len(s.GetType().GetValue()) > 1 {
 		return nil, newSchemaError(path, "primitive can't have more than 1 type")
@@ -172,7 +172,7 @@ func (d *Definitions) parsePrimitive(s *openapi_v2.Schema, path *Path) (Schema, 
 	}, nil
 }
 
-func (d *Definitions) parseArray(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) parseArray(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	if len(s.GetType().GetValue()) != 1 {
 		return nil, newSchemaError(path, "array should have exactly one type")
 	}
@@ -194,7 +194,7 @@ func (d *Definitions) parseArray(s *openapi_v2.Schema, path *Path) (Schema, erro
 	}, nil
 }
 
-func (d *Definitions) parseKind(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) parseKind(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	if len(s.GetType().GetValue()) != 0 && s.GetType().GetValue()[0] != object {
 		return nil, newSchemaError(path, "invalid object type")
 	}
@@ -224,7 +224,7 @@ func (d *Definitions) parseKind(s *openapi_v2.Schema, path *Path) (Schema, error
 	}, nil
 }
 
-func (d *Definitions) parseArbitrary(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) parseArbitrary(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	return &Arbitrary{
 		BaseSchema: d.parseBaseSchema(s, path),
 	}, nil
@@ -232,7 +232,7 @@ func (d *Definitions) parseArbitrary(s *openapi_v2.Schema, path *Path) (Schema, 
 
 // ParseSchema creates a walkable Schema from an openapi schema. While
 // this function is public, it doesn't leak through the interface.
-func (d *Definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, error) {
+func (d *definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, error) {
 	if s.GetXRef() != "" {
 		// TODO(incomplete): ignoring the rest of s is wrong. As long as there are no conflict, everything from s must be considered
 		// Reference: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#path-item-object
@@ -277,11 +277,11 @@ func (d *Definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, err
 
 // LookupModel is public through the interface of Models. It
 // returns a visitable schema from the given model name.
-func (d *Definitions) LookupModel(model string) Schema {
+func (d *definitions) LookupModel(model string) Schema {
 	return d.models[model]
 }
 
-func (d *Definitions) ListModels() []string {
+func (d *definitions) ListModels() []string {
 	models := []string{}
 
 	for model := range d.models {
@@ -296,7 +296,7 @@ type Ref struct {
 	BaseSchema
 
 	reference   string
-	definitions *Definitions
+	definitions *definitions
 }
 
 var _ Reference = &Ref{}
