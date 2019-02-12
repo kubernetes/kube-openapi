@@ -28,6 +28,7 @@ const (
 	Number  = "number"
 	String  = "string"
 	Boolean = "boolean"
+	Null    = "null"
 
 	// These types are private as they should never leak, and are
 	// represented by actual structs.

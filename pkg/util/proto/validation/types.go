@@ -214,6 +214,16 @@ func (item *primitiveItem) VisitPrimitive(schema *proto.Primitive) {
 			return
 		}
 	case proto.String:
+		switch item.Kind {
+		case proto.String:
+			return
+		}
+		return
+	case proto.Null:
+		switch item.Kind {
+		case proto.Null:
+			return
+		}
 		return
 	}
 	// TODO(wrong): this misses "null"
@@ -282,6 +292,12 @@ func itemFactory(path proto.Path, v interface{}) (validationItem, error) {
 			baseItem: baseItem{path: path},
 			Value:    v,
 			Kind:     proto.String,
+		}, nil
+	case reflect.Interface:
+		return &primitiveItem{
+			baseItem: baseItem{path: path},
+			Value:    v,
+			Kind:     proto.Null,
 		}, nil
 	case reflect.Array,
 		reflect.Slice:
