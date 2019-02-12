@@ -161,7 +161,7 @@ func (d *Definitions) parsePrimitive(s *openapi_v2.Schema, path *Path) (Schema, 
 	case Number: // do nothing
 	case Integer: // do nothing
 	case Boolean: // do nothing
-	// TODO(wrong): this misses "null". Would skip the null case (would be incomplete), but we cannot return an error.
+	case Null: // do nothing
 	default:
 		return nil, newSchemaError(path, "Unknown primitive type: %q", t)
 	}
