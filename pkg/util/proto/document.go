@@ -181,6 +181,7 @@ func (d *Definitions) parseArray(s *openapi_v2.Schema, path *Path) (Schema, erro
 	}
 	if len(s.GetItems().GetSchema()) != 1 {
 		// TODO(wrong): Items can have multiple elements. We can ignore Items then (would be incomplete), but we cannot return an error.
+		// TODO(wrong): "type: array" witohut any items at all is completely valid.
 		return nil, newSchemaError(path, "array should have exactly one sub-item")
 	}
 	sub, err := d.ParseSchema(s.GetItems().GetSchema()[0], path)
