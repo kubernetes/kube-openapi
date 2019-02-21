@@ -26,13 +26,13 @@ import (
 	"k8s.io/kube-openapi/pkg/util/proto/testing"
 )
 
-var fakeSchema = testing.Fake{Path: filepath.Join("testdata", "swagger.json")}
-var fakeSchemaNext = testing.Fake{Path: filepath.Join("testdata", "swagger_next.json")}
+var fakeSchema108 = testing.Fake{Path: filepath.Join("testdata", "swagger-1.8.json")}
+var fakeSchema111 = testing.Fake{Path: filepath.Join("testdata", "swagger-1.11.json")}
 
 var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func() {
 	var models proto.Models
 	BeforeEach(func() {
-		s, err := fakeSchema.OpenAPISchema()
+		s, err := fakeSchema108.OpenAPISchema()
 		Expect(err).To(BeNil())
 		models, err = proto.NewOpenAPIData(s)
 		Expect(err).To(BeNil())
@@ -136,7 +136,7 @@ var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func()
 var _ = Describe("Reading apps/v1beta1/Deployment from v1.11 openAPIData", func() {
 	var models proto.Models
 	BeforeEach(func() {
-		s, err := fakeSchemaNext.OpenAPISchema()
+		s, err := fakeSchema111.OpenAPISchema()
 		Expect(err).To(BeNil())
 		models, err = proto.NewOpenAPIData(s)
 		Expect(err).To(BeNil())
@@ -159,7 +159,7 @@ var _ = Describe("Reading apps/v1beta1/Deployment from v1.11 openAPIData", func(
 var _ = Describe("Reading apps/v1beta1/ControllerRevision from v1.11 openAPIData", func() {
 	var models proto.Models
 	BeforeEach(func() {
-		s, err := fakeSchemaNext.OpenAPISchema()
+		s, err := fakeSchema111.OpenAPISchema()
 		Expect(err).To(BeNil())
 		models, err = proto.NewOpenAPIData(s)
 		Expect(err).To(BeNil())
@@ -193,7 +193,7 @@ var _ = Describe("Reading apps/v1beta1/ControllerRevision from v1.11 openAPIData
 var _ = Describe("Reading authorization.k8s.io/v1/SubjectAccessReview from openAPIData", func() {
 	var models proto.Models
 	BeforeEach(func() {
-		s, err := fakeSchema.OpenAPISchema()
+		s, err := fakeSchema108.OpenAPISchema()
 		Expect(err).To(BeNil())
 		models, err = proto.NewOpenAPIData(s)
 		Expect(err).To(BeNil())
