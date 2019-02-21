@@ -235,60 +235,61 @@ func TestReplaceReferences(t *testing.T) {
 			}
 		}
 
-		t.Run(fmt.Sprintf("iteration %d", i), func(t *testing.T) {
-			mutatedRefs := sets.NewString()
-			mutationProbability := rand.New(randSource).Float64()
-			for _, vr := range visibleRefs.List() {
-				if rand.New(randSource).Float64() > mutationProbability {
-					mutatedRefs.Insert(vr)
-				}
+		t.Logf("iteration %d", i)
+		mutatedRefs := sets.NewString()
+		mutationProbability := rand.New(randSource).Float64()
+		for _, vr := range visibleRefs.List() {
+			if rand.New(randSource).Float64() > mutationProbability {
+				mutatedRefs.Insert(vr)
 			}
+		}
 
-			origString, err := json.Marshal(s)
-			if err != nil {
-				t.Fatalf("failed to marshal swagger: %v", err)
-			}
-			t.Logf("created schema with %d walked refs, %d invisible refs, mutating %v, seed %d: %s", visibleRefs.Len(), invisibleRefs.Len(), mutatedRefs.List(), seed, string(origString))
+		origString, err := json.Marshal(s)
+		if err != nil {
+			t.Errorf("failed to marshal swagger: %v", err)
+			continue
+		}
+		t.Logf("created schema with %d walked refs, %d invisible refs, mutating %v, seed %d: %s", visibleRefs.Len(), invisibleRefs.Len(), mutatedRefs.List(), seed, string(origString))
 
-			// convert to json string, replace one of the refs, and unmarshal back
-			mutatedString := string(origString)
-			for _, r := range mutatedRefs.List() {
-				mr := strings.Replace(r, "ref", "mutated", -1)
-				mutatedString = strings.Replace(mutatedString, "\""+r+"\"", "\""+mr+"\"", -1)
-			}
-			mutatedViaJSON := &spec.Swagger{}
-			if err := json.Unmarshal([]byte(mutatedString), mutatedViaJSON); err != nil {
-				t.Fatalf("failed to unmarshal mutated spec: %v", err)
-			}
+		// convert to json string, replace one of the refs, and unmarshal back
+		mutatedString := string(origString)
+		for _, r := range mutatedRefs.List() {
+			mr := strings.Replace(r, "ref", "mutated", -1)
+			mutatedString = strings.Replace(mutatedString, "\""+r+"\"", "\""+mr+"\"", -1)
+		}
+		mutatedViaJSON := &spec.Swagger{}
+		if err := json.Unmarshal([]byte(mutatedString), mutatedViaJSON); err != nil {
+			t.Errorf("failed to unmarshal mutated spec: %v", err)
+			continue
+		}
 
-			// replay the same mutation using the mutating walker
-			seenRefs := sets.NewString()
-			walker := mutatingReferenceWalker{
-				walkRefCallback: func(ref *spec.Ref) *spec.Ref {
-					seenRefs.Insert(ref.String())
-					if mutatedRefs.Has(ref.String()) {
-						r, err := spec.NewRef(strings.Replace(ref.String(), "ref", "mutated", -1))
-						if err != nil {
-							t.Fatalf("failed to create ref: %v", err)
-						}
-						return &r
+		// replay the same mutation using the mutating walker
+		seenRefs := sets.NewString()
+		walker := mutatingReferenceWalker{
+			walkRefCallback: func(ref *spec.Ref) *spec.Ref {
+				seenRefs.Insert(ref.String())
+				if mutatedRefs.Has(ref.String()) {
+					r, err := spec.NewRef(strings.Replace(ref.String(), "ref", "mutated", -1))
+					if err != nil {
+						t.Fatalf("failed to create ref: %v", err)
 					}
-					return ref
-				},
-			}
-			mutatedViaWalker := walker.Start(s)
+					return &r
+				}
+				return ref
+			},
+		}
+		mutatedViaWalker := walker.Start(s)
 
-			// compare that we got the same
-			if !reflect.DeepEqual(mutatedViaJSON, mutatedViaWalker) {
-				t.Errorf("mutation via walker differ from JSON text replacement (got A, expected B): %s", objectDiff(mutatedViaWalker, mutatedViaJSON))
-			}
-			if !seenRefs.HasAll(visibleRefs.List()...) {
-				t.Errorf("expected to see the same refs in the walker as during fuzzing. Not seen: %v", visibleRefs.Difference(seenRefs).List())
-			}
-			if shouldNotSee := seenRefs.Intersection(invisibleRefs); shouldNotSee.Len() > 0 {
-				t.Errorf("refs seen that the walker is not expected to see: %v", shouldNotSee.List())
-			}
-		})
+		// compare that we got the same
+		if !reflect.DeepEqual(mutatedViaJSON, mutatedViaWalker) {
+			t.Errorf("mutation via walker differ from JSON text replacement (got A, expected B): %s", objectDiff(mutatedViaWalker, mutatedViaJSON))
+		}
+		if !seenRefs.HasAll(visibleRefs.List()...) {
+			t.Errorf("expected to see the same refs in the walker as during fuzzing. Not seen: %v", visibleRefs.Difference(seenRefs).List())
+		}
+		if shouldNotSee := seenRefs.Intersection(invisibleRefs); shouldNotSee.Len() > 0 {
+			t.Errorf("refs seen that the walker is not expected to see: %v", shouldNotSee.List())
+		}
 	}
 }
 
