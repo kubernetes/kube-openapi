@@ -29,7 +29,7 @@ import (
 	"k8s.io/kube-openapi/pkg/util/proto/validation"
 )
 
-var fakeSchema108 = testing.Fake{Path: filepath.Join("..", "testdata", "swagger-1.8.json")}
+var fakeSchema111 = testing.Fake{Path: filepath.Join("..", "testdata", "swagger-1.11.json")}
 
 func Validate(models proto.Models, model string, data string) []error {
 	var obj interface{}
@@ -47,7 +47,7 @@ func Validate(models proto.Models, model string, data string) []error {
 var _ = Describe("resource validation using OpenAPI Schema", func() {
 	var models proto.Models
 	BeforeEach(func() {
-		s, err := fakeSchema108.OpenAPISchema()
+		s, err := fakeSchema111.OpenAPISchema()
 		Expect(err).To(BeNil())
 		models, err = proto.NewOpenAPIData(s)
 		Expect(err).To(BeNil())
