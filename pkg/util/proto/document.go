@@ -260,6 +260,20 @@ func (d *definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, err
 	objectTypes := s.GetType().GetValue()
 	switch len(objectTypes) {
 	case 0:
+		// at the root of schemas we forgot the type somewhen between 1.11 and 1.13, to be fixed again for 1.14.
+		// TODO: drop this in 1.15
+		if path.parent == nil {
+			// in the OpenAPI schema served by older k8s versions, object definitions created from structs did not include
+			// the type:object property (they only included the "properties" property), so we need to handle this case
+			if s.GetProperties() != nil {
+				return d.parseKind(s, path)
+			} else {
+				// Definition has no type and no properties. Treat it as an arbitrary value
+				// TODO(incomplete): what if it has additionalProperties=false or patternProperties?
+				return d.parseArbitrary(s, path)
+			}
+		}
+
 		// Definition has no type. Treat it as an arbitrary value
 		// TODO(incomplete): this ignores many fields, e.g. properties
 		return d.parseArbitrary(s, path)
