@@ -140,6 +140,7 @@ type testStruct struct {
 	Hn         Hostname   `json:"hn,omitempty"`
 	Ipv4       IPv4       `json:"ipv4,omitempty"`
 	Ipv6       IPv6       `json:"ipv6,omitempty"`
+	Cidr       CIDR       `json:"cidr,omitempty"`
 	Mac        MAC        `json:"mac,omitempty"`
 	Isbn       ISBN       `json:"isbn,omitempty"`
 	Isbn10     ISBN10     `json:"isbn10,omitempty"`
@@ -167,6 +168,7 @@ func TestDecodeHook(t *testing.T) {
 		"hn":         "somewhere.com",
 		"ipv4":       "192.168.254.1",
 		"ipv6":       "::1",
+		"cidr":       "192.0.2.1/24",
 		"mac":        "01:02:03:04:05:06",
 		"isbn":       "0321751043",
 		"isbn10":     "0321751043",
@@ -196,6 +198,7 @@ func TestDecodeHook(t *testing.T) {
 		Hn:         Hostname("somewhere.com"),
 		Ipv4:       IPv4("192.168.254.1"),
 		Ipv6:       IPv6("::1"),
+		Cidr:       CIDR("192.0.2.1/24"),
 		Mac:        MAC("01:02:03:04:05:06"),
 		Isbn:       ISBN("0321751043"),
 		Isbn10:     ISBN10("0321751043"),

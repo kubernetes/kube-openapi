@@ -158,6 +158,12 @@ func TestFormatIPv6(t *testing.T) {
 	testStringFormat(t, &ipv6, "ipv6", str, []string{}, []string{"127.0.0.1"})
 }
 
+func TestFormatCIDR(t *testing.T) {
+	cidr := CIDR("192.168.254.1/24")
+	str := string("192.168.254.2/24")
+	testStringFormat(t, &cidr, "cidr", str, []string{"192.0.2.1/24", "2001:db8:a0b:12f0::1/32"}, []string{"198.168.254.2", "2001:db8:a0b:12f0::1"})
+}
+
 func TestFormatMAC(t *testing.T) {
 	mac := MAC("01:02:03:04:05:06")
 	str := string("06:05:04:03:02:01")
@@ -527,6 +533,22 @@ func TestDeepCopyIPv6(t *testing.T) {
 	assert.Equal(t, in, out2)
 
 	var inNil *IPv6
+	out3 := inNil.DeepCopy()
+	assert.Nil(t, out3)
+}
+
+func TestDeepCopyCIDR(t *testing.T) {
+	cidr := CIDR("192.0.2.1/24")
+	in := &cidr
+
+	out := new(CIDR)
+	in.DeepCopyInto(out)
+	assert.Equal(t, in, out)
+
+	out2 := in.DeepCopy()
+	assert.Equal(t, in, out2)
+
+	var inNil *CIDR
 	out3 := inNil.DeepCopy()
 	assert.Nil(t, out3)
 }
