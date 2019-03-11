@@ -138,6 +138,8 @@ func (f *defaultFormats) MapStructureHookFunc() mapstructure.DecodeHookFunc {
 					return IPv4(data.(string)), nil
 				case "ipv6":
 					return IPv6(data.(string)), nil
+				case "cidr":
+					return CIDR(data.(string)), nil
 				case "mac":
 					return MAC(data.(string)), nil
 				case "isbn":
