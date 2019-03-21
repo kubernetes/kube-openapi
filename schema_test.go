@@ -183,3 +183,32 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 	r = s.Validate(j)
 	assert.False(t, r.IsValid())
 }
+
+func TestSchemaValidator_SchemaOptions(t *testing.T) {
+	var schemaJSON = `
+{
+	"propertites": {
+		"items": {
+			"type": "array"
+		}
+	}
+}`
+
+	schema := new(spec.Schema)
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), schema))
+
+	var input map[string]interface{}
+	var inputJSON = `{"items": ["1", "2"]}`
+	assert.NoError(t, json.Unmarshal([]byte(inputJSON), &input))
+
+	// ok
+	s := NewSchemaValidator(schema, nil, "", strfmt.Default, DisableObjectArrayTypeCheck(true))
+	result := s.Validate(input)
+	assert.True(t, result.IsValid())
+
+	// fail
+	s = NewSchemaValidator(schema, nil, "", strfmt.Default)
+	result = s.Validate(input)
+	assert.False(t, result.IsValid())
+
+}
