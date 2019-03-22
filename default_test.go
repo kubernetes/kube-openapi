@@ -25,7 +25,7 @@ import (
 	"testing"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/pborman/uuid"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,8 +171,8 @@ func TestFormatMAC(t *testing.T) {
 }
 
 func TestFormatUUID3(t *testing.T) {
-	first3 := uuid.NewMD5(uuid.NameSpace_URL, []byte("somewhere.com"))
-	other3 := uuid.NewMD5(uuid.NameSpace_URL, []byte("somewhereelse.com"))
+	first3 := uuid.NewMD5(uuid.NameSpaceURL, []byte("somewhere.com"))
+	other3 := uuid.NewMD5(uuid.NameSpaceURL, []byte("somewhereelse.com"))
 	uuid3 := UUID3(first3.String())
 	str := other3.String()
 	testStringFormat(t, &uuid3, "uuid3", str, []string{}, []string{"not-a-uuid"})
@@ -185,8 +185,8 @@ func TestFormatUUID3(t *testing.T) {
 }
 
 func TestFormatUUID4(t *testing.T) {
-	first4 := uuid.NewRandom()
-	other4 := uuid.NewRandom()
+	first4 := uuid.Must(uuid.NewRandom())
+	other4 := uuid.Must(uuid.NewRandom())
 	uuid4 := UUID4(first4.String())
 	str := other4.String()
 	testStringFormat(t, &uuid4, "uuid4", str, []string{}, []string{"not-a-uuid"})
@@ -199,8 +199,8 @@ func TestFormatUUID4(t *testing.T) {
 }
 
 func TestFormatUUID5(t *testing.T) {
-	first5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhere.com"))
-	other5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhereelse.com"))
+	first5 := uuid.NewSHA1(uuid.NameSpaceURL, []byte("somewhere.com"))
+	other5 := uuid.NewSHA1(uuid.NameSpaceURL, []byte("somewhereelse.com"))
 	uuid5 := UUID5(first5.String())
 	str := other5.String()
 	testStringFormat(t, &uuid5, "uuid5", str, []string{}, []string{"not-a-uuid"})
@@ -213,8 +213,8 @@ func TestFormatUUID5(t *testing.T) {
 }
 
 func TestFormatUUID(t *testing.T) {
-	first5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhere.com"))
-	other5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhereelse.com"))
+	first5 := uuid.NewSHA1(uuid.NameSpaceURL, []byte("somewhere.com"))
+	other5 := uuid.NewSHA1(uuid.NameSpaceURL, []byte("somewhereelse.com"))
 	uuid := UUID(first5.String())
 	str := other5.String()
 	testStringFormat(t, &uuid, "uuid", str, []string{}, []string{"not-a-uuid"})
@@ -570,7 +570,7 @@ func TestDeepCopyMAC(t *testing.T) {
 }
 
 func TestDeepCopyUUID(t *testing.T) {
-	first5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhere.com"))
+	first5 := uuid.NewSHA1(uuid.NameSpaceURL, []byte("somewhere.com"))
 	uuid := UUID(first5.String())
 	in := &uuid
 
@@ -587,7 +587,7 @@ func TestDeepCopyUUID(t *testing.T) {
 }
 
 func TestDeepCopyUUID3(t *testing.T) {
-	first3 := uuid.NewMD5(uuid.NameSpace_URL, []byte("somewhere.com"))
+	first3 := uuid.NewMD5(uuid.NameSpaceURL, []byte("somewhere.com"))
 	uuid3 := UUID3(first3.String())
 	in := &uuid3
 
@@ -604,7 +604,7 @@ func TestDeepCopyUUID3(t *testing.T) {
 }
 
 func TestDeepCopyUUID4(t *testing.T) {
-	first4 := uuid.NewRandom()
+	first4 := uuid.Must(uuid.NewRandom())
 	uuid4 := UUID4(first4.String())
 	in := &uuid4
 
@@ -621,7 +621,7 @@ func TestDeepCopyUUID4(t *testing.T) {
 }
 
 func TestDeepCopyUUID5(t *testing.T) {
-	first5 := uuid.NewSHA1(uuid.NameSpace_URL, []byte("somewhere.com"))
+	first5 := uuid.NewSHA1(uuid.NameSpaceURL, []byte("somewhere.com"))
 	uuid5 := UUID5(first5.String())
 	in := &uuid5
 
