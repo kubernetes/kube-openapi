@@ -929,6 +929,11 @@ types:
     - name: type
       type:
         scalar: string
+    unions:
+    - discriminator: type
+      fields:
+      - fieldName: rollingUpdate
+        discriminatedBy: RollingUpdate
 - name: io.k8s.api.apps.v1beta1.RollbackConfig
   struct:
     fields:
@@ -6621,6 +6626,62 @@ types:
     - name: vsphereVolume
       type:
         namedType: io.k8s.api.core.v1.VsphereVirtualDiskVolumeSource
+    unions:
+    - fields:
+      - fieldName: awsElasticBlockStore
+        discriminatedBy: AWSElasticBlockStore
+      - fieldName: azureDisk
+        discriminatedBy: AzureDisk
+      - fieldName: azureFile
+        discriminatedBy: AzureFile
+      - fieldName: cephfs
+        discriminatedBy: CephFS
+      - fieldName: cinder
+        discriminatedBy: Cinder
+      - fieldName: configMap
+        discriminatedBy: ConfigMap
+      - fieldName: downwardAPI
+        discriminatedBy: DownwardAPI
+      - fieldName: emptyDir
+        discriminatedBy: EmptyDir
+      - fieldName: fc
+        discriminatedBy: FC
+      - fieldName: flexVolume
+        discriminatedBy: FlexVolume
+      - fieldName: flocker
+        discriminatedBy: Flocker
+      - fieldName: gcePersistentDisk
+        discriminatedBy: GCEPersistentDisk
+      - fieldName: gitRepo
+        discriminatedBy: GitRepo
+      - fieldName: glusterfs
+        discriminatedBy: Glusterfs
+      - fieldName: hostPath
+        discriminatedBy: HostPath
+      - fieldName: iscsi
+        discriminatedBy: ISCSI
+      - fieldName: nfs
+        discriminatedBy: NFS
+      - fieldName: persistentVolumeClaim
+        discriminatedBy: PersistentVolumeClaim
+      - fieldName: photonPersistentDisk
+        discriminatedBy: PhotonPersistentDisk
+      - fieldName: portworxVolume
+        discriminatedBy: PortworxVolume
+      - fieldName: projected
+        discriminatedBy: Projected
+      - fieldName: quobyte
+        discriminatedBy: Quobyte
+      - fieldName: rbd
+        discriminatedBy: RBD
+      - fieldName: scaleIO
+        discriminatedBy: ScaleIO
+      - fieldName: secret
+        discriminatedBy: Secret
+      - fieldName: storageos
+        discriminatedBy: StorageOS
+      - fieldName: vsphereVolume
+        discriminatedBy: VsphereVolume
 - name: io.k8s.api.core.v1.VolumeDevice
   struct:
     fields:

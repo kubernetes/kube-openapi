@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"k8s.io/kube-openapi/pkg/util/proto"
@@ -145,6 +146,109 @@ func (c *convert) makeRef(model proto.Schema) schema.TypeRef {
 	return tr
 }
 
+func makeUnions(extensions map[string]interface{}) ([]schema.Union, error) {
+	schemaUnions := []schema.Union{}
+	if iunions, ok := extensions["x-kubernetes-unions"]; ok {
+		unions, ok := iunions.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf(`"x-kubernetes-unions" should be a list, got %#v`, unions)
+		}
+		for _, iunion := range unions {
+			union, ok := iunion.(map[interface{}]interface{})
+			if !ok {
+				return nil, fmt.Errorf(`"x-kubernetes-unions" items should be a map of string to unions, got %#v`, iunion)
+			}
+			unionMap := map[string]interface{}{}
+			for k, v := range union {
+				key, ok := k.(string)
+				if !ok {
+					return nil, fmt.Errorf(`"x-kubernetes-unions" has non-string key: %#v`, k)
+				}
+				unionMap[key] = v
+			}
+			schemaUnion, err := makeUnion(unionMap)
+			if err != nil {
+				return nil, err
+			}
+			schemaUnions = append(schemaUnions, schemaUnion)
+		}
+	}
+
+	// Make sure we have no overlap between unions
+	fs := map[string]struct{}{}
+	for _, u := range schemaUnions {
+		if u.Discriminator != nil {
+			if _, ok := fs[*u.Discriminator]; ok {
+				return nil, fmt.Errorf("%v field appears multiple times in unions", *u.Discriminator)
+			}
+			fs[*u.Discriminator] = struct{}{}
+		}
+		for _, f := range u.Fields {
+			if _, ok := fs[f.FieldName]; ok {
+				return nil, fmt.Errorf("%v field appears multiple times in unions", f.FieldName)
+			}
+			fs[f.FieldName] = struct{}{}
+		}
+	}
+
+	return schemaUnions, nil
+}
+
+func makeUnion(extensions map[string]interface{}) (schema.Union, error) {
+	union := schema.Union{
+		Fields: []schema.UnionField{},
+	}
+
+	if idiscriminator, ok := extensions["discriminator"]; ok {
+		discriminator, ok := idiscriminator.(string)
+		if !ok {
+			return schema.Union{}, fmt.Errorf(`"discriminator" must be a string, got: %#v`, idiscriminator)
+		}
+		union.Discriminator = &discriminator
+	}
+
+	if ifields, ok := extensions["fields-discriminated"]; ok {
+		fields, ok := ifields.(map[interface{}]interface{})
+		if !ok {
+			return schema.Union{}, fmt.Errorf(`"fields-discriminated" must be a map[string]string, got: %#v`, ifields)
+		}
+		// Needs sorted keys by field.
+		keys := []string{}
+		for ifield := range fields {
+			field, ok := ifield.(string)
+			if !ok {
+				return schema.Union{}, fmt.Errorf(`"fields-discriminated": field must be a string, got: %#v`, ifield)
+			}
+			keys = append(keys, field)
+
+		}
+		sort.Strings(keys)
+		reverseMap := map[string]struct{}{}
+		for _, field := range keys {
+			value := fields[field]
+			discriminated, ok := value.(string)
+			if !ok {
+				return schema.Union{}, fmt.Errorf(`"fields-discriminated"/%v: value must be a string, got: %#v`, field, value)
+			}
+			union.Fields = append(union.Fields, schema.UnionField{
+				FieldName:       field,
+				DiscriminatedBy: discriminated,
+			})
+
+			// Check that we don't have the same discriminatedBy multiple times.
+			if _, ok := reverseMap[discriminated]; ok {
+				return schema.Union{}, fmt.Errorf("Multiple fields have the same discriminated name: %v", discriminated)
+			}
+			reverseMap[discriminated] = struct{}{}
+		}
+	}
+
+	if union.Discriminator != nil && len(union.Fields) == 0 {
+		return schema.Union{}, fmt.Errorf("discriminator set to %v, but no fields in union", *union.Discriminator)
+	}
+	return union, nil
+}
+
 func (c *convert) VisitKind(k *proto.Kind) {
 	a := c.top()
 	a.Struct = &schema.Struct{}
@@ -156,6 +260,13 @@ func (c *convert) VisitKind(k *proto.Kind) {
 			Type: tr,
 		})
 	}
+
+	unions, err := makeUnions(k.GetExtensions())
+	if err != nil {
+		c.reportError(err.Error())
+		return
+	}
+	a.Struct.Unions = unions
 
 	// TODO: Get element relationship when we start adding it to the spec.
 }
