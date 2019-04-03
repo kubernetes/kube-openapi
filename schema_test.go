@@ -187,9 +187,13 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 func TestSchemaValidator_SchemaOptions(t *testing.T) {
 	var schemaJSON = `
 {
-	"propertites": {
-		"items": {
-			"type": "array"
+	"properties": {
+		"spec": {
+			"properties": {
+				"replicas": {
+					"type": "integer"
+				}
+			}
 		}
 	}
 }`
@@ -198,7 +202,7 @@ func TestSchemaValidator_SchemaOptions(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(schemaJSON), schema))
 
 	var input map[string]interface{}
-	var inputJSON = `{"items": ["1", "2"]}`
+	var inputJSON = `{"spec": {"items": ["foo", "bar"], "replicas": 1}}`
 	assert.NoError(t, json.Unmarshal([]byte(inputJSON), &input))
 
 	// ok
