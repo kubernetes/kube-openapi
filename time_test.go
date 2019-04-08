@@ -145,6 +145,10 @@ func TestDateTime_UnmarshalJSON(t *testing.T) {
 	// Check lexer failure
 	err = pp.UnmarshalJSON([]byte(`"zorg emperor"`))
 	assert.Error(t, err)
+
+	// Check null case
+	err = pp.UnmarshalJSON([]byte("null"))
+	assert.Nil(t, err)
 }
 
 func esc(v []byte) []byte {
