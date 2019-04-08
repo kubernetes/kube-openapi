@@ -156,6 +156,9 @@ func (t DateTime) MarshalEasyJSON(w *jwriter.Writer) {
 
 // UnmarshalJSON sets the DateTime from JSON
 func (t *DateTime) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
+	}
 	l := jlexer.Lexer{Data: data}
 	t.UnmarshalEasyJSON(&l)
 	return l.Error()
