@@ -652,3 +652,86 @@ Extensions: spec.Extensions{
 
 `, funcBuffer.String())
 }
+
+func TestUnion(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Blah is a test.
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:type_test
+// +union
+type Blah struct {
+	// +discriminator
+	Discriminator *string `+"`"+`json:"discriminator"`+"`"+`
+        // +optional
+        Numeric int `+"`"+`json:"numeric"`+"`"+`
+        // +optional
+        String string `+"`"+`json:"string"`+"`"+`
+        // +optional
+        Float float64 `+"`"+`json:"float"`+"`"+`
+}
+		`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"discriminator": {
+SchemaProps: spec.SchemaProps{
+Type: []string{"string"},
+Format: "",
+},
+},
+"numeric": {
+SchemaProps: spec.SchemaProps{
+Type: []string{"integer"},
+Format: "int32",
+},
+},
+"string": {
+SchemaProps: spec.SchemaProps{
+Type: []string{"string"},
+Format: "",
+},
+},
+"float": {
+SchemaProps: spec.SchemaProps{
+Type: []string{"number"},
+Format: "double",
+},
+},
+},
+Required: []string{"discriminator"},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "type_test",
+"x-kubernetes-unions": []interface{}{
+map[string]interface{}{
+"discriminator": "discriminator",
+"fields-discriminated": map[string]interface{}{
+"float": "Float",
+"numeric": "Numeric",
+"string": "String",
+},
+},
+},
+},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}
