@@ -1,3 +1,4 @@
+API rule violation: list_type_missing,k8s.io/kube-openapi/test/integration/testdata/listtype,UntypedList,Field
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Bar,Violation
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Bar,ViolationBehind
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Baz,Violation
@@ -11,4 +12,5 @@ API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/li
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/listtype,Item,Protocol
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/listtype,MapList,Field
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/listtype,SetList,Field
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/listtype,UntypedList,Field
 API rule violation: omitempty_match_case,k8s.io/kube-openapi/test/integration/testdata/listtype,Item,C
