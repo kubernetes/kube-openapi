@@ -36,7 +36,7 @@ func ToSchema(models proto.Models) (*schema.Schema, error) {
 	if err := c.convertAll(); err != nil {
 		return nil, err
 	}
-
+	c.addCommonTypes()
 	return c.output, nil
 }
 
@@ -95,14 +95,37 @@ func (c *convert) insertTypeDef(name string, model proto.Schema) {
 	c.output.Types = append(c.output.Types, def)
 }
 
+func (c *convert) addCommonTypes() {
+	c.output.Types = append(c.output.Types, untypedDef)
+}
+
+var untypedName string = "__untyped_atomic_"
+
+var untypedDef schema.TypeDef = schema.TypeDef{
+	Name: untypedName,
+	Atom: schema.Atom{
+		Scalar: ptr(schema.Scalar("untyped")),
+		List: &schema.List{
+			ElementType: schema.TypeRef{
+				NamedType: &untypedName,
+			},
+			ElementRelationship: schema.Atomic,
+		},
+		Map: &schema.Map{
+			ElementType: schema.TypeRef{
+				NamedType: &untypedName,
+			},
+			ElementRelationship: schema.Atomic,
+		},
+	},
+}
+
 func (c *convert) makeRef(model proto.Schema) schema.TypeRef {
 	var tr schema.TypeRef
 	if r, ok := model.(*proto.Ref); ok {
 		if r.Reference() == "io.k8s.apimachinery.pkg.runtime.RawExtension" {
 			return schema.TypeRef{
-				Inlined: schema.Atom{
-					Untyped: &schema.Untyped{},
-				},
+				NamedType: &untypedName,
 			}
 		}
 		// reference a named type
@@ -116,7 +139,7 @@ func (c *convert) makeRef(model proto.Schema) schema.TypeRef {
 
 		if tr == (schema.TypeRef{}) {
 			// emit warning?
-			tr.Inlined.Untyped = &schema.Untyped{}
+			tr.NamedType = &untypedName
 		}
 	}
 	return tr
@@ -211,9 +234,10 @@ func (c *convert) VisitMap(m *proto.Map) {
 	// spec.
 }
 
+func ptr(s schema.Scalar) *schema.Scalar { return &s }
+
 func (c *convert) VisitPrimitive(p *proto.Primitive) {
 	a := c.top()
-	ptr := func(s schema.Scalar) *schema.Scalar { return &s }
 	switch p.Type {
 	case proto.Integer:
 		a.Scalar = ptr(schema.Numeric)
@@ -227,21 +251,21 @@ func (c *convert) VisitPrimitive(p *proto.Primitive) {
 			// byte really means []byte and is encoded as a string.
 			a.Scalar = ptr(schema.String)
 		case "int-or-string":
-			a.Untyped = &schema.Untyped{}
+			a.Scalar = ptr(schema.Scalar("untyped"))
 		case "date-time":
-			a.Untyped = &schema.Untyped{}
+			a.Scalar = ptr(schema.Scalar("untyped"))
 		default:
-			a.Untyped = &schema.Untyped{}
+			a.Scalar = ptr(schema.Scalar("untyped"))
 		}
 	case proto.Boolean:
 		a.Scalar = ptr(schema.Boolean)
 	default:
-		a.Untyped = &schema.Untyped{}
+		a.Scalar = ptr(schema.Scalar("untyped"))
 	}
 }
 
 func (c *convert) VisitArbitrary(a *proto.Arbitrary) {
-	c.top().Untyped = &schema.Untyped{}
+	*c.top() = untypedDef.Atom
 }
 
 func (c *convert) VisitReference(proto.Reference) {
