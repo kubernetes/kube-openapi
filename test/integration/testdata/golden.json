@@ -137,6 +137,44 @@
       }
      }
     }
+   },
+   "/test/uniontype/inlinedunion": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func9",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/uniontype.InlinedUnion"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/uniontype/toplevelunion": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func8",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/uniontype.TopLevelUnion"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
    }
   },
   "definitions": {
@@ -275,6 +313,101 @@
       "x-kubernetes-list-type": "set"
      }
     }
+   },
+   "uniontype.InlinedUnion": {
+    "type": "object",
+    "required": [
+     "name",
+     "type"
+    ],
+    "properties": {
+     "alpha": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "beta": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "field1": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "field2": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "fieldA": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "fieldB": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "name": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     },
+     "unionType": {
+      "type": "string"
+     }
+    },
+    "x-kubernetes-unions": [
+     {
+      "discriminator": "unionType",
+      "fields-discriminated": {
+       "fieldA": "FieldA",
+       "fieldB": "FieldB"
+      }
+     },
+     {
+      "discriminator": "type",
+      "fields-discriminated": {
+       "alpha": "Alpha",
+       "beta": "Beta"
+      }
+     },
+     {
+      "fields-discriminated": {
+       "field1": "Field1",
+       "field2": "Field2"
+      }
+     }
+    ]
+   },
+   "uniontype.TopLevelUnion": {
+    "type": "object",
+    "required": [
+     "name"
+    ],
+    "properties": {
+     "fieldA": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "fieldB": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "name": {
+      "type": "string"
+     },
+     "unionType": {
+      "type": "string"
+     }
+    },
+    "x-kubernetes-unions": [
+     {
+      "discriminator": "unionType",
+      "fields-discriminated": {
+       "fieldA": "FieldA",
+       "fieldB": "FieldB"
+      }
+     }
+    ]
    }
   },
   "responses": {
