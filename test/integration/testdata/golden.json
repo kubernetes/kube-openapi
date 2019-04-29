@@ -358,20 +358,20 @@
     "x-kubernetes-unions": [
      {
       "discriminator": "unionType",
-      "fields-discriminated": {
+      "fields-to-discriminateBy": {
        "fieldA": "FieldA",
        "fieldB": "FieldB"
       }
      },
      {
       "discriminator": "type",
-      "fields-discriminated": {
+      "fields-to-discriminateBy": {
        "alpha": "Alpha",
        "beta": "Beta"
       }
      },
      {
-      "fields-discriminated": {
+      "fields-to-discriminateBy": {
        "field1": "Field1",
        "field2": "Field2"
       }
@@ -402,7 +402,7 @@
     "x-kubernetes-unions": [
      {
       "discriminator": "unionType",
-      "fields-discriminated": {
+      "fields-to-discriminateBy": {
        "fieldA": "FieldA",
        "fieldB": "FieldB"
       }

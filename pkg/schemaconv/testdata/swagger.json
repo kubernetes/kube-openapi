@@ -78580,7 +78580,7 @@
     "description": "DeploymentStrategy describes how to replace existing pods with new ones.",
     "x-kubernetes-unions": [{
      "discriminator": "type",
-     "fields-discriminated": {
+     "fields-to-discriminateBy": {
       "rollingUpdate": "RollingUpdate"
      }
     }],
@@ -87529,7 +87529,7 @@
    "io.k8s.api.core.v1.Volume": {
     "description": "Volume represents a named volume in a pod that may be accessed by any container in the pod.",
     "x-kubernetes-unions": [{
-     "fields-discriminated": {
+     "fields-to-discriminateBy": {
       "awsElasticBlockStore": "AWSElasticBlockStore",
       "azureDisk": "AzureDisk",
       "azureFile": "AzureFile",
