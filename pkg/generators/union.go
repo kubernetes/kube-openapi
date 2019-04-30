@@ -25,7 +25,7 @@ import (
 
 const tagUnionMember = "union"
 const tagUnionDeprecated = "unionDeprecated"
-const tagUnionDiscriminator = "discriminator"
+const tagUnionDiscriminator = "unionDiscriminator"
 
 type union struct {
 	discriminator         string
@@ -41,7 +41,7 @@ func (u *union) emit(g openAPITypeWriter) {
 	if u.discriminator != "" {
 		g.Do("\"discriminator\": \"$.$\",\n", u.discriminator)
 	}
-	g.Do("\"fields-discriminated\": map[string]interface{}{\n", nil)
+	g.Do("\"fields-to-discriminateBy\": map[string]interface{}{\n", nil)
 	keys := []string{}
 	for field := range u.fieldsToDiscriminated {
 		keys = append(keys, field)

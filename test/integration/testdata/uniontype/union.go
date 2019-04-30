@@ -10,7 +10,7 @@ type TopLevelUnion struct {
 // +k8s:openapi-gen=true
 // +union
 type Union struct {
-	// +discriminator
+	// +unionDiscriminator
 	// +optional
 	UnionType string `json:"unionType"`
 
@@ -20,7 +20,7 @@ type Union struct {
 
 // +k8s:openapi-gen=true
 type Union2 struct {
-	// +discriminator
+	// +unionDiscriminator
 	Type string `json:"type"`
 	// +unionDeprecated
 	Alpha int `json:"alpha,omitempty"`

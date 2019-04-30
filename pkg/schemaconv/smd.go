@@ -207,17 +207,17 @@ func makeUnion(extensions map[string]interface{}) (schema.Union, error) {
 		union.Discriminator = &discriminator
 	}
 
-	if ifields, ok := extensions["fields-discriminated"]; ok {
+	if ifields, ok := extensions["fields-to-discriminateBy"]; ok {
 		fields, ok := ifields.(map[interface{}]interface{})
 		if !ok {
-			return schema.Union{}, fmt.Errorf(`"fields-discriminated" must be a map[string]string, got: %#v`, ifields)
+			return schema.Union{}, fmt.Errorf(`"fields-to-discriminateBy" must be a map[string]string, got: %#v`, ifields)
 		}
 		// Needs sorted keys by field.
 		keys := []string{}
 		for ifield := range fields {
 			field, ok := ifield.(string)
 			if !ok {
-				return schema.Union{}, fmt.Errorf(`"fields-discriminated": field must be a string, got: %#v`, ifield)
+				return schema.Union{}, fmt.Errorf(`"fields-to-discriminateBy": field must be a string, got: %#v`, ifield)
 			}
 			keys = append(keys, field)
 
@@ -228,14 +228,14 @@ func makeUnion(extensions map[string]interface{}) (schema.Union, error) {
 			value := fields[field]
 			discriminated, ok := value.(string)
 			if !ok {
-				return schema.Union{}, fmt.Errorf(`"fields-discriminated"/%v: value must be a string, got: %#v`, field, value)
+				return schema.Union{}, fmt.Errorf(`"fields-to-discriminateBy"/%v: value must be a string, got: %#v`, field, value)
 			}
 			union.Fields = append(union.Fields, schema.UnionField{
 				FieldName:       field,
 				DiscriminatedBy: discriminated,
 			})
 
-			// Check that we don't have the same discriminatedBy multiple times.
+			// Check that we don't have the same discriminateBy multiple times.
 			if _, ok := reverseMap[discriminated]; ok {
 				return schema.Union{}, fmt.Errorf("Multiple fields have the same discriminated name: %v", discriminated)
 			}

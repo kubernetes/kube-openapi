@@ -662,7 +662,7 @@ package foo
 // +k8s:openapi-gen=x-kubernetes-type-tag:type_test
 // +union
 type Blah struct {
-	// +discriminator
+	// +unionDiscriminator
 	Discriminator *string `+"`"+`json:"discriminator"`+"`"+`
         // +optional
         Numeric int `+"`"+`json:"numeric"`+"`"+`
@@ -720,7 +720,7 @@ Extensions: spec.Extensions{
 "x-kubernetes-unions": []interface{}{
 map[string]interface{}{
 "discriminator": "discriminator",
-"fields-discriminated": map[string]interface{}{
+"fields-to-discriminateBy": map[string]interface{}{
 "float": "Float",
 "numeric": "Numeric",
 "string": "String",
