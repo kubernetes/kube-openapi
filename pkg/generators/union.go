@@ -161,10 +161,6 @@ func parseUnionStruct(t *types.Type) (*union, []error) {
 			continue
 		}
 		if types.ExtractCommentTags("+", m.CommentLines)[tagUnionDiscriminator] != nil {
-			if m.Type.String() != "string" && m.Type.String() != "*string" {
-				errors = append(errors, fmt.Errorf("discriminator (%v.%v) must be of type string (or *string)", t.Name, m.Name))
-				continue
-			}
 			errors = append(errors, u.setDiscriminator(jsonName)...)
 		} else {
 			if !hasOptionalTag(&m) {
