@@ -266,6 +266,8 @@ func (c *convert) VisitKind(k *proto.Kind) {
 		c.reportError(err.Error())
 		return
 	}
+	// TODO: We should check that the fields and discriminator
+	// specified in the union are actual fields in the struct.
 	a.Struct.Unions = unions
 
 	// TODO: Get element relationship when we start adding it to the spec.
