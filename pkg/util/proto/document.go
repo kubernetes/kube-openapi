@@ -92,16 +92,8 @@ func NewOpenAPIData(doc *openapi_v2.Document) (Models, error) {
 // We believe the schema is a reference, verify that and returns a new
 // Schema
 func (d *Definitions) parseReference(s *openapi_v2.Schema, path *Path) (Schema, error) {
-	// TODO(wrong): a schema with a $ref can have properties. We can ignore them (would be incomplete), but we cannot return an error.
-	if len(s.GetProperties().GetAdditionalProperties()) > 0 {
-		return nil, newSchemaError(path, "unallowed embedded type definition")
-	}
-	// TODO(wrong): a schema with a $ref can have a type. We can ignore it (would be incomplete), but we cannot return an error.
-	if len(s.GetType().GetValue()) > 0 {
-		return nil, newSchemaError(path, "definition reference can't have a type")
-	}
-
-	// TODO(wrong): $refs outside of the definitions are completely valid. We can ignore them (would be incomplete), but we cannot return an error.
+	// $refs outside of the definitions are valid, but we don't support them in the whole stack,
+	// hence, reject them here.
 	if !strings.HasPrefix(s.GetXRef(), "#/definitions/") {
 		return nil, newSchemaError(path, "unallowed reference to non-definition %q", s.GetXRef())
 	}
@@ -179,19 +171,18 @@ func (d *Definitions) parseArray(s *openapi_v2.Schema, path *Path) (Schema, erro
 	if s.GetType().GetValue()[0] != array {
 		return nil, newSchemaError(path, `array should have type "array"`)
 	}
-	if len(s.GetItems().GetSchema()) != 1 {
-		// TODO(wrong): Items can have multiple elements. We can ignore Items then (would be incomplete), but we cannot return an error.
-		// TODO(wrong): "type: array" witohut any items at all is completely valid.
-		return nil, newSchemaError(path, "array should have exactly one sub-item")
-	}
-	sub, err := d.ParseSchema(s.GetItems().GetSchema()[0], path)
-	if err != nil {
-		return nil, err
-	}
-	return &Array{
+	ret := &Array{
 		BaseSchema: d.parseBaseSchema(s, path),
-		SubType:    sub,
-	}, nil
+	}
+	// TODO(incomplete): support multiple item schemas
+	if len(s.GetItems().GetSchema()) == 1 {
+		sub, err := d.ParseSchema(s.GetItems().GetSchema()[0], path)
+		if err != nil {
+			return nil, err
+		}
+		ret.SubType = sub
+	}
+	return ret, nil
 }
 
 func (d *Definitions) parseKind(s *openapi_v2.Schema, path *Path) (Schema, error) {
@@ -241,19 +232,11 @@ func (d *Definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, err
 	objectTypes := s.GetType().GetValue()
 	switch len(objectTypes) {
 	case 0:
-		// in the OpenAPI schema served by older k8s versions, object definitions created from structs did not include
-		// the type:object property (they only included the "properties" property), so we need to handle this case
-		// TODO: validate that we ever published empty, non-nil properties. JSON roundtripping nils them.
-		if s.GetProperties() != nil {
-			// TODO(wrong): when verifying a non-object later against this, it will be rejected as invalid type.
-			// TODO(CRD validation schema publishing): we have to filter properties (empty or not) if type=object is not given
-			return d.parseKind(s, path)
-		} else {
-			// Definition has no type and no properties. Treat it as an arbitrary value
-			// TODO(incomplete): what if it has additionalProperties=false or patternProperties?
-			// ANSWER: parseArbitrary is less strict than it has to be with patternProperties (which is ignored). So this is correct (of course not complete).
-			return d.parseArbitrary(s, path)
-		}
+		// Definition has no type. Treat it as an arbitrary value
+		// TODO(incomplete): this ignores many fields, e.g. properties
+		// TODO(incomplete): what if it has additionalProperties=false or patternProperties?
+		// ANSWER: parseArbitrary is less strict than it has to be with patternProperties (which is ignored). So this is correct (of course not complete).
+		return d.parseArbitrary(s, path)
 	case 1:
 		t := objectTypes[0]
 		switch t {
@@ -268,10 +251,9 @@ func (d *Definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, err
 		}
 		return d.parsePrimitive(s, path)
 	default:
-		// the OpenAPI generator never generates (nor it ever did in the past) OpenAPI type definitions with multiple types
-		// TODO(wrong): this is rejecting a completely valid OpenAPI spec
-		// TODO(CRD validation schema publishing): filter these out
-		return nil, newSchemaError(path, "definitions with multiple types aren't supported")
+		// Definition has many types. We cannot cope with that. Ignore all of them.
+		// TODO(incomplete): add multi-type support
+		return d.parseArbitrary(s, path)
 	}
 }
 
