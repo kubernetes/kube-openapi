@@ -17,6 +17,7 @@ package strfmt
 import (
 	"database/sql/driver"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -25,8 +26,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/globalsign/mgo/bson"
-	"github.com/mailru/easyjson/jlexer"
-	"github.com/mailru/easyjson/jwriter"
 )
 
 const (
@@ -262,37 +261,24 @@ func (b Base64) String() string {
 
 // MarshalJSON returns the Base64 as JSON
 func (b Base64) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	b.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the Base64 to a easyjson.Writer
-func (b Base64) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(base64.StdEncoding.EncodeToString([]byte(b)))
+	return json.Marshal(base64.StdEncoding.EncodeToString([]byte(b)))
 }
 
 // UnmarshalJSON sets the Base64 from JSON
 func (b *Base64) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	b.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the Base64 from a easyjson.Lexer
-func (b *Base64) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		enc := base64.StdEncoding
-		dbuf := make([]byte, enc.DecodedLen(len(data)))
-
-		n, err := enc.Decode(dbuf, []byte(data))
-		if err != nil {
-			in.AddError(err)
-			return
-		}
-
-		*b = dbuf[:n]
+	var b64str string
+	if err := json.Unmarshal(data, &b64str); err != nil {
+		return err
 	}
+	enc := base64.StdEncoding
+	dbuf := make([]byte, enc.DecodedLen(len(b64str)))
+
+	n, err := enc.Decode(dbuf, []byte(b64str))
+	if err != nil {
+		return err
+	}
+	*b = dbuf[:n]
+	return nil
 }
 
 // GetBSON returns the Base64 as a bson.M{} map.
@@ -371,28 +357,17 @@ func (u URI) String() string {
 
 // MarshalJSON returns the URI as JSON
 func (u URI) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the URI to a easyjson.Writer
-func (u URI) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the URI from JSON
 func (u *URI) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the URI from a easyjson.Lexer
-func (u *URI) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = URI(data)
+	var uristr string
+	if err := json.Unmarshal(data, &uristr); err != nil {
+		return err
 	}
+	*u = URI(uristr)
+	return nil
 }
 
 // GetBSON returns the URI as a bson.M{} map.
@@ -471,28 +446,17 @@ func (e Email) String() string {
 
 // MarshalJSON returns the Email as JSON
 func (e Email) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	e.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the Email to a easyjson.Writer
-func (e Email) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(e))
+	return json.Marshal(string(e))
 }
 
 // UnmarshalJSON sets the Email from JSON
 func (e *Email) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	e.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the Email from a easyjson.Lexer
-func (e *Email) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*e = Email(data)
+	var estr string
+	if err := json.Unmarshal(data, &estr); err != nil {
+		return err
 	}
+	*e = Email(estr)
+	return nil
 }
 
 // GetBSON returns the Email as a bson.M{} map.
@@ -571,28 +535,17 @@ func (h Hostname) String() string {
 
 // MarshalJSON returns the Hostname as JSON
 func (h Hostname) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	h.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the Hostname to a easyjson.Writer
-func (h Hostname) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(h))
+	return json.Marshal(string(h))
 }
 
 // UnmarshalJSON sets the Hostname from JSON
 func (h *Hostname) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	h.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the Hostname from a easyjson.Lexer
-func (h *Hostname) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*h = Hostname(data)
+	var hstr string
+	if err := json.Unmarshal(data, &hstr); err != nil {
+		return err
 	}
+	*h = Hostname(hstr)
+	return nil
 }
 
 // GetBSON returns the Hostname as a bson.M{} map.
@@ -671,28 +624,17 @@ func (u IPv4) String() string {
 
 // MarshalJSON returns the IPv4 as JSON
 func (u IPv4) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the IPv4 to a easyjson.Writer
-func (u IPv4) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the IPv4 from JSON
 func (u *IPv4) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the IPv4 from a easyjson.Lexer
-func (u *IPv4) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = IPv4(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = IPv4(ustr)
+	return nil
 }
 
 // GetBSON returns the IPv4 as a bson.M{} map.
@@ -771,28 +713,17 @@ func (u IPv6) String() string {
 
 // MarshalJSON returns the IPv6 as JSON
 func (u IPv6) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the IPv6 to a easyjson.Writer
-func (u IPv6) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the IPv6 from JSON
 func (u *IPv6) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the IPv6 from a easyjson.Lexer
-func (u *IPv6) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = IPv6(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = IPv6(ustr)
+	return nil
 }
 
 // GetBSON returns the IPv6 as a bson.M{} map.
@@ -871,28 +802,17 @@ func (u CIDR) String() string {
 
 // MarshalJSON returns the CIDR as JSON
 func (u CIDR) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the CIDR to a easyjson.Writer
-func (u CIDR) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the CIDR from JSON
 func (u *CIDR) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the CIDR from a easyjson.Lexer
-func (u *CIDR) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = CIDR(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = CIDR(ustr)
+	return nil
 }
 
 // GetBSON returns the CIDR as a bson.M{} map.
@@ -971,28 +891,17 @@ func (u MAC) String() string {
 
 // MarshalJSON returns the MAC as JSON
 func (u MAC) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the MAC to a easyjson.Writer
-func (u MAC) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the MAC from JSON
 func (u *MAC) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the MAC from a easyjson.Lexer
-func (u *MAC) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = MAC(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = MAC(ustr)
+	return nil
 }
 
 // GetBSON returns the MAC as a bson.M{} map.
@@ -1071,14 +980,7 @@ func (u UUID) String() string {
 
 // MarshalJSON returns the UUID as JSON
 func (u UUID) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the UUID to a easyjson.Writer
-func (u UUID) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the UUID from JSON
@@ -1086,16 +988,12 @@ func (u *UUID) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the UUID from a easyjson.Lexer
-func (u *UUID) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = UUID(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = UUID(ustr)
+	return nil
 }
 
 // GetBSON returns the UUID as a bson.M{} map.
@@ -1172,33 +1070,22 @@ func (u UUID3) String() string {
 	return string(u)
 }
 
-// MarshalJSON returns the UUID3 as JSON
+// MarshalJSON returns the UUID as JSON
 func (u UUID3) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
+	return json.Marshal(string(u))
 }
 
-// MarshalEasyJSON writes the UUID3 to a easyjson.Writer
-func (u UUID3) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
-}
-
-// UnmarshalJSON sets the UUID3 from JSON
+// UnmarshalJSON sets the UUID from JSON
 func (u *UUID3) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the UUID3 from a easyjson.Lexer
-func (u *UUID3) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = UUID3(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = UUID3(ustr)
+	return nil
 }
 
 // GetBSON returns the UUID3 as a bson.M{} map.
@@ -1275,33 +1162,22 @@ func (u UUID4) String() string {
 	return string(u)
 }
 
-// MarshalJSON returns the UUID4 as JSON
+// MarshalJSON returns the UUID as JSON
 func (u UUID4) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
+	return json.Marshal(string(u))
 }
 
-// MarshalEasyJSON writes the UUID4 to a easyjson.Writer
-func (u UUID4) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
-}
-
-// UnmarshalJSON sets the UUID4 from JSON
+// UnmarshalJSON sets the UUID from JSON
 func (u *UUID4) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the UUID4 from a easyjson.Lexer
-func (u *UUID4) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = UUID4(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = UUID4(ustr)
+	return nil
 }
 
 // GetBSON returns the UUID4 as a bson.M{} map.
@@ -1378,33 +1254,22 @@ func (u UUID5) String() string {
 	return string(u)
 }
 
-// MarshalJSON returns the UUID5 as JSON
+// MarshalJSON returns the UUID as JSON
 func (u UUID5) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
+	return json.Marshal(string(u))
 }
 
-// MarshalEasyJSON writes the UUID5 to a easyjson.Writer
-func (u UUID5) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
-}
-
-// UnmarshalJSON sets the UUID5 from JSON
+// UnmarshalJSON sets the UUID from JSON
 func (u *UUID5) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the UUID5 from a easyjson.Lexer
-func (u *UUID5) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = UUID5(data)
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
 	}
+	*u = UUID5(ustr)
+	return nil
 }
 
 // GetBSON returns the UUID5 as a bson.M{} map.
@@ -1483,28 +1348,20 @@ func (u ISBN) String() string {
 
 // MarshalJSON returns the ISBN as JSON
 func (u ISBN) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the ISBN to a easyjson.Writer
-func (u ISBN) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the ISBN from JSON
 func (u *ISBN) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the ISBN from a easyjson.Lexer
-func (u *ISBN) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = ISBN(data)
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = ISBN(ustr)
+	return nil
 }
 
 // GetBSON returns the ISBN as a bson.M{} map.
@@ -1583,28 +1440,20 @@ func (u ISBN10) String() string {
 
 // MarshalJSON returns the ISBN10 as JSON
 func (u ISBN10) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the ISBN10 to a easyjson.Writer
-func (u ISBN10) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the ISBN10 from JSON
 func (u *ISBN10) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the ISBN10 from a easyjson.Lexer
-func (u *ISBN10) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = ISBN10(data)
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = ISBN10(ustr)
+	return nil
 }
 
 // GetBSON returns the ISBN10 as a bson.M{} map.
@@ -1683,28 +1532,20 @@ func (u ISBN13) String() string {
 
 // MarshalJSON returns the ISBN13 as JSON
 func (u ISBN13) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the ISBN13 to a easyjson.Writer
-func (u ISBN13) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the ISBN13 from JSON
 func (u *ISBN13) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the ISBN13 from a easyjson.Lexer
-func (u *ISBN13) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = ISBN13(data)
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = ISBN13(ustr)
+	return nil
 }
 
 // GetBSON returns the ISBN13 as a bson.M{} map.
@@ -1783,28 +1624,20 @@ func (u CreditCard) String() string {
 
 // MarshalJSON returns the CreditCard as JSON
 func (u CreditCard) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the CreditCard to a easyjson.Writer
-func (u CreditCard) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the CreditCard from JSON
 func (u *CreditCard) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the CreditCard from a easyjson.Lexer
-func (u *CreditCard) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = CreditCard(data)
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = CreditCard(ustr)
+	return nil
 }
 
 // GetBSON returns the CreditCard as a bson.M{} map.
@@ -1883,28 +1716,20 @@ func (u SSN) String() string {
 
 // MarshalJSON returns the SSN as JSON
 func (u SSN) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	u.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the SSN to a easyjson.Writer
-func (u SSN) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(u))
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the SSN from JSON
 func (u *SSN) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	u.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the SSN from a easyjson.Lexer
-func (u *SSN) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*u = SSN(data)
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = SSN(ustr)
+	return nil
 }
 
 // GetBSON returns the SSN as a bson.M{} map.
@@ -1982,29 +1807,21 @@ func (h HexColor) String() string {
 }
 
 // MarshalJSON returns the HexColor as JSON
-func (h HexColor) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	h.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the HexColor to a easyjson.Writer
-func (h HexColor) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(h))
+func (u HexColor) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the HexColor from JSON
-func (h *HexColor) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	h.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the HexColor from a easyjson.Lexer
-func (h *HexColor) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*h = HexColor(data)
+func (u *HexColor) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = HexColor(ustr)
+	return nil
 }
 
 // GetBSON returns the HexColor as a bson.M{} map.
@@ -2082,29 +1899,21 @@ func (r RGBColor) String() string {
 }
 
 // MarshalJSON returns the RGBColor as JSON
-func (r RGBColor) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	r.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the RGBColor to a easyjson.Writer
-func (r RGBColor) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(r))
+func (u RGBColor) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the RGBColor from JSON
-func (r *RGBColor) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	r.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the RGBColor from a easyjson.Lexer
-func (r *RGBColor) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*r = RGBColor(data)
+func (u *RGBColor) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = RGBColor(ustr)
+	return nil
 }
 
 // GetBSON returns the RGBColor as a bson.M{} map.
@@ -2183,29 +1992,21 @@ func (r Password) String() string {
 }
 
 // MarshalJSON returns the Password as JSON
-func (r Password) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	r.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the Password to a easyjson.Writer
-func (r Password) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(string(r))
+func (u Password) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(u))
 }
 
 // UnmarshalJSON sets the Password from JSON
-func (r *Password) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	r.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the Password from a easyjson.Lexer
-func (r *Password) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*r = Password(data)
+func (u *Password) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
 	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*u = Password(ustr)
+	return nil
 }
 
 // GetBSON returns the Password as a bson.M{} map.

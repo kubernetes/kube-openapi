@@ -16,6 +16,7 @@ package strfmt
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -24,8 +25,6 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/mailru/easyjson/jlexer"
-	"github.com/mailru/easyjson/jwriter"
 )
 
 func init() {
@@ -153,33 +152,25 @@ func (d Duration) String() string {
 
 // MarshalJSON returns the Duration as JSON
 func (d Duration) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	d.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the Duration to a easyjson.Writer
-func (d Duration) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(time.Duration(d).String())
+	return json.Marshal(time.Duration(d).String())
 }
 
 // UnmarshalJSON sets the Duration from JSON
 func (d *Duration) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	d.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the Duration from a easyjson.Lexer
-func (d *Duration) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		tt, err := ParseDuration(data)
-		if err != nil {
-			in.AddError(err)
-			return
-		}
-		*d = Duration(tt)
+	if string(data) == jsonNull {
+		return nil
 	}
+
+	var dstr string
+	if err := json.Unmarshal(data, &dstr); err != nil {
+		return err
+	}
+	tt, err := ParseDuration(dstr)
+	if err != nil {
+		return err
+	}
+	*d = Duration(tt)
+	return nil
 }
 
 // GetBSON returns the Duration a bson.M{} map.

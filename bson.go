@@ -20,8 +20,6 @@ import (
 	"fmt"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/mailru/easyjson/jlexer"
-	"github.com/mailru/easyjson/jwriter"
 )
 
 func init() {
@@ -82,28 +80,17 @@ func (id *ObjectId) String() string {
 
 // MarshalJSON returns the ObjectId as JSON
 func (id *ObjectId) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	id.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the ObjectId to a easyjson.Writer
-func (id *ObjectId) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(bson.ObjectId(*id).Hex())
+	return bson.ObjectId(*id).MarshalJSON()
 }
 
 // UnmarshalJSON sets the ObjectId from JSON
 func (id *ObjectId) UnmarshalJSON(data []byte) error {
-	l := jlexer.Lexer{Data: data}
-	id.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the ObjectId from a easyjson.Lexer
-func (id *ObjectId) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		*id = NewObjectId(data)
+	var obj bson.ObjectId
+	if err := obj.UnmarshalJSON(data); err != nil {
+		return err
 	}
+	*id = ObjectId(obj)
+	return nil
 }
 
 // GetBSON returns the hex representation of the ObjectId as a bson.M{} map.

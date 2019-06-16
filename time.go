@@ -16,6 +16,7 @@ package strfmt
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -23,8 +24,6 @@ import (
 	"time"
 
 	"github.com/globalsign/mgo/bson"
-	"github.com/mailru/easyjson/jlexer"
-	"github.com/mailru/easyjson/jwriter"
 )
 
 func init() {
@@ -146,14 +145,7 @@ func (t DateTime) Value() (driver.Value, error) {
 
 // MarshalJSON returns the DateTime as JSON
 func (t DateTime) MarshalJSON() ([]byte, error) {
-	var w jwriter.Writer
-	t.MarshalEasyJSON(&w)
-	return w.BuildBytes()
-}
-
-// MarshalEasyJSON writes the DateTime to a easyjson.Writer
-func (t DateTime) MarshalEasyJSON(w *jwriter.Writer) {
-	w.String(time.Time(t).Format(MarshalFormat))
+	return json.Marshal(time.Time(t).Format(MarshalFormat))
 }
 
 // UnmarshalJSON sets the DateTime from JSON
@@ -161,21 +153,17 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	l := jlexer.Lexer{Data: data}
-	t.UnmarshalEasyJSON(&l)
-	return l.Error()
-}
-
-// UnmarshalEasyJSON sets the DateTime from a easyjson.Lexer
-func (t *DateTime) UnmarshalEasyJSON(in *jlexer.Lexer) {
-	if data := in.String(); in.Ok() {
-		tt, err := ParseDateTime(data)
-		if err != nil {
-			in.AddError(err)
-			return
-		}
-		*t = tt
+	
+	var tstr string
+	if err := json.Unmarshal(data, &tstr); err != nil {
+		return err
 	}
+	tt, err := ParseDateTime(tstr)
+	if err != nil {
+		return err
+	}
+	*t = DateTime(tt)
+	return nil
 }
 
 // GetBSON returns the DateTime as a bson.M{} map.
