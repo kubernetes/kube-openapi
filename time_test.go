@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (

@@ -15,10 +15,10 @@
 package strfmt
 
 import (
-	"encoding/base64"
 	"database/sql"
 	"database/sql/driver"
 	"encoding"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -26,8 +26,8 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"go.mongodb.org/mongo-driver/bson"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestFormatURI(t *testing.T) {

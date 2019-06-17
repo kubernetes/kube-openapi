@@ -165,11 +165,11 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (d DateTime) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(bson.M{"data": d.String()})
+func (t DateTime) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(bson.M{"data": t.String()})
 }
 
-func (d *DateTime) UnmarshalBSON(data []byte) error {
+func (t *DateTime) UnmarshalBSON(data []byte) error {
 	var m bson.M
 	if err := bson.Unmarshal(data, &m); err != nil {
 		return err
@@ -180,7 +180,7 @@ func (d *DateTime) UnmarshalBSON(data []byte) error {
 		if err != nil {
 			return err
 		}
-		*d = DateTime(rd)
+		*t = rd
 		return nil
 	}
 
