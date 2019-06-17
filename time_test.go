@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"github.com/stretchr/testify/assert"
 )
 

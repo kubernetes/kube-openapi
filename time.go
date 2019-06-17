@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {
@@ -80,7 +80,6 @@ func ParseDateTime(data string) (DateTime, error) {
 			lastError = err
 			continue
 		}
-		lastError = nil
 		return DateTime(dd), nil
 	}
 	return DateTime{}, lastError
@@ -153,7 +152,7 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 	if string(data) == jsonNull {
 		return nil
 	}
-	
+
 	var tstr string
 	if err := json.Unmarshal(data, &tstr); err != nil {
 		return err
@@ -162,29 +161,30 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	*t = DateTime(tt)
+	*t = tt
 	return nil
 }
 
-// GetBSON returns the DateTime as a bson.M{} map.
-func (t *DateTime) GetBSON() (interface{}, error) {
-	return bson.M{"data": t.String()}, nil
+func (d DateTime) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(bson.M{"data": d.String()})
 }
 
-// SetBSON sets the DateTime from raw bson data
-func (t *DateTime) SetBSON(raw bson.Raw) error {
+func (d *DateTime) UnmarshalBSON(data []byte) error {
 	var m bson.M
-	if err := raw.Unmarshal(&m); err != nil {
+	if err := bson.Unmarshal(data, &m); err != nil {
 		return err
 	}
 
 	if data, ok := m["data"].(string); ok {
-		var err error
-		*t, err = ParseDateTime(data)
-		return err
+		rd, err := ParseDateTime(data)
+		if err != nil {
+			return err
+		}
+		*d = DateTime(rd)
+		return nil
 	}
 
-	return errors.New("couldn't unmarshal bson raw value as Duration")
+	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

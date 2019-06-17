@@ -17,7 +17,7 @@ package strfmt
 import (
 	"testing"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"github.com/stretchr/testify/assert"
 )
 

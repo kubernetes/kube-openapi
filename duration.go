@@ -24,7 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {
@@ -173,24 +173,26 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// GetBSON returns the Duration a bson.M{} map.
-func (d *Duration) GetBSON() (interface{}, error) {
-	return bson.M{"data": int64(*d)}, nil
+func (d Duration) MarshalBSON() ([]byte, error) {
+	return bson.Marshal(bson.M{"data": d.String()})
 }
 
-// SetBSON sets the Duration from raw bson data
-func (d *Duration) SetBSON(raw bson.Raw) error {
+func (d *Duration) UnmarshalBSON(data []byte) error {
 	var m bson.M
-	if err := raw.Unmarshal(&m); err != nil {
+	if err := bson.Unmarshal(data, &m); err != nil {
 		return err
 	}
 
-	if data, ok := m["data"].(int64); ok {
-		*d = Duration(data)
+	if data, ok := m["data"].(string); ok {
+		rd, err := ParseDuration(data)
+		if err != nil {
+			return err
+		}
+		*d = Duration(rd)
 		return nil
 	}
 
-	return errors.New("couldn't unmarshal bson raw value as Duration")
+	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
