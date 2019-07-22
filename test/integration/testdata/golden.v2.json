@@ -5,6 +5,82 @@
    "version": "1.0"
   },
   "paths": {
+   "/test/custom/bac": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func12",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/custom.Bac"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bah": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func13",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/custom.Bah"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bak": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func11",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/custom.Bak"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bal": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func10",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/custom.Bal"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/dummytype/bar": {
     "get": {
      "schemes": [
@@ -178,6 +254,19 @@
    }
   },
   "definitions": {
+   "custom.Bac": {
+    "type": "string"
+   },
+   "custom.Bah": {
+    "type": "test-type",
+    "format": "test-format"
+   },
+   "custom.Bak": {
+    "type": "integer"
+   },
+   "custom.Bal": {
+    "type": "string"
+   },
    "dummytype.Bar": {
     "type": "object",
     "required": [
