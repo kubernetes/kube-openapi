@@ -12,8 +12,9 @@ require (
 	github.com/go-openapi/jsonpointer v0.0.0-20160704185906-46af16f9f7b1 // indirect
 	github.com/go-openapi/jsonreference v0.0.0-20160704190145-13c6e3589ad9 // indirect
 	github.com/go-openapi/spec v0.0.0-20160808142527-6aced65f8501
-	github.com/go-openapi/swag v0.0.0-20160704191624-1d0bd113de87 // indirect
+	github.com/go-openapi/swag v0.0.0-20160704191624-1d0bd113de87
 	github.com/golang/protobuf v0.0.0-20161109072736-4bd1920723d7
+	github.com/google/go-cmp v0.3.0
 	github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367
 	github.com/googleapis/gnostic v0.0.0-20170729233727-0c5108395e2d
 	github.com/json-iterator/go v0.0.0-20180612202835-f2b4162afba3
