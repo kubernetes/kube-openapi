@@ -1997,6 +1997,7 @@ func TestMergedGVKs(t *testing.T) {
 	gvk1 := map[string]interface{}{"group": "group1", "version": "v1", "kind": "Foo"}
 	gvk2 := map[string]interface{}{"group": "group2", "version": "v1", "kind": "Bar"}
 	gvk3 := map[string]interface{}{"group": "group3", "version": "v1", "kind": "Abc"}
+	gvk4 := map[string]interface{}{"group": "group4", "version": "v1", "kind": "Abc"}
 
 	tests := []struct {
 		name        string
@@ -2011,6 +2012,8 @@ func TestMergedGVKs(t *testing.T) {
 		{"second only", nil, []interface{}{gvk1, gvk2}, []interface{}{gvk1, gvk2}, true, false},
 		{"both", []interface{}{gvk1, gvk2}, []interface{}{gvk3}, []interface{}{gvk1, gvk2, gvk3}, true, false},
 		{"equal, different order", []interface{}{gvk1, gvk2, gvk3}, []interface{}{gvk3, gvk2, gvk1}, []interface{}{gvk1, gvk2, gvk3}, false, false},
+		{"ordered", []interface{}{gvk3, gvk1, gvk4}, []interface{}{gvk2}, []interface{}{gvk1, gvk2, gvk3, gvk4}, true, false},
+		{"not ordered when not changed", []interface{}{gvk3, gvk1, gvk4}, []interface{}{}, []interface{}{gvk3, gvk1, gvk4}, false, false},
 		{"empty", []interface{}{}, []interface{}{}, []interface{}{}, false, false},
 		{"overlapping", []interface{}{gvk1, gvk2}, []interface{}{gvk2, gvk3}, []interface{}{gvk1, gvk2, gvk3}, true, false},
 		{"first no slice", 42, []interface{}{gvk1}, nil, false, true},

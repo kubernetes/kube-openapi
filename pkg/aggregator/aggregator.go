@@ -19,6 +19,7 @@ package aggregator
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/go-openapi/spec"
@@ -336,6 +337,7 @@ func mergedGVKs(s1, s2 *spec.Schema) (interface{}, bool, error) {
 	}
 
 	ret := make([]interface{}, len(slice1), len(slice1)+len(slice2))
+	keys := make([]string, 0, len(slice1)+len(slice2))
 	copy(ret, slice1)
 	seen := make(map[string]bool, len(slice1))
 	for _, x := range slice1 {
@@ -344,6 +346,7 @@ func mergedGVKs(s1, s2 *spec.Schema) (interface{}, bool, error) {
 			return nil, false, fmt.Errorf(`expected {"group": <group>, "kind": <kind>, "version": <version>}, got: %#v`, x)
 		}
 		k := fmt.Sprintf("%s/%s.%s", gvk["group"], gvk["version"], gvk["kind"])
+		keys = append(keys, k)
 		seen[k] = true
 	}
 	changed := false
@@ -357,8 +360,31 @@ func mergedGVKs(s1, s2 *spec.Schema) (interface{}, bool, error) {
 			continue
 		}
 		ret = append(ret, x)
+		keys = append(keys, k)
 		changed = true
 	}
 
+	if changed {
+		sort.Sort(byKeys{ret, keys})
+	}
+
 	return ret, changed, nil
+}
+
+type byKeys struct {
+	values []interface{}
+	keys   []string
+}
+
+func (b byKeys) Len() int {
+	return len(b.values)
+}
+
+func (b byKeys) Less(i, j int) bool {
+	return b.keys[i] < b.keys[j]
+}
+
+func (b byKeys) Swap(i, j int) {
+	b.values[i], b.values[j] = b.values[j], b.values[i]
+	b.keys[i], b.keys[j] = b.keys[j], b.keys[i]
 }
