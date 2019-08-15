@@ -24,11 +24,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/go-openapi/spec"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-openapi/pkg/handler"
+	"sigs.k8s.io/yaml"
 )
 
 type DebugSpec struct {
@@ -1325,7 +1325,7 @@ definitions:
 
 func TestSafeMergeSpecsReuseModel(t *testing.T) {
 	var fooSpec, barSpec, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	if err := yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /foo:
@@ -1349,9 +1349,18 @@ definitions:
       id:
         type: "integer"
         format: "int64"
-`), &fooSpec)
+    x-kubernetes-group-version-kind:
+    - group: group1
+      version: v1
+      kind: Foo
+    - group: group3
+      version: v1
+      kind: Foo
+`), &fooSpec); err != nil {
+		t.Fatal(err)
+	}
 
-	yaml.Unmarshal([]byte(`
+	if err := yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /refoo:
@@ -1375,9 +1384,15 @@ definitions:
       id:
         type: "integer"
         format: "int64"
-`), &barSpec)
+    x-kubernetes-group-version-kind:
+    - group: group2
+      version: v1
+      kind: Foo
+`), &barSpec); err != nil {
+		t.Fatal(err)
+	}
 
-	yaml.Unmarshal([]byte(`
+	if err := yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /foo:
@@ -1415,7 +1430,19 @@ definitions:
         id:
           type: "integer"
           format: "int64"
-  `), &expected)
+      x-kubernetes-group-version-kind:
+      - group: group1
+        version: v1
+        kind: Foo
+      - group: group2
+        version: v1
+        kind: Foo
+      - group: group3
+        version: v1
+        kind: Foo
+  `), &expected); err != nil {
+		t.Fatal(err)
+	}
 
 	ast := assert.New(t)
 	orig_barSpec, err := cloneSpec(barSpec)
