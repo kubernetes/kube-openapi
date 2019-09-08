@@ -252,7 +252,7 @@ func TestType_schemaInfoForType(t *testing.T) {
 			expectedSwaggerFormat: "duration",
 		},
 		{
-			value:                 strfmt.ObjectId("507f1f77bcf86cd799439011"),
+			value:                 strfmt.NewObjectId("507f1f77bcf86cd799439011"),
 			expectedJSONType:      "string",
 			expectedSwaggerFormat: "bsonobjectid",
 		},
