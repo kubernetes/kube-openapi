@@ -344,7 +344,7 @@ Type: []string{"object"},
 }
 
 func TestFailingSample1(t *testing.T) {
-	_, funcErr, assert, _, _ := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
 
 // Map sample tests openAPIGen.generateMapProperty method.
@@ -353,9 +353,45 @@ type Blah struct {
 	StringToArray map[string]map[string]string
 }
 	`)
-	if assert.Error(funcErr, "An error was expected") {
-		assert.Equal(funcErr, fmt.Errorf("map Element kind Map is not supported in map[string]map[string]string"))
+	if callErr != nil {
+		t.Fatal(callErr)
 	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Map sample tests openAPIGen.generateMapProperty method.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"StringToArray": {
+SchemaProps: spec.SchemaProps{
+Description: "A sample String to String map",
+Type: []string{"object"},
+AdditionalProperties: &spec.SchemaOrBool{
+Allows: true,
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+// limited support by openapi-gen
+//    name: map[string]map[string]string
+//    type: map[string]map[string]string
+},
+},
+},
+},
+},
+},
+Required: []string{"StringToArray"},
+},
+},
+}
+}
+
+`, funcBuffer.String())
 }
 
 func TestFailingSample2(t *testing.T) {
