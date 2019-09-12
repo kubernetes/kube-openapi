@@ -647,27 +647,17 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 	case types.Struct:
 		g.generateReferenceProperty(elemType)
 	case types.Slice, types.Array:
-		g.generateSliceProperty(elemType)
+		if err := g.generateSliceProperty(elemType); err != nil {
+			return err
+		}
 	case types.Map:
-		g.generateSubMapLimitedSupport(t.Name, elemType)
+		if err := g.generateMapProperty(elemType); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("map Element kind %v is not supported in %v", elemType.Kind, t.Name)
 	}
 	g.Do("},\n},\n},\n", nil)
-	return nil
-}
-
-func (g openAPITypeWriter) generateSubMapLimitedSupport(parentName types.Name, t *types.Type) error {
-	keyType := resolveAliasAndPtrType(t.Key)
-	elemType := resolveAliasAndPtrType(t.Elem)
-
-	// According to OpenAPI examples, only map from string is supported
-	if keyType.Name.Name != "string" {
-		return fmt.Errorf("map with non-string keys are not supported by OpenAPI in %v", t)
-	}
-	g.Do(fmt.Sprintf("// limited support by openapi-gen\n"), nil)
-	g.Do(fmt.Sprintf("//    name: %v\n", parentName.Name), nil)
-	g.Do(fmt.Sprintf("//    type: map[string]map[string]%v\n", elemType), nil)
 	return nil
 }
 
@@ -687,7 +677,13 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 	case types.Struct:
 		g.generateReferenceProperty(elemType)
 	case types.Slice, types.Array:
-		g.generateSliceProperty(elemType)
+		if err := g.generateSliceProperty(elemType); err != nil {
+			return err
+		}
+	case types.Map:
+		if err := g.generateMapProperty(elemType); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("slice Element kind %v is not supported in %v", elemType.Kind, t)
 	}
