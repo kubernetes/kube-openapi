@@ -39,53 +39,53 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 	// TODO: this switch really is some sort of reverse lookup for formats. It should be provided by strfmt.
 	switch data.(type) {
 	case []byte, strfmt.Base64, *strfmt.Base64:
-		return stringType, "byte"
+		return stringType, stringFormatByte
 	case strfmt.CreditCard, *strfmt.CreditCard:
-		return stringType, "creditcard"
+		return stringType, stringFormatCreditCard
 	case strfmt.Date, *strfmt.Date:
-		return stringType, "date"
+		return stringType, stringFormatDate
 	case strfmt.DateTime, *strfmt.DateTime:
-		return stringType, "date-time"
+		return stringType, stringFormatDateTime
 	case strfmt.Duration, *strfmt.Duration:
-		return stringType, "duration"
+		return stringType, stringFormatDuration
 	case runtime.File, *runtime.File:
 		return fileType, ""
 	case strfmt.Email, *strfmt.Email:
-		return stringType, "email"
+		return stringType, stringFormatEmail
 	case strfmt.HexColor, *strfmt.HexColor:
-		return stringType, "hexcolor"
+		return stringType, stringFormatHexColor
 	case strfmt.Hostname, *strfmt.Hostname:
-		return stringType, "hostname"
+		return stringType, stringFormatHostname
 	case strfmt.IPv4, *strfmt.IPv4:
-		return stringType, "ipv4"
+		return stringType, stringFormatIPv4
 	case strfmt.IPv6, *strfmt.IPv6:
-		return stringType, "ipv6"
+		return stringType, stringFormatIPv6
 	case strfmt.ISBN, *strfmt.ISBN:
-		return stringType, "isbn"
+		return stringType, stringFormatISBN
 	case strfmt.ISBN10, *strfmt.ISBN10:
-		return stringType, "isbn10"
+		return stringType, stringFormatISBN10
 	case strfmt.ISBN13, *strfmt.ISBN13:
-		return stringType, "isbn13"
+		return stringType, stringFormatISBN13
 	case strfmt.MAC, *strfmt.MAC:
-		return stringType, "mac"
+		return stringType, stringFormatMAC
 	case strfmt.ObjectId, *strfmt.ObjectId:
-		return stringType, "bsonobjectid"
+		return stringType, stringFormatBSONObjectID
 	case strfmt.Password, *strfmt.Password:
-		return stringType, "password"
+		return stringType, stringFormatPassword
 	case strfmt.RGBColor, *strfmt.RGBColor:
-		return stringType, "rgbcolor"
+		return stringType, stringFormatRGBColor
 	case strfmt.SSN, *strfmt.SSN:
-		return stringType, "ssn"
+		return stringType, stringFormatSSN
 	case strfmt.URI, *strfmt.URI:
-		return stringType, "uri"
+		return stringType, stringFormatURI
 	case strfmt.UUID, *strfmt.UUID:
-		return stringType, "uuid"
+		return stringType, stringFormatUUID
 	case strfmt.UUID3, *strfmt.UUID3:
-		return stringType, "uuid3"
+		return stringType, stringFormatUUID3
 	case strfmt.UUID4, *strfmt.UUID4:
-		return stringType, "uuid4"
+		return stringType, stringFormatUUID4
 	case strfmt.UUID5, *strfmt.UUID5:
-		return stringType, "uuid5"
+		return stringType, stringFormatUUID5
 	// TODO: missing binary (io.ReadCloser)
 	// TODO: missing json.Number
 	default:
@@ -98,15 +98,15 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 			return stringType, ""
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32:
 			// NOTE: that is the spec. With go-openapi, is that not uint32 for unsigned integers?
-			return integerType, "int32"
+			return integerType, integerFormatInt32
 		case reflect.Int, reflect.Int64, reflect.Uint, reflect.Uint64:
-			return integerType, "int64"
+			return integerType, integerFormatInt64
 		case reflect.Float32:
-			// NOTE: is that not "float"?
-			return numberType, "float32"
+			// NOTE: is that not numberFormatFloat?
+			return numberType, numberFormatFloat32
 		case reflect.Float64:
 			// NOTE: is that not "double"?
-			return numberType, "float64"
+			return numberType, numberFormatFloat64
 		// NOTE: go arrays (reflect.Array) are not supported (fixed length)
 		case reflect.Slice:
 			return arrayType, ""
@@ -139,8 +139,8 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 	result.Inc()
 	if data == nil || reflect.DeepEqual(reflect.Zero(reflect.TypeOf(data)), reflect.ValueOf(data)) {
 		// nil or zero value for the passed structure require Type: null
-		if len(t.Type) > 0 && !t.Type.Contains("null") && !t.Nullable { // TODO: if a property is not required it also passes this
-			return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), "null"))
+		if len(t.Type) > 0 && !t.Type.Contains(nullType) && !t.Nullable { // TODO: if a property is not required it also passes this
+			return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), nullType))
 		}
 		return result
 	}
@@ -157,8 +157,8 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 	// check numerical types
 	// TODO: check unsigned ints
 	// TODO: check json.Number (see schema.go)
-	isLowerInt := t.Format == "int64" && format == "int32"
-	isLowerFloat := t.Format == "float64" && format == "float32"
+	isLowerInt := t.Format == integerFormatInt64 && format == integerFormatInt32
+	isLowerFloat := t.Format == numberFormatFloat64 && format == numberFormatFloat32
 	isFloatInt := schType == numberType && swag.IsFloat64AJSONInteger(val.Float()) && t.Type.Contains(integerType)
 	isIntFloat := schType == integerType && t.Type.Contains(numberType)
 
