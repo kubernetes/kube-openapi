@@ -27,7 +27,16 @@ import (
 )
 
 const swaggerBody = "body"
-const objectType = "object"
+
+const (
+	objectType  = "object"
+	arrayType   = "array"
+	stringType  = "string"
+	integerType = "integer"
+	numberType  = "number"
+	booleanType = "boolean"
+	fileType    = "file"
+)
 
 // Helpers available at the package level
 var (

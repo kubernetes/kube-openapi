@@ -361,7 +361,7 @@ func IsValueValidAgainstRange(val interface{}, typeName, format, prefix, path st
 	var errVal error
 
 	switch typeName {
-	case "integer":
+	case integerType:
 		switch format {
 		case "int32":
 			_, errVal = swag.ConvertInt32(stringRep)
@@ -374,7 +374,7 @@ func IsValueValidAgainstRange(val interface{}, typeName, format, prefix, path st
 		default:
 			_, errVal = swag.ConvertInt64(stringRep)
 		}
-	case "number":
+	case numberType:
 		fallthrough
 	default:
 		switch format {

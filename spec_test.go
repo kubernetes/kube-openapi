@@ -796,3 +796,22 @@ func TestSpec_Issue1341(t *testing.T) {
 		assert.Empty(t, res.Warnings, "in fixture-1341-5.yaml")
 	}
 }
+
+func TestSpec_ValidationTypeMismatch(t *testing.T) {
+	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "type-keyword-mismatch.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		validator.spec = doc
+		validator.analyzer = analysis.New(doc.Spec())
+		res := validator.validateParameters()
+		var warnings []string
+		for _, w := range res.Warnings {
+			warnings = append(warnings, w.Error())
+		}
+		assert.NotEmpty(t, res.Warnings)
+		assert.Len(t, res.Warnings, 3)
+		assert.Contains(t, warnings, `validation keywords of parameter "id" in path "/test/{id}/string" don't match its type string`)
+		assert.Contains(t, warnings, `validation keywords of parameter "id" in path "/test/{id}/integer" don't match its type integer`)
+		assert.Contains(t, warnings, `validation keywords of parameter "id" in path "/test/{id}/array" don't match its type array`)
+	}
+}
