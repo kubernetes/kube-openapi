@@ -174,6 +174,7 @@ type anything struct {
 	anyProperty int
 }
 
+/* unsused
 // hasDuplicates() is currently not exercised by common spec testcases
 // (this method is not used by the validator atm)
 // Here is a unit exerciser
@@ -207,3 +208,4 @@ func TestBasicSliceValidator_HasDuplicates(t *testing.T) {
 	assert.True(t, s.hasDuplicates(reflect.ValueOf(ds), len(ds)))
 	assert.True(t, s.hasDuplicates(reflect.ValueOf(dt), len(dt)))
 }
+*/

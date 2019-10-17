@@ -14,60 +14,70 @@
 
 package validate
 
-import "testing"
-import "github.com/stretchr/testify/assert"
+import (
+	"testing"
 
-func TestItemsMustBeTypeArray(t *testing.T) {
-	ov := new(objectValidator)
-	dataValid := map[string]interface{}{
+	"github.com/stretchr/testify/assert"
+)
+
+func itemsFixture() map[string]interface{} {
+	return map[string]interface{}{
 		"type":  "array",
 		"items": "dummy",
 	}
+}
+
+func expectAllValid(t *testing.T, ov EntityValidator, dataValid, dataInvalid map[string]interface{}) {
+	res := ov.Validate(dataValid)
+	assert.Equal(t, 0, len(res.Errors))
+
+	res = ov.Validate(dataInvalid)
+	assert.Equal(t, 0, len(res.Errors))
+}
+
+func expectOnlyInvalid(t *testing.T, ov EntityValidator, dataValid, dataInvalid map[string]interface{}) {
+	res := ov.Validate(dataValid)
+	assert.Equal(t, 0, len(res.Errors))
+
+	res = ov.Validate(dataInvalid)
+	assert.NotEqual(t, 0, len(res.Errors))
+}
+
+func TestItemsMustBeTypeArray(t *testing.T) {
+	ov := new(objectValidator)
+	dataValid := itemsFixture()
 	dataInvalid := map[string]interface{}{
 		"type":  "object",
 		"items": "dummy",
 	}
-	res := ov.Validate(dataValid)
-	assert.Equal(t, 0, len(res.Errors))
-	res = ov.Validate(dataInvalid)
-	assert.NotEqual(t, 0, len(res.Errors))
 	ov.Options.DisableObjectArrayTypeCheck = true
-	res = ov.Validate(dataInvalid)
-	assert.Equal(t, 0, len(res.Errors))
+	expectAllValid(t, ov, dataValid, dataInvalid)
+
+	ov.Options.DisableObjectArrayTypeCheck = false
+	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
 func TestItemsMustHaveType(t *testing.T) {
 	ov := new(objectValidator)
-	dataValid := map[string]interface{}{
-		"type":  "array",
-		"items": "dummy",
-	}
+	dataValid := itemsFixture()
 	dataInvalid := map[string]interface{}{
 		"items": "dummy",
 	}
-	res := ov.Validate(dataValid)
-	assert.Equal(t, 0, len(res.Errors))
-	res = ov.Validate(dataInvalid)
-	assert.NotEqual(t, 0, len(res.Errors))
 	ov.Options.DisableObjectArrayTypeCheck = true
-	res = ov.Validate(dataInvalid)
-	assert.Equal(t, 0, len(res.Errors))
+	expectAllValid(t, ov, dataValid, dataInvalid)
+
+	ov.Options.DisableObjectArrayTypeCheck = false
+	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
 func TestTypeArrayMustHaveItems(t *testing.T) {
 	ov := new(objectValidator)
-	dataValid := map[string]interface{}{
-		"type":  "array",
-		"items": "dummy",
-	}
+	dataValid := itemsFixture()
 	dataInvalid := map[string]interface{}{
 		"type": "array",
 		"key":  "dummy",
 	}
-	res := ov.Validate(dataValid)
-	assert.Equal(t, 0, len(res.Errors))
-	res = ov.Validate(dataInvalid)
-	assert.NotEqual(t, 0, len(res.Errors))
+	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
 // Test edge cases in object_validator which are difficult
