@@ -138,13 +138,13 @@ func ExampleAgainstSchema() {
 }`
 
 	schema := new(spec.Schema)
-	json.Unmarshal([]byte(schemaJSON), schema)
+	_ = json.Unmarshal([]byte(schemaJSON), schema)
 
 	input := map[string]interface{}{}
 
 	// JSON data to validate
 	inputJSON := `{"name": "Ivan","address-1": "sesame street"}`
-	json.Unmarshal([]byte(inputJSON), &input)
+	_ = json.Unmarshal([]byte(inputJSON), &input)
 
 	// strfmt.Default is the registry of recognized formats
 	err := validate.AgainstSchema(schema, input, strfmt.Default)
