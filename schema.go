@@ -39,14 +39,14 @@ type SchemaValidator struct {
 	validators   []valueValidator
 	Root         interface{}
 	KnownFormats strfmt.Registry
-	Options      *SchemaValidatorOptions
+	Options      SchemaValidatorOptions
 }
 
 // AgainstSchema validates the specified data against the provided schema, using a registry of supported formats.
 //
 // When no pre-parsed *spec.Schema structure is provided, it uses a JSON schema as default. See example.
-func AgainstSchema(schema *spec.Schema, data interface{}, formats strfmt.Registry) error {
-	res := NewSchemaValidator(schema, nil, "", formats).Validate(data)
+func AgainstSchema(schema *spec.Schema, data interface{}, formats strfmt.Registry, options ...Option) error {
+	res := NewSchemaValidator(schema, nil, "", formats, options...).Validate(data)
 	if res.HasErrors() {
 		return errors.CompositeValidationError(res.Errors...)
 	}
@@ -78,9 +78,9 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 		Schema:       schema,
 		Root:         rootSchema,
 		KnownFormats: formats,
-		Options:      &SchemaValidatorOptions{}}
+		Options:      SchemaValidatorOptions{}}
 	for _, o := range options {
-		o(s.Options)
+		o(&s.Options)
 	}
 	s.validators = []valueValidator{
 		s.typeValidator(),
@@ -202,6 +202,7 @@ func (s *SchemaValidator) sliceValidator() valueValidator {
 		Items:           s.Schema.Items,
 		Root:            s.Root,
 		KnownFormats:    s.KnownFormats,
+		Options:         s.Options,
 	}
 }
 
@@ -254,6 +255,6 @@ func (s *SchemaValidator) objectValidator() valueValidator {
 		PatternProperties:    s.Schema.PatternProperties,
 		Root:                 s.Root,
 		KnownFormats:         s.KnownFormats,
-		Options:              *s.Options,
+		Options:              s.Options,
 	}
 }

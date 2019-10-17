@@ -224,7 +224,7 @@ func (d *defaultValidator) validateDefaultValueSchemaAgainstSchema(path, in stri
 	s := d.SpecValidator
 
 	if schema.Default != nil {
-		res.Merge(NewSchemaValidator(schema, s.spec.Spec(), path+".default", s.KnownFormats).Validate(schema.Default))
+		res.Merge(NewSchemaValidator(schema, s.spec.Spec(), path+".default", s.KnownFormats, SwaggerSchema(true)).Validate(schema.Default))
 	}
 	if schema.Items != nil {
 		if schema.Items.Schema != nil {

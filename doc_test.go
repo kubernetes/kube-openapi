@@ -17,11 +17,13 @@ package validate_test
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
 
 	"github.com/go-openapi/loads" // Spec loading
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"   // OpenAPI format extensions
 	"github.com/go-openapi/validate" // This package
+	"github.com/stretchr/testify/require"
 )
 
 func ExampleSpec() {
@@ -155,4 +157,26 @@ func ExampleAgainstSchema() {
 	}
 	// Output:
 	// OK
+}
+
+func TestValidate_Issue112(t *testing.T) {
+	t.Run("returns no error on body includes `items` key", func(t *testing.T) {
+		body := map[string]interface{}{"items1": nil}
+		err := validate.AgainstSchema(getSimpleSchema(), body, strfmt.Default)
+		require.NoError(t, err)
+	})
+
+	t.Run("returns no error when body includes `items` key", func(t *testing.T) {
+		body := map[string]interface{}{"items": nil}
+		err := validate.AgainstSchema(getSimpleSchema(), body, strfmt.Default)
+		require.NoError(t, err)
+	})
+}
+
+func getSimpleSchema() *spec.Schema {
+	return &spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Type: spec.StringOrArray{"object"},
+		},
+	}
 }

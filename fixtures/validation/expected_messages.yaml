@@ -201,10 +201,10 @@ fixture-additional-items-invalid-values.yaml:
   - message: 'in operation "getGoodOp", example value in response 200 does not validate its schema'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/servers/getBad1.0.first in body must be of type string: "number"'
+  - message: '/servers/getBad1.examples.0.first in body must be of type string: "number"'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/servers/getBad1.3.z in body must be of type number: "boolean"'
+  - message: '/servers/getBad1.examples.3.z in body must be of type number: "boolean"'
     withContinueOnErrors: true
     isRegexp: false
   - message: '200.example.0.first in body must be of type string: "number"'
@@ -865,10 +865,10 @@ fixture-1231.yaml:
   - message: 'example value for customer_id in path does not validate its schema'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/v1/broker/{customer_id}.id in body must be of type uuid: "mycustomer"'
+  - message: '/v1/broker/{customer_id}.examples.id in body must be of type uuid: "mycustomer"'
     withContinueOnErrors: true
     isRegexp: false
-  - message: '/v1/broker/{customer_id}.create_date in body must be of type date-time: "bad-date"'
+  - message: '/v1/broker/{customer_id}.examples.create_date in body must be of type date-time: "bad-date"'
     withContinueOnErrors: true
     isRegexp: false
   - message: 'customer_id in path must be of type uuid: "xyz"'

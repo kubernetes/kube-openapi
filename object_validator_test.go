@@ -50,10 +50,9 @@ func TestItemsMustBeTypeArray(t *testing.T) {
 		"type":  "object",
 		"items": "dummy",
 	}
-	ov.Options.DisableObjectArrayTypeCheck = true
 	expectAllValid(t, ov, dataValid, dataInvalid)
 
-	ov.Options.DisableObjectArrayTypeCheck = false
+	ov.Options.EnableObjectArrayTypeCheck = true
 	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
@@ -63,10 +62,9 @@ func TestItemsMustHaveType(t *testing.T) {
 	dataInvalid := map[string]interface{}{
 		"items": "dummy",
 	}
-	ov.Options.DisableObjectArrayTypeCheck = true
 	expectAllValid(t, ov, dataValid, dataInvalid)
 
-	ov.Options.DisableObjectArrayTypeCheck = false
+	ov.Options.EnableObjectArrayTypeCheck = true
 	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
@@ -77,6 +75,9 @@ func TestTypeArrayMustHaveItems(t *testing.T) {
 		"type": "array",
 		"key":  "dummy",
 	}
+	expectAllValid(t, ov, dataValid, dataInvalid)
+
+	ov.Options.EnableArrayMustHaveItemsCheck = true
 	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 

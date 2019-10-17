@@ -697,3 +697,36 @@ func loadAndValidate(t *testing.T, fp string, early ...bool) (*Result, *Result) 
 	}
 	return validator.Validate(doc)
 }
+
+func TestItemsProperty_Issue43(t *testing.T) {
+	for _, fixture := range []string{
+		"fixture-43.yaml",
+		"fixture-43-variants.yaml",
+		"fixture-1456.yaml",
+	} {
+		fp := filepath.Join("fixtures", "bugs", "43", fixture)
+		res, warnings := loadAndValidate(t, fp)
+		assert.Truef(t, res.IsValid(), "expected spec from %s to be valid", fixture)
+		assert.Emptyf(t, res.Errors, "expected no error in %s", fixture)
+		assert.Emptyf(t, res.Warnings, "expected no warning in %s", fixture)
+		assert.Emptyf(t, warnings, "expected no warning in %s", fixture)
+	}
+
+	fp := filepath.Join("fixtures", "bugs", "43", "fixture-43-fail.yaml")
+	res, _ := loadAndValidate(t, fp)
+	assert.Falsef(t, res.IsValid(), "expected spec to be invalid")
+	assert.True(t, len(res.Errors) > 3)
+
+	fp = filepath.Join("fixtures", "validation", "fixture-1171.yaml")
+	res, _ = loadAndValidate(t, fp)
+	assert.Falsef(t, res.IsValid(), "expected spec to be invalid")
+	assert.True(t, len(res.Errors) > 3)
+	found := false
+	for _, e := range res.Errors {
+		found = strings.Contains(e.Error(), "array requires items definition")
+		if found {
+			break
+		}
+	}
+	assert.True(t, found)
+}

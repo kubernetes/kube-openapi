@@ -27,7 +27,9 @@ import (
 )
 
 const (
-	swaggerBody = "body"
+	swaggerBody     = "body"
+	swaggerExample  = "example"
+	swaggerExamples = "examples"
 )
 
 const (

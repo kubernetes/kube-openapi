@@ -191,7 +191,7 @@ func (ex *exampleValidator) validateExampleInResponse(resp *spec.Response, respo
 	if response.Examples != nil {
 		if response.Schema != nil {
 			if example, ok := response.Examples["application/json"]; ok {
-				res.MergeAsWarnings(NewSchemaValidator(response.Schema, s.spec.Spec(), path, s.KnownFormats).Validate(example))
+				res.MergeAsWarnings(NewSchemaValidator(response.Schema, s.spec.Spec(), path+".examples", s.KnownFormats, SwaggerSchema(true)).Validate(example))
 			} else {
 				// TODO: validate other media types too
 				res.AddWarnings(examplesMimeNotSupportedMsg(operationID, responseName))
@@ -213,7 +213,7 @@ func (ex *exampleValidator) validateExampleValueSchemaAgainstSchema(path, in str
 	res := new(Result)
 
 	if schema.Example != nil {
-		res.MergeAsWarnings(NewSchemaValidator(schema, s.spec.Spec(), path+".example", s.KnownFormats).Validate(schema.Example))
+		res.MergeAsWarnings(NewSchemaValidator(schema, s.spec.Spec(), path+".example", s.KnownFormats, SwaggerSchema(true)).Validate(schema.Example))
 	}
 	if schema.Items != nil {
 		if schema.Items.Schema != nil {
