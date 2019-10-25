@@ -14,18 +14,22 @@
 
 package validate
 
+// SchemaValidatorOptions defines optional rules for schema validation
 type SchemaValidatorOptions struct {
 	DisableObjectArrayTypeCheck bool
 }
 
+// Option sets optional rules for schema validation
 type Option func(*SchemaValidatorOptions)
 
+// DisableObjectArrayTypeCheck disables the swagger rule: an items must be in type: array
 func DisableObjectArrayTypeCheck(disable bool) Option {
 	return func(svo *SchemaValidatorOptions) {
 		svo.DisableObjectArrayTypeCheck = disable
 	}
 }
 
+// Options returns current options
 func (svo SchemaValidatorOptions) Options() []Option {
 	return []Option{
 		DisableObjectArrayTypeCheck(svo.DisableObjectArrayTypeCheck),

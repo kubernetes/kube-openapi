@@ -53,14 +53,14 @@ func (o *objectValidator) Applies(source interface{}, kind reflect.Kind) bool {
 
 func (o *objectValidator) isPropertyName() bool {
 	p := strings.Split(o.Path, ".")
-	return p[len(p)-1] == "properties" && p[len(p)-2] != "properties"
+	return p[len(p)-1] == jsonProperties && p[len(p)-2] != jsonProperties
 }
 
 func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]interface{}) {
-	if t, typeFound := val["type"]; typeFound {
+	if t, typeFound := val[jsonType]; typeFound {
 		if tpe, ok := t.(string); ok && tpe == arrayType {
-			if _, itemsKeyFound := val["items"]; !itemsKeyFound {
-				res.AddErrors(errors.Required("items", o.Path))
+			if _, itemsKeyFound := val[jsonItems]; !itemsKeyFound {
+				res.AddErrors(errors.Required(jsonItems, o.Path))
 			}
 		}
 	}
@@ -68,15 +68,15 @@ func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]in
 
 func (o *objectValidator) checkItemsMustBeTypeArray(res *Result, val map[string]interface{}) {
 	if !o.isPropertyName() {
-		if _, itemsKeyFound := val["items"]; itemsKeyFound {
-			t, typeFound := val["type"]
+		if _, itemsKeyFound := val[jsonItems]; itemsKeyFound {
+			t, typeFound := val[jsonType]
 			if typeFound {
 				if tpe, ok := t.(string); !ok || tpe != arrayType {
 					res.AddErrors(errors.InvalidType(o.Path, o.In, arrayType, nil))
 				}
 			} else {
 				// there is no type
-				res.AddErrors(errors.Required("type", o.Path))
+				res.AddErrors(errors.Required(jsonType, o.Path))
 			}
 		}
 	}
@@ -134,21 +134,18 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 				// NOTE: prefix your messages here by "IMPORTANT!" so there are not filtered
 				// by higher level callers (the IMPORTANT! tag will be eventually
 				// removed).
-				switch k {
-				// $ref is forbidden in header
-				case "headers":
-					if val[k] != nil {
-						if headers, mapOk := val[k].(map[string]interface{}); mapOk {
-							for headerKey, headerBody := range headers {
-								if headerBody != nil {
-									if headerSchema, mapOfMapOk := headerBody.(map[string]interface{}); mapOfMapOk {
-										if _, found := headerSchema["$ref"]; found {
-											var msg string
-											if refString, stringOk := headerSchema["$ref"].(string); stringOk {
-												msg = strings.Join([]string{", one may not use $ref=\":", refString, "\""}, "")
-											}
-											res.AddErrors(refNotAllowedInHeaderMsg(o.Path, headerKey, msg))
+				if k == "headers" && val[k] != nil {
+					// $ref is forbidden in header
+					if headers, mapOk := val[k].(map[string]interface{}); mapOk {
+						for headerKey, headerBody := range headers {
+							if headerBody != nil {
+								if headerSchema, mapOfMapOk := headerBody.(map[string]interface{}); mapOfMapOk {
+									if _, found := headerSchema["$ref"]; found {
+										var msg string
+										if refString, stringOk := headerSchema["$ref"].(string); stringOk {
+											msg = strings.Join([]string{", one may not use $ref=\":", refString, "\""}, "")
 										}
+										res.AddErrors(refNotAllowedInHeaderMsg(o.Path, headerKey, msg))
 									}
 								}
 							}

@@ -27,8 +27,8 @@ import (
 var (
 	specSchemaType    = reflect.TypeOf(&spec.Schema{})
 	specParameterType = reflect.TypeOf(&spec.Parameter{})
-	specItemsType     = reflect.TypeOf(&spec.Items{})
 	specHeaderType    = reflect.TypeOf(&spec.Header{})
+	//specItemsType     = reflect.TypeOf(&spec.Items{})
 )
 
 // SchemaValidator validates data against a JSON schema
@@ -72,7 +72,13 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 			panic(msg)
 		}
 	}
-	s := SchemaValidator{Path: root, in: "body", Schema: schema, Root: rootSchema, KnownFormats: formats, Options: &SchemaValidatorOptions{}}
+	s := SchemaValidator{
+		Path:         root,
+		in:           "body",
+		Schema:       schema,
+		Root:         rootSchema,
+		KnownFormats: formats,
+		Options:      &SchemaValidatorOptions{}}
 	for _, o := range options {
 		o(s.Options)
 	}

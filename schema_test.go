@@ -117,15 +117,15 @@ func schemaValidatorPanicker() {
 }`
 
 	schema := new(spec.Schema)
-	json.Unmarshal([]byte(schemaJSON), schema)
+	_ = json.Unmarshal([]byte(schemaJSON), schema)
 
 	var input map[string]interface{}
 
 	// ok
 	var inputJSON = `{"name": "Ivan","address-1": "sesame street"}`
-	json.Unmarshal([]byte(inputJSON), &input)
+	_ = json.Unmarshal([]byte(inputJSON), &input)
 	// panics
-	AgainstSchema(schema, input, strfmt.Default)
+	_ = AgainstSchema(schema, input, strfmt.Default)
 }
 
 // Test edge cases in schemaValidator which are difficult
@@ -214,5 +214,4 @@ func TestSchemaValidator_SchemaOptions(t *testing.T) {
 	s = NewSchemaValidator(schema, nil, "", strfmt.Default)
 	result = s.Validate(input)
 	assert.False(t, result.IsValid())
-
 }
