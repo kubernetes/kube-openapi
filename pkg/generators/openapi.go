@@ -577,6 +577,20 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	// If we can get a openAPI type and format for this type, we consider it to be simple property
 	typeString, format := openapi.GetOpenAPITypeFormat(t.String())
 	if typeString != "" {
+		if m.Type.Kind == types.Alias && typeString == "string" {
+			// TODO: introduce a tag for enumerations and check it here
+			var constants []string
+			pkg := g.context.Universe.Package(m.Type.Name.Package)
+			for _, c := range pkg.Constants {
+				if c.Kind == types.DeclarationOf && c.Underlying.Name == m.Type.Name {
+					constants = append(constants, fmt.Sprintf("\"%s\"", c.Name.Name))
+				}
+			}
+			if len(constants) > 0 {
+				sort.Strings(constants)
+				g.Do("Enum: []interface{}{$.$},\n", strings.Join(constants, ", "))
+			}
+		}
 		g.generateSimpleProperty(typeString, format)
 		g.Do("},\n},\n", nil)
 		return nil
