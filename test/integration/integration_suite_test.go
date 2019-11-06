@@ -32,6 +32,8 @@ const (
 	testdataDir = "./testdata"
 	testPkgDir  = "k8s.io/kube-openapi/test/integration/testdata"
 	inputDir    = testPkgDir + "/listtype" +
+		"," + testPkgDir + "/maptype" +
+		"," + testPkgDir + "/structtype" +
 		"," + testPkgDir + "/dummytype" +
 		"," + testPkgDir + "/uniontype" +
 		"," + testPkgDir + "/custom"

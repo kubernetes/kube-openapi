@@ -59,6 +59,12 @@ func TestSingleTagExtension(t *testing.T) {
 			extensionValues: []string{"port"},
 		},
 		{
+			comments:        []string{"+mapType=granular"},
+			extensionTag:    "mapType",
+			extensionName:   "x-kubernetes-map-type",
+			extensionValues: []string{"granular"},
+		},
+		{
 			comments:        []string{"+k8s:openapi-gen=x-kubernetes-member-tag:member_test"},
 			extensionTag:    "k8s:openapi-gen",
 			extensionName:   "x-kubernetes-member-tag",
@@ -207,6 +213,18 @@ func TestExtensionAllowedValues(t *testing.T) {
 		},
 		{
 			e: extension{
+				idlTag: "mapType",
+			},
+			allowedValues: sets.NewString("atomic", "granular"),
+		},
+		{
+			e: extension{
+				idlTag: "structType",
+			},
+			allowedValues: sets.NewString("atomic", "granular"),
+		},
+		{
+			e: extension{
 				idlTag: "k8s:openapi-gen",
 			},
 			allowedValues: nil,
@@ -259,6 +277,20 @@ func TestExtensionAllowedValues(t *testing.T) {
 				values: []string{"atomic"},
 			},
 		},
+		{
+			e: extension{
+				idlTag: "mapType",
+				xName:  "x-kubernetes-map-type",
+				values: []string{"atomic"},
+			},
+		},
+		{
+			e: extension{
+				idlTag: "structType",
+				xName:  "x-kubernetes-map-type",
+				values: []string{"granular"},
+			},
+		},
 	}
 	for _, test := range successTests {
 		actualErr := test.e.validateAllowedValues()
@@ -290,6 +322,20 @@ func TestExtensionAllowedValues(t *testing.T) {
 				idlTag: "listType",
 				xName:  "x-kubernetes-list-type",
 				values: []string{"not-allowed"},
+			},
+		},
+		{
+			e: extension{
+				idlTag: "mapType",
+				xName:  "x-kubernetes-map-type",
+				values: []string{"something-pretty-wrong"},
+			},
+		},
+		{
+			e: extension{
+				idlTag: "structType",
+				xName:  "x-kubernetes-map-type",
+				values: []string{"not-quite-right"},
 			},
 		},
 	}
@@ -325,6 +371,18 @@ func TestExtensionKind(t *testing.T) {
 				idlTag: "listType",
 			},
 			kind: types.Slice,
+		},
+		{
+			e: extension{
+				idlTag: "mapType",
+			},
+			kind: types.Map,
+		},
+		{
+			e: extension{
+				idlTag: "structType",
+			},
+			kind: types.Struct,
 		},
 		{
 			e: extension{

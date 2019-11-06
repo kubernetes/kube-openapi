@@ -133,7 +133,7 @@ type PatchStrategy string
 // used on any struct.
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-struct-type": "atomic"
+//  "x-kubernetes-map-type": "atomic"
 type StructType string
 
 // Union is TBD.
