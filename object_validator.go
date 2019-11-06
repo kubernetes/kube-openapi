@@ -51,12 +51,24 @@ func (o *objectValidator) Applies(source interface{}, kind reflect.Kind) bool {
 	return r
 }
 
-func (o *objectValidator) isPropertyName() bool {
+func (o *objectValidator) isProperties() bool {
 	p := strings.Split(o.Path, ".")
-	return p[len(p)-1] == jsonProperties && p[len(p)-2] != jsonProperties
+	return len(p) > 1 && p[len(p)-1] == jsonProperties && p[len(p)-2] != jsonProperties
+}
+
+func (o *objectValidator) isDefault() bool {
+	p := strings.Split(o.Path, ".")
+	return len(p) > 1 && p[len(p)-1] == jsonDefault && p[len(p)-2] != jsonDefault
+}
+
+func (o *objectValidator) isExample() bool {
+	p := strings.Split(o.Path, ".")
+	return len(p) > 1 && (p[len(p)-1] == swaggerExample || p[len(p)-1] == swaggerExamples) && p[len(p)-2] != swaggerExample
 }
 
 func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]interface{}) {
+	// for swagger 2.0 schemas, there is an additional constraint to have array items defined explicitly.
+	// with pure jsonschema draft 4, one may have arrays with undefined items (i.e. any type).
 	if t, typeFound := val[jsonType]; typeFound {
 		if tpe, ok := t.(string); ok && tpe == arrayType {
 			if _, itemsKeyFound := val[jsonItems]; !itemsKeyFound {
@@ -67,7 +79,7 @@ func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]in
 }
 
 func (o *objectValidator) checkItemsMustBeTypeArray(res *Result, val map[string]interface{}) {
-	if !o.isPropertyName() {
+	if !o.isProperties() && !o.isDefault() && !o.isExample() {
 		if _, itemsKeyFound := val[jsonItems]; itemsKeyFound {
 			t, typeFound := val[jsonType]
 			if typeFound {
@@ -83,8 +95,10 @@ func (o *objectValidator) checkItemsMustBeTypeArray(res *Result, val map[string]
 }
 
 func (o *objectValidator) precheck(res *Result, val map[string]interface{}) {
-	o.checkArrayMustHaveItems(res, val)
-	if !o.Options.DisableObjectArrayTypeCheck {
+	if o.Options.EnableArrayMustHaveItemsCheck {
+		o.checkArrayMustHaveItems(res, val)
+	}
+	if o.Options.EnableObjectArrayTypeCheck {
 		o.checkItemsMustBeTypeArray(res, val)
 	}
 }

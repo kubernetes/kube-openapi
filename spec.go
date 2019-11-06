@@ -86,7 +86,7 @@ func (s *SpecValidator) Validate(data interface{}) (*Result, *Result) {
 	s.analyzer = analysis.New(sd.Spec())
 
 	// Swagger schema validator
-	schv := NewSchemaValidator(s.schema, nil, "", s.KnownFormats)
+	schv := NewSchemaValidator(s.schema, nil, "", s.KnownFormats, SwaggerSchema(true))
 	var obj interface{}
 
 	// Raw spec unmarshalling errors
