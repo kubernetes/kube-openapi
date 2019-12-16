@@ -79,13 +79,15 @@ type ListType string
 type ListMapKey string
 
 // MapType annotates a map to further describe its topology. It may
-// have only one value: "atomic". Atomic means that the entire map is
-// considered as a whole, rather than as distinct values.
+// have one of two values: `atomic` or `granular`. `atomic` means that the entire map is
+// considered as a whole; actors that wish to update the map can only
+// entirely replace it. `granular` means that specific values in the map can be
+// updated separately from other fields.
 //
 // By default, a map will be considered as a set of distinct values that
-// can be updated individually. This default WILL NOT generate any
-// openapi extension, as this will also be interpreted as the default
-// behavior in the openapi definition.
+// can be updated individually (i.e. the equivalent of `granular`).
+// This default WILL NOT generate any openapi extension, as this will also
+// be interpreted as the default behavior in the openapi definition.
 //
 // This tag MUST only be used on maps, or the generation step will fail.
 //
@@ -114,11 +116,13 @@ type PatchMergeKey string
 type PatchStrategy string
 
 // StructType annotates a struct to further describe its topology. It may
-// have only one value: "atomic". Atomic means that the entire struct is
-// considered as a whole, rather than as distinct values.
+// have one of two values: `atomic` or `granular`. `atomic` means that the entire struct is
+// considered as a whole; actors that wish to update the struct can only
+// entirely replace it. `granular` means that specific fields in the struct can be
+// updated separately from other fields.
 //
 // By default, a struct will be considered as a set of distinct values that
-// can be updated individually. This default WILL NOT generate any
+// can be updated individually (`granular`). This default WILL NOT generate any
 // openapi extension, as this will also be interpreted as the default
 // behavior in the openapi definition.
 //
