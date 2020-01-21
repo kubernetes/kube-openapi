@@ -517,14 +517,17 @@
     ],
     "properties": {
      "Field": {
-      "type": "string",
-      "x-kubernetes-map-type": "atomic"
+      "x-kubernetes-map-type": "atomic",
+      "$ref": "#/definitions/structtype.ContainedStruct"
      },
      "OtherField": {
       "type": "integer",
       "format": "int32"
      }
     }
+   },
+   "structtype.ContainedStruct": {
+    "type": "object"
    },
    "structtype.GranularStruct": {
     "type": "object",
@@ -534,8 +537,8 @@
     ],
     "properties": {
      "Field": {
-      "type": "string",
-      "x-kubernetes-map-type": "granular"
+      "x-kubernetes-map-type": "granular",
+      "$ref": "#/definitions/structtype.ContainedStruct"
      },
      "OtherField": {
       "type": "integer",
