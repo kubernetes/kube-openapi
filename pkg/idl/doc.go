@@ -86,8 +86,7 @@ type ListMapKey string
 //
 // By default, a map will be considered as a set of distinct values that
 // can be updated individually (i.e. the equivalent of `granular`).
-// This default WILL NOT generate any openapi extension, as this will also
-// be interpreted as the default behavior in the openapi definition.
+// This default will still generate an OpenAPI extension with key: "x-kubernetes-map-type".
 //
 // This tag MUST only be used on maps, or the generation step will fail.
 //
@@ -122,9 +121,8 @@ type PatchStrategy string
 // updated separately from other fields.
 //
 // By default, a struct will be considered as a set of distinct values that
-// can be updated individually (`granular`). This default WILL NOT generate any
-// openapi extension, as this will also be interpreted as the default
-// behavior in the openapi definition.
+// can be updated individually (`granular`).
+// This default will still generate an OpenAPI extension with key: "x-kubernetes-map-type".
 //
 // This tag MUST only be used on structs, or the generation step will fail.
 //
