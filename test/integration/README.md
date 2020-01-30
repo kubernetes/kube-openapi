@@ -12,14 +12,14 @@ $ go test -v .
 
 First, run the generator to create `openapi_generated.go` file which specifies
 the `OpenAPIDefinition` for each type, and generate the golden API rule
-violation report file . Note that if you do not pass a report
+violation report file. Note that if you do not pass a report
 filename (`./testdata/golden.v2.report` in the command below) to let the generator
 to print API rule violations to the file, the generator will return error to stderr
 on API rule violations.
 
 ```bash
 $ go run ../../cmd/openapi-gen/openapi-gen.go \
-  -i "k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/maptype,k8s.io/kube-openapi/test/integration/testdata/structtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype" \
+  -i "k8s.io/kube-openapi/test/integration/testdata/custom,k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/maptype,k8s.io/kube-openapi/test/integration/testdata/structtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype" \
   -o pkg \
   -p generated \
   -O openapi_generated \
