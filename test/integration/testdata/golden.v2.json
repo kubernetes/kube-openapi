@@ -214,6 +214,82 @@
      }
     }
    },
+   "/test/maptype/atomicmap": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func15",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/maptype.AtomicMap"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/maptype/granularmap": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func14",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/maptype.GranularMap"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype/atomicstruct": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func17",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/structtype.AtomicStruct"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype/granularstruct": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func16",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/structtype.GranularStruct"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/uniontype/inlinedunion": {
     "get": {
      "schemes": [
@@ -402,6 +478,73 @@
        "type": "string"
       },
       "x-kubernetes-list-type": "set"
+     }
+    }
+   },
+   "maptype.AtomicMap": {
+    "type": "object",
+    "required": [
+     "KeyValue"
+    ],
+    "properties": {
+     "KeyValue": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      },
+      "x-kubernetes-map-type": "atomic"
+     }
+    }
+   },
+   "maptype.GranularMap": {
+    "type": "object",
+    "required": [
+     "KeyValue"
+    ],
+    "properties": {
+     "KeyValue": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      },
+      "x-kubernetes-map-type": "granular"
+     }
+    }
+   },
+   "structtype.AtomicStruct": {
+    "type": "object",
+    "required": [
+     "Field",
+     "OtherField"
+    ],
+    "properties": {
+     "Field": {
+      "x-kubernetes-map-type": "atomic",
+      "$ref": "#/definitions/structtype.ContainedStruct"
+     },
+     "OtherField": {
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   },
+   "structtype.ContainedStruct": {
+    "type": "object"
+   },
+   "structtype.GranularStruct": {
+    "type": "object",
+    "required": [
+     "Field",
+     "OtherField"
+    ],
+    "properties": {
+     "Field": {
+      "x-kubernetes-map-type": "granular",
+      "$ref": "#/definitions/structtype.ContainedStruct"
+     },
+     "OtherField": {
+      "type": "integer",
+      "format": "int32"
      }
     }
    },
