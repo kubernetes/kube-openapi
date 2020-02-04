@@ -52,6 +52,69 @@ func TestListTypeMissing(t *testing.T) {
 			},
 			expected: []string{},
 		},
+
+		{
+			name: "list Items field should not be annotated",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					types.Member{
+						Name: "Items",
+						Type: &types.Type{
+							Kind: types.Slice,
+						},
+						CommentLines: []string{"+listType=map"},
+					},
+					types.Member{
+						Name:     "ListMeta",
+						Embedded: true,
+						Type: &types.Type{
+							Kind: types.Struct,
+						},
+					},
+				},
+			},
+			expected: []string{"Items"},
+		},
+
+		{
+			name: "list Items field without annotation should pass validation",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					types.Member{
+						Name: "Items",
+						Type: &types.Type{
+							Kind: types.Slice,
+						},
+					},
+					types.Member{
+						Name:     "ListMeta",
+						Embedded: true,
+						Type: &types.Type{
+							Kind: types.Struct,
+						},
+					},
+				},
+			},
+			expected: []string{},
+		},
+
+		{
+			name: "a list that happens to be called Items (i.e. nested, not top-level list) needs annotations",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					types.Member{
+						Name: "Items",
+						Type: &types.Type{
+							Kind: types.Slice,
+						},
+					},
+				},
+			},
+			expected: []string{"Items"},
+		},
 	}
 
 	rule := &ListTypeMissing{}
@@ -61,5 +124,4 @@ func TestListTypeMissing(t *testing.T) {
 				tc.name, tc.expected, violations)
 		}
 	}
-
 }
