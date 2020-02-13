@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -300,7 +301,7 @@ func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]
 			required = append(required, name)
 		}
 		if err = g.generateProperty(&m, t); err != nil {
-			log.Printf("Error when generating: %v, %v\n", name, m)
+			fmt.Fprintf(os.Stderr, "Error when generating: %v, %v\n", name, m)
 			return required, err
 		}
 	}
@@ -434,13 +435,13 @@ func (g openAPITypeWriter) generateStructExtensions(t *types.Type) error {
 	// Initially, we will only log struct extension errors.
 	if len(errors) > 0 {
 		for _, e := range errors {
-			log.Printf("[%s]: %s\n", t.String(), e)
+			fmt.Fprintf(os.Stderr, "[%s]: %s\n", t.String(), e)
 		}
 	}
 	unions, errors := parseUnions(t)
 	if len(errors) > 0 {
 		for _, e := range errors {
-			log.Printf("[%s]: %s\n", t.String(), e)
+			fmt.Fprintf(os.Stderr, "[%s]: %s\n", t.String(), e)
 		}
 	}
 
@@ -457,7 +458,7 @@ func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *typ
 	if len(errors) > 0 {
 		errorPrefix := fmt.Sprintf("[%s] %s:", parent.String(), m.String())
 		for _, e := range errors {
-			log.Printf("%s %s\n", errorPrefix, e)
+			fmt.Fprintf(os.Stderr, "%s %s\n", errorPrefix, e)
 		}
 	}
 	g.emitExtensions(extensions, nil)
