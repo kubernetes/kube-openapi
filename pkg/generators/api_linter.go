@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"sort"
 
@@ -28,7 +29,6 @@ import (
 
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/types"
-	"k8s.io/klog"
 )
 
 const apiViolationFileType = "api-violation"
@@ -41,7 +41,7 @@ type apiViolationFile struct {
 
 func (a apiViolationFile) AssembleFile(f *generator.File, path string) error {
 	path = a.unmangledPath
-	klog.V(2).Infof("Assembling file %q", path)
+	log.Printf("Assembling file %q", path)
 	if path == "-" {
 		_, err := io.Copy(os.Stdout, &f.Body)
 		return err
@@ -106,7 +106,7 @@ func (v *apiViolationGen) Filename() string {
 }
 
 func (v *apiViolationGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
-	klog.V(5).Infof("validating API rules for type %v", t)
+	log.Printf("validating API rules for type %v", t)
 	if err := v.linter.validate(t); err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ type APIRule interface {
 // validate runs all API rules on type t and records any API rule violation
 func (l *apiLinter) validate(t *types.Type) error {
 	for _, r := range l.rules {
-		klog.V(5).Infof("validating API rule %v for type %v", r.Name(), t)
+		log.Printf("validating API rule %v for type %v", r.Name(), t)
 		fields, err := r.Validate(t)
 		if err != nil {
 			return err

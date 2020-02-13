@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -29,8 +30,6 @@ import (
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
 	openapi "k8s.io/kube-openapi/pkg/common"
-
-	"k8s.io/klog"
 )
 
 // This is the comment tag that carries parameters for open API generation.
@@ -184,7 +183,7 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 }
 
 func (g *openAPIGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
-	klog.V(5).Infof("generating for type %v", t)
+	log.Printf("generating for type %v", t)
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	err := newOpenAPITypeWriter(sw, c).generate(t)
 	if err != nil {
@@ -301,7 +300,7 @@ func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]
 			required = append(required, name)
 		}
 		if err = g.generateProperty(&m, t); err != nil {
-			klog.Errorf("Error when generating: %v, %v\n", name, m)
+			log.Printf("Error when generating: %v, %v\n", name, m)
 			return required, err
 		}
 	}
@@ -435,13 +434,13 @@ func (g openAPITypeWriter) generateStructExtensions(t *types.Type) error {
 	// Initially, we will only log struct extension errors.
 	if len(errors) > 0 {
 		for _, e := range errors {
-			klog.Errorf("[%s]: %s\n", t.String(), e)
+			log.Printf("[%s]: %s\n", t.String(), e)
 		}
 	}
 	unions, errors := parseUnions(t)
 	if len(errors) > 0 {
 		for _, e := range errors {
-			klog.Errorf("[%s]: %s\n", t.String(), e)
+			log.Printf("[%s]: %s\n", t.String(), e)
 		}
 	}
 
@@ -458,7 +457,7 @@ func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *typ
 	if len(errors) > 0 {
 		errorPrefix := fmt.Sprintf("[%s] %s:", parent.String(), m.String())
 		for _, e := range errors {
-			klog.V(2).Infof("%s %s\n", errorPrefix, e)
+			log.Printf("%s %s\n", errorPrefix, e)
 		}
 	}
 	g.emitExtensions(extensions, nil)
