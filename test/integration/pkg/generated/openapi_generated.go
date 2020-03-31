@@ -30,23 +30,28 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bac":              common.EmbedOpenAPIDefinitionIntoV2Extension(custom.Bac{}.OpenAPIV3Definition(), custom.Bac{}.OpenAPIDefinition()),
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bah":              schema_test_integration_testdata_custom_Bah(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bak":              custom.Bak{}.OpenAPIDefinition(),
-		"k8s.io/kube-openapi/test/integration/testdata/custom.Bal":              custom.Bal{}.OpenAPIV3Definition(),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Bar":           schema_test_integration_testdata_dummytype_Bar(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Baz":           schema_test_integration_testdata_dummytype_Baz(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Foo":           schema_test_integration_testdata_dummytype_Foo(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Waldo":         schema_test_integration_testdata_dummytype_Waldo(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.AtomicList":     schema_test_integration_testdata_listtype_AtomicList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.Item":           schema_test_integration_testdata_listtype_Item(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.MapList":        schema_test_integration_testdata_listtype_MapList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.SetList":        schema_test_integration_testdata_listtype_SetList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/listtype.UntypedList":    schema_test_integration_testdata_listtype_UntypedList(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.InlinedUnion":  schema_test_integration_testdata_uniontype_InlinedUnion(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.TopLevelUnion": schema_test_integration_testdata_uniontype_TopLevelUnion(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union":         schema_test_integration_testdata_uniontype_Union(ref),
-		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union2":        schema_test_integration_testdata_uniontype_Union2(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/custom.Bac":                 common.EmbedOpenAPIDefinitionIntoV2Extension(custom.Bac{}.OpenAPIV3Definition(), custom.Bac{}.OpenAPIDefinition()),
+		"k8s.io/kube-openapi/test/integration/testdata/custom.Bah":                 schema_test_integration_testdata_custom_Bah(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/custom.Bak":                 custom.Bak{}.OpenAPIDefinition(),
+		"k8s.io/kube-openapi/test/integration/testdata/custom.Bal":                 custom.Bal{}.OpenAPIV3Definition(),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Bar":              schema_test_integration_testdata_dummytype_Bar(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Baz":              schema_test_integration_testdata_dummytype_Baz(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Foo":              schema_test_integration_testdata_dummytype_Foo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Waldo":            schema_test_integration_testdata_dummytype_Waldo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.AtomicList":        schema_test_integration_testdata_listtype_AtomicList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.Item":              schema_test_integration_testdata_listtype_Item(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.MapList":           schema_test_integration_testdata_listtype_MapList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.SetList":           schema_test_integration_testdata_listtype_SetList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/listtype.UntypedList":       schema_test_integration_testdata_listtype_UntypedList(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/maptype.AtomicMap":          schema_test_integration_testdata_maptype_AtomicMap(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/maptype.GranularMap":        schema_test_integration_testdata_maptype_GranularMap(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/structtype.AtomicStruct":    schema_test_integration_testdata_structtype_AtomicStruct(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/structtype.ContainedStruct": schema_test_integration_testdata_structtype_ContainedStruct(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/structtype.GranularStruct":  schema_test_integration_testdata_structtype_GranularStruct(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/uniontype.InlinedUnion":     schema_test_integration_testdata_uniontype_InlinedUnion(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/uniontype.TopLevelUnion":    schema_test_integration_testdata_uniontype_TopLevelUnion(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union":            schema_test_integration_testdata_uniontype_Union(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union2":           schema_test_integration_testdata_uniontype_Union2(ref),
 	}
 }
 
@@ -244,8 +249,10 @@ func schema_test_integration_testdata_listtype_MapList(ref common.ReferenceCallb
 					"Field": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-list-map-keys": "port",
-								"x-kubernetes-list-type":     "map",
+								"x-kubernetes-list-map-keys": []interface{}{
+									"port",
+								},
+								"x-kubernetes-list-type": "map",
 							},
 						},
 						SchemaProps: spec.SchemaProps{
@@ -322,6 +329,142 @@ func schema_test_integration_testdata_listtype_UntypedList(ref common.ReferenceC
 				Required: []string{"Field"},
 			},
 		},
+	}
+}
+
+func schema_test_integration_testdata_maptype_AtomicMap(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"KeyValue": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-map-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"KeyValue"},
+			},
+		},
+	}
+}
+
+func schema_test_integration_testdata_maptype_GranularMap(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"KeyValue": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-map-type": "granular",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"KeyValue"},
+			},
+		},
+	}
+}
+
+func schema_test_integration_testdata_structtype_AtomicStruct(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"Field": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-map-type": "atomic",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/kube-openapi/test/integration/testdata/structtype.ContainedStruct"),
+						},
+					},
+					"OtherField": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+				},
+				Required: []string{"Field", "OtherField"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/kube-openapi/test/integration/testdata/structtype.ContainedStruct"},
+	}
+}
+
+func schema_test_integration_testdata_structtype_ContainedStruct(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_test_integration_testdata_structtype_GranularStruct(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"Field": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-map-type": "granular",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/kube-openapi/test/integration/testdata/structtype.ContainedStruct"),
+						},
+					},
+					"OtherField": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
+				},
+				Required: []string{"Field", "OtherField"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/kube-openapi/test/integration/testdata/structtype.ContainedStruct"},
 	}
 }
 
