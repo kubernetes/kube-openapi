@@ -34,12 +34,3 @@ the current directory.
 ```bash
 $ go run builder/main.go testdata/golden.v2.json
 ```
-
-After the golden spec is generated, please clean up the generated file
-`pkg/generated/openapi_generated.go` before you commit. It's an intermediate product that doesn't need to be updated in kube-openapi repository. The checked-in file is kept minimum to make sure that `test/integration/builder` compiles. Please run:
-
-```base
-$ git checkout pkg/generated/openapi_generated.go
-```
-
-to discard any local change.
