@@ -27,7 +27,8 @@ require (
 	golang.org/x/tools v0.0.0-20181011042414-1f849cf54d09 // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
-	k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92
+	k8s.io/klog v1.0.0 // indirect
+	k8s.io/klog/v2 v2.0.0
 	sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874
 	sigs.k8s.io/yaml v1.1.0
 )
