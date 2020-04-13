@@ -14,6 +14,7 @@ require (
 	github.com/go-openapi/spec v0.0.0-20160808142527-6aced65f8501
 	github.com/go-openapi/swag v0.0.0-20160704191624-1d0bd113de87 // indirect
 	github.com/golang/protobuf v1.3.3
+	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/google/gofuzz v1.0.0
 	github.com/googleapis/gnostic v0.4.1
 	github.com/json-iterator/go v1.1.6
@@ -26,8 +27,7 @@ require (
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	golang.org/x/tools v0.0.0-20181011042414-1f849cf54d09 // indirect
 	gopkg.in/yaml.v2 v2.2.2
-	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
-	k8s.io/klog v1.0.0 // indirect
+	k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac
 	k8s.io/klog/v2 v2.0.0
 	sigs.k8s.io/structured-merge-diff/v3 v3.0.0-20200116222232-67a7b8c61874
 	sigs.k8s.io/yaml v1.1.0
