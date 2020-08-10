@@ -9802,6 +9802,7 @@ types:
         map:
           elementType:
             scalar: string
+    elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement
   map:
     fields:

@@ -92883,7 +92883,8 @@
        "type": "string"
       }
      }
-    }
+    },
+    "x-kubernetes-map-type": "atomic"
    },
    "io.k8s.apimachinery.pkg.apis.meta.v1.LabelSelectorRequirement": {
     "description": "A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.",

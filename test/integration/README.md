@@ -23,6 +23,7 @@ $ go run ../../cmd/openapi-gen/openapi-gen.go \
   -o pkg \
   -p generated \
   -O openapi_generated \
+  -h ../../boilerplate/boilerplate.go.txt \
   -r ./testdata/golden.v2.report
 ```
 The generated file `pkg/generated/openapi_generated.go` should have been created.
