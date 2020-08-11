@@ -9,3 +9,9 @@ type AtomicStruct struct {
 
 // +k8s:openapi-gen=true
 type ContainedStruct struct{}
+
+// +k8s:openapi-gen=true
+// +structType=atomic
+type DeclaredAtomicStruct struct {
+	Field int
+}

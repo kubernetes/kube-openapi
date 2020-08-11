@@ -27,13 +27,34 @@ import (
 	prototesting "k8s.io/kube-openapi/pkg/util/proto/testing"
 )
 
-var (
-	openAPIPath           = filepath.Join("testdata", "swagger.json")
-	fakeSchema            = prototesting.Fake{Path: openAPIPath}
-	expectedNewSchemaPath = filepath.Join("testdata", "new-schema.yaml")
-)
-
 func TestToSchema(t *testing.T) {
+	tests := []struct {
+		name string
+		openAPIFilename string
+		expectedSchemaFilename string
+	}{
+		{
+			name: "kubernetes",
+			openAPIFilename: "swagger.json",
+			expectedSchemaFilename: "new-schema.yaml",
+		},
+		{
+			name: "atomics",
+			openAPIFilename: "atomic-types.json",
+			expectedSchemaFilename: "atomic-types.yaml",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			openAPIPath := filepath.Join("testdata", tc.openAPIFilename)
+			expectedNewSchemaPath := filepath.Join("testdata", tc.expectedSchemaFilename)
+			testToSchema(t, openAPIPath, expectedNewSchemaPath)
+		})
+	}
+}
+
+func testToSchema(t *testing.T, openAPIPath, expectedNewSchemaPath string) {
+	fakeSchema := prototesting.Fake{Path: openAPIPath}
 	s, err := fakeSchema.OpenAPISchema()
 	if err != nil {
 		t.Fatal(err)

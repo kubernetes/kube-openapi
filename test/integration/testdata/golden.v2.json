@@ -271,6 +271,25 @@
      }
     }
    },
+   "/test/structtype/declaredatomicstruct": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func18",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/structtype.DeclaredAtomicStruct"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/structtype/granularstruct": {
     "get": {
      "schemes": [
@@ -530,6 +549,19 @@
    },
    "structtype.ContainedStruct": {
     "type": "object"
+   },
+   "structtype.DeclaredAtomicStruct": {
+    "type": "object",
+    "required": [
+     "Field"
+    ],
+    "properties": {
+     "Field": {
+      "type": "integer",
+      "format": "int32"
+     }
+    },
+    "x-kubernetes-map-type": "atomic"
    },
    "structtype.GranularStruct": {
     "type": "object",
