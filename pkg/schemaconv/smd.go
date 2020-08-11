@@ -318,7 +318,7 @@ func (c *convert) VisitKind(k *proto.Kind) {
 		switch val {
 		case "atomic":
 			a.Map.ElementRelationship = schema.Atomic
-		case "separable":
+		case "granular":
 			a.Map.ElementRelationship = schema.Separable
 		default:
 			c.reportError("unknown map type %v", val)
@@ -401,7 +401,7 @@ func (c *convert) VisitMap(m *proto.Map) {
 		switch val {
 		case "atomic":
 			a.Map.ElementRelationship = schema.Atomic
-		case "separable":
+		case "granular":
 			a.Map.ElementRelationship = schema.Separable
 		default:
 			c.reportError("unknown map type %v", val)
