@@ -343,6 +343,249 @@ Type: []string{"object"},
 `, funcBuffer.String())
 }
 
+func TestNestedStruct(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Nested is used as struct field
+type Nested struct {
+  // A simple string
+  String string
+}
+
+// Blah demonstrate a struct with struct field.
+type Blah struct {
+  // A struct field
+  Field Nested
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with struct field.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"Field": {
+SchemaProps: spec.SchemaProps{
+Description: "A struct field",
+Ref: ref("base/foo.Nested"),
+},
+},
+},
+Required: []string{"Field"},
+},
+},
+Dependencies: []string{
+"base/foo.Nested",},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestNestedStructPointer(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Nested is used as struct pointer field
+type Nested struct {
+  // A simple string
+  String string
+}
+
+// Blah demonstrate a struct with struct pointer field.
+type Blah struct {
+  // A struct pointer field
+  Field *Nested
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with struct pointer field.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"Field": {
+SchemaProps: spec.SchemaProps{
+Description: "A struct pointer field",
+Ref: ref("base/foo.Nested"),
+},
+},
+},
+Required: []string{"Field"},
+},
+},
+Dependencies: []string{
+"base/foo.Nested",},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestEmbeddedStruct(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Nested is used as embedded struct field
+type Nested struct {
+  // A simple string
+  String string
+}
+
+// Blah demonstrate a struct with embedded struct field.
+type Blah struct {
+  // An embedded struct field
+  Nested
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded struct field.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"Nested": {
+SchemaProps: spec.SchemaProps{
+Description: "An embedded struct field",
+Ref: ref("base/foo.Nested"),
+},
+},
+},
+Required: []string{"Nested"},
+},
+},
+Dependencies: []string{
+"base/foo.Nested",},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestEmbeddedInlineStruct(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Nested is used as embedded inline struct field
+type Nested struct {
+  // A simple string
+  String string
+}
+
+// Blah demonstrate a struct with embedded inline struct field.
+type Blah struct {
+  // An embedded inline struct field
+  Nested `+"`"+`json:",inline,omitempty"`+"`"+`
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded inline struct field.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"String": {
+SchemaProps: spec.SchemaProps{
+Description: "A simple string",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String"},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestEmbeddedInlineStructPointer(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Nested is used as embedded inline struct pointer field.
+type Nested struct {
+  // A simple string
+  String string
+}
+
+// Blah demonstrate a struct with embedded inline struct pointer field.
+type Blah struct {
+  // An embedded inline struct pointer field
+  *Nested `+"`"+`json:",inline,omitempty"`+"`"+`
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded inline struct pointer field.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"String": {
+SchemaProps: spec.SchemaProps{
+Description: "A simple string",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String"},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}
+
 func TestNestedMapString(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
