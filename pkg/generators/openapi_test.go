@@ -347,12 +347,13 @@ func TestNestedStruct(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
 
-// Blah demonstrate a struct with struct field.
+// Nested is used as struct field
 type Nested struct {
   // A simple string
   String string
 }
 
+// Blah demonstrate a struct with struct field.
 type Blah struct {
   // A struct field
   Field Nested
@@ -370,6 +371,7 @@ type Blah struct {
 return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with struct field.",
 Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "Field": {
@@ -394,12 +396,13 @@ func TestNestedStructPointer(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
 
-// Blah demonstrate a struct with struct pointer field.
+// Nested is used as struct pointer field
 type Nested struct {
   // A simple string
   String string
 }
 
+// Blah demonstrate a struct with struct pointer field.
 type Blah struct {
   // A struct pointer field
   Field *Nested
@@ -417,6 +420,7 @@ type Blah struct {
 return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with struct pointer field.",
 Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "Field": {
@@ -441,12 +445,13 @@ func TestEmbeddedStruct(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
 
-// Blah demonstrate a struct with embedded struct field.
+// Nested is used as embedded struct field
 type Nested struct {
   // A simple string
   String string
 }
 
+// Blah demonstrate a struct with embedded struct field.
 type Blah struct {
   // An embedded struct field
   Nested
@@ -464,6 +469,7 @@ type Blah struct {
 return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded struct field.",
 Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "Nested": {
@@ -488,12 +494,13 @@ func TestEmbeddedInlineStruct(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
 
-// Blah demonstrate a struct with embedded inline struct field.
+// Nested is used as embedded inline struct field
 type Nested struct {
   // A simple string
   String string
 }
 
+// Blah demonstrate a struct with embedded inline struct field.
 type Blah struct {
   // An embedded inline struct field
   Nested `+"`"+`json:",inline,omitempty"`+"`"+`
@@ -511,6 +518,7 @@ type Blah struct {
 return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded inline struct field.",
 Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "String": {
@@ -534,12 +542,13 @@ func TestEmbeddedInlineStructPointer(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
 
-// Blah demonstrate a struct with embedded inline struct pointer field.
+// Nested is used as embedded inline struct pointer field.
 type Nested struct {
   // A simple string
   String string
 }
 
+// Blah demonstrate a struct with embedded inline struct pointer field.
 type Blah struct {
   // An embedded inline struct pointer field
   *Nested `+"`"+`json:",inline,omitempty"`+"`"+`
@@ -557,6 +566,7 @@ type Blah struct {
 return common.OpenAPIDefinition{
 Schema: spec.Schema{
 SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded inline struct pointer field.",
 Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "String": {
