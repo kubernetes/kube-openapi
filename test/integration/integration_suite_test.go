@@ -36,7 +36,8 @@ const (
 		"," + testPkgDir + "/structtype" +
 		"," + testPkgDir + "/dummytype" +
 		"," + testPkgDir + "/uniontype" +
-		"," + testPkgDir + "/custom"
+		"," + testPkgDir + "/custom" +
+		"," + testPkgDir + "/defaults"
 	outputBase               = "pkg"
 	outputPackage            = "generated"
 	outputBaseFileName       = "openapi_generated"
