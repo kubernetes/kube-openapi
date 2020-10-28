@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -121,12 +120,6 @@ func TestDateTime_UnmarshalText(t *testing.T) {
 		err := pp.UnmarshalText(example.in)
 		assert.NoError(t, err)
 		assert.EqualValues(t, example.time, pp)
-
-		// Other way around
-		val, erv := pp.Value()
-		assert.NoError(t, erv)
-		assert.EqualValues(t, example.str, val)
-
 	}
 }
 func TestDateTime_UnmarshalJSON(t *testing.T) {
@@ -219,21 +212,6 @@ func TestDateTime_Scan_Failed(t *testing.T) {
 
 	err = pp.Scan(float64(0))
 	assert.Error(t, err)
-}
-
-func TestDateTime_BSON(t *testing.T) {
-	for caseNum, example := range testCases {
-		t.Logf("Case #%d", caseNum)
-		dt := DateTime(example.time)
-
-		bsonData, err := bson.Marshal(&dt)
-		assert.NoError(t, err)
-
-		var dtCopy DateTime
-		err = bson.Unmarshal(bsonData, &dtCopy)
-		assert.NoError(t, err)
-		assert.Equal(t, dt, dtCopy)
-	}
 }
 
 func TestDeepCopyDateTime(t *testing.T) {

@@ -15,17 +15,11 @@
 package strfmt
 
 import (
-	"database/sql"
-	"database/sql/driver"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
-
-var _ sql.Scanner = &Date{}
-var _ driver.Valuer = Date{}
 
 func TestDate(t *testing.T) {
 	pp := Date{}
@@ -54,48 +48,10 @@ func TestDate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
-	dateOriginal := Date(time.Date(2014, 10, 10, 0, 0, 0, 0, time.UTC))
-
-	bsonData, err := bson.Marshal(&dateOriginal)
-	assert.NoError(t, err)
-
-	var dateCopy Date
-	err = bson.Unmarshal(bsonData, &dateCopy)
-	assert.NoError(t, err)
-	assert.Equal(t, dateOriginal, dateCopy)
-
 	var dateZero Date
 	err = dateZero.UnmarshalJSON([]byte(jsonNull))
 	assert.NoError(t, err)
 	assert.Equal(t, Date{}, dateZero)
-}
-
-func TestDate_Scan(t *testing.T) {
-	ref := time.Now().Truncate(24 * time.Hour).UTC()
-	date, str := Date(ref), ref.Format(RFC3339FullDate)
-
-	values := []interface{}{str, []byte(str), ref}
-	for _, value := range values {
-		result := Date{}
-		_ = (&result).Scan(value)
-		assert.Equal(t, date, result, "value: %#v", value)
-	}
-
-	dd := Date{}
-	err := dd.Scan(nil)
-	assert.NoError(t, err)
-	assert.Equal(t, Date{}, dd)
-
-	err = dd.Scan(19700101)
-	assert.Error(t, err)
-}
-
-func TestDate_Value(t *testing.T) {
-	ref := time.Now().Truncate(24 * time.Hour).UTC()
-	date := Date(ref)
-	dbv, err := date.Value()
-	assert.NoError(t, err)
-	assert.EqualValues(t, dbv, ref.Format("2006-01-02"))
 }
 
 func TestDate_IsDate(t *testing.T) {

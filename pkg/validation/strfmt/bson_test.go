@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestBSONObjectId_fullCycle(t *testing.T) {
@@ -28,10 +27,6 @@ func TestBSONObjectId_fullCycle(t *testing.T) {
 
 	var idCopy ObjectId
 
-	err = idCopy.Scan(bytes)
-	assert.NoError(t, err)
-	assert.Equal(t, id, idCopy)
-
 	err = idCopy.UnmarshalText(bytes)
 	assert.NoError(t, err)
 	assert.Equal(t, id, idCopy)
@@ -40,13 +35,6 @@ func TestBSONObjectId_fullCycle(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = idCopy.UnmarshalJSON(jsonBytes)
-	assert.NoError(t, err)
-	assert.Equal(t, id, idCopy)
-
-	bsonBytes, err := bson.Marshal(&id)
-	assert.NoError(t, err)
-
-	err = bson.Unmarshal(bsonBytes, &idCopy)
 	assert.NoError(t, err)
 	assert.Equal(t, id, idCopy)
 }

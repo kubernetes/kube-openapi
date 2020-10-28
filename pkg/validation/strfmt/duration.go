@@ -15,16 +15,12 @@
 package strfmt
 
 import (
-	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {
@@ -111,7 +107,7 @@ func ParseDuration(cand string) (time.Duration, error) {
 			for i, variant := range variants {
 				if (last == i && strings.HasPrefix(unit, variant)) || strings.EqualFold(variant, unit) {
 					ok = true
-					dur += (time.Duration(factor) * multiplier)
+					dur += time.Duration(factor) * multiplier
 				}
 			}
 		}
@@ -140,11 +136,6 @@ func (d *Duration) Scan(raw interface{}) error {
 	return nil
 }
 
-// Value converts Duration to a primitive value ready to be written to a database.
-func (d Duration) Value() (driver.Value, error) {
-	return driver.Value(int64(d)), nil
-}
-
 // String converts this duration to a string
 func (d Duration) String() string {
 	return time.Duration(d).String()
@@ -171,28 +162,6 @@ func (d *Duration) UnmarshalJSON(data []byte) error {
 	}
 	*d = Duration(tt)
 	return nil
-}
-
-func (d Duration) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(bson.M{"data": d.String()})
-}
-
-func (d *Duration) UnmarshalBSON(data []byte) error {
-	var m bson.M
-	if err := bson.Unmarshal(data, &m); err != nil {
-		return err
-	}
-
-	if data, ok := m["data"].(string); ok {
-		rd, err := ParseDuration(data)
-		if err != nil {
-			return err
-		}
-		*d = Duration(rd)
-		return nil
-	}
-
-	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

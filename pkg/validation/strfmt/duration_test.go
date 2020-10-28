@@ -19,7 +19,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestDuration(t *testing.T) {
@@ -63,15 +62,6 @@ func TestDuration(t *testing.T) {
 	b, err = pp.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
-
-	dur := Duration(42)
-	bsonData, err := bson.Marshal(&dur)
-	assert.NoError(t, err)
-
-	var durCopy Duration
-	err = bson.Unmarshal(bsonData, &durCopy)
-	assert.NoError(t, err)
-	assert.Equal(t, dur, durCopy)
 }
 
 func testDurationParser(t *testing.T, toParse string, expected time.Duration) {
@@ -88,32 +78,6 @@ func TestDurationParser_Failed(t *testing.T) {
 func TestIsDuration_Failed(t *testing.T) {
 	e := IsDuration("45 weeekks")
 	assert.False(t, e)
-}
-
-func testDurationSQLScanner(t *testing.T, dur time.Duration) {
-	values := []interface{}{int64(dur), float64(dur)}
-	for _, value := range values {
-		var result Duration
-		err := result.Scan(value)
-		assert.NoError(t, err)
-		assert.Equal(t, dur, time.Duration(result))
-
-		// And the other way around
-		resv, erv := result.Value()
-		assert.NoError(t, erv)
-		assert.EqualValues(t, value, resv)
-
-	}
-}
-
-func TestDurationScanner_Nil(t *testing.T) {
-	var result Duration
-	err := result.Scan(nil)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 0, time.Duration(result))
-
-	err = result.Scan("1 ms")
-	assert.Error(t, err)
 }
 
 func TestDurationParser(t *testing.T) {
@@ -178,7 +142,6 @@ func TestDurationParser(t *testing.T) {
 
 	for str, dur := range testcases {
 		testDurationParser(t, str, dur)
-		testDurationSQLScanner(t, dur)
 	}
 }
 func TestIsDuration_Caveats(t *testing.T) {

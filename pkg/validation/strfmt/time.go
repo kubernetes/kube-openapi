@@ -15,15 +15,11 @@
 package strfmt
 
 import (
-	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func init() {
@@ -137,11 +133,6 @@ func (t *DateTime) Scan(raw interface{}) error {
 	return nil
 }
 
-// Value converts DateTime to a primitive value ready to written to a database.
-func (t DateTime) Value() (driver.Value, error) {
-	return driver.Value(t.String()), nil
-}
-
 // MarshalJSON returns the DateTime as JSON
 func (t DateTime) MarshalJSON() ([]byte, error) {
 	return json.Marshal(time.Time(t).Format(MarshalFormat))
@@ -163,28 +154,6 @@ func (t *DateTime) UnmarshalJSON(data []byte) error {
 	}
 	*t = tt
 	return nil
-}
-
-func (t DateTime) MarshalBSON() ([]byte, error) {
-	return bson.Marshal(bson.M{"data": t.String()})
-}
-
-func (t *DateTime) UnmarshalBSON(data []byte) error {
-	var m bson.M
-	if err := bson.Unmarshal(data, &m); err != nil {
-		return err
-	}
-
-	if data, ok := m["data"].(string); ok {
-		rd, err := ParseDateTime(data)
-		if err != nil {
-			return err
-		}
-		*t = rd
-		return nil
-	}
-
-	return errors.New("couldn't unmarshal bson bytes value as Date")
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

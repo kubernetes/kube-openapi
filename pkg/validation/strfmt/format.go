@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/kube-openapi/pkg/validation/errors"
 	"github.com/mitchellh/mapstructure"
+	"k8s.io/kube-openapi/pkg/validation/errors"
 )
 
 // Default is the default formats registry

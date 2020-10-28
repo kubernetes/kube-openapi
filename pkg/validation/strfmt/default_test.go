@@ -15,8 +15,6 @@
 package strfmt
 
 import (
-	"database/sql"
-	"database/sql/driver"
 	"encoding"
 	"encoding/base64"
 	"encoding/json"
@@ -27,7 +25,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestFormatURI(t *testing.T) {
@@ -299,37 +296,8 @@ func TestFormatBase64(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
-	bsonData, err := bson.Marshal(subj2)
-	assert.NoError(t, err)
-
-	var b64Copy Base64
-	err = bson.Unmarshal(bsonData, &b64Copy)
-	assert.NoError(t, err)
-	assert.Equal(t, subj2, b64Copy)
-
 	testValid(t, "byte", str)
 	testInvalid(t, "byte", "ZWxpemFiZXRocG9zZXk") // missing pad char
-
-	// Valuer interface
-	sqlvalue, err := subj2.Value()
-	assert.NoError(t, err)
-	sqlvalueAsString, ok := sqlvalue.(string)
-	if assert.Truef(t, ok, "[%s]Value: expected driver value to be a string", "byte") {
-		assert.EqualValuesf(t, str, sqlvalueAsString, "[%s]Value: expected %v and %v to be equal", "byte", sqlvalue, str)
-	}
-	// Scanner interface
-	var subj3 Base64
-	err = subj3.Scan([]byte(str))
-	assert.NoError(t, err)
-	assert.EqualValues(t, str, subj3.String())
-
-	var subj4 Base64
-	err = subj4.Scan(str)
-	assert.NoError(t, err)
-	assert.EqualValues(t, str, subj4.String())
-
-	err = subj4.Scan(123)
-	assert.Error(t, err)
 }
 
 type testableFormat interface {
@@ -337,11 +305,7 @@ type testableFormat interface {
 	encoding.TextUnmarshaler
 	json.Marshaler
 	json.Unmarshaler
-	bson.Marshaler
-	bson.Unmarshaler
 	fmt.Stringer
-	sql.Scanner
-	driver.Valuer
 }
 
 func testStringFormat(t *testing.T, what testableFormat, format, with string, validSamples, invalidSamples []string) {
@@ -374,43 +338,6 @@ func testStringFormat(t *testing.T, what testableFormat, format, with string, va
 	assert.NoError(t, err)
 	assert.Equalf(t, bj, b, "[%s]MarshalJSON: expected %v and %v to be value equal as []byte", format, string(b), with)
 
-	// bson encoding interface
-	bsonData, err := bson.Marshal(what)
-	assert.NoError(t, err)
-
-	resetValue(t, format, what)
-
-	err = bson.Unmarshal(bsonData, what)
-	assert.NoError(t, err)
-	val = reflect.Indirect(reflect.ValueOf(what))
-	strVal = val.String()
-	assert.EqualValuesf(t, with, strVal, "[%s]bson.Unmarshal: expected %v and %v to be equal (reset value) ", format, what, with)
-
-	// Scanner interface
-	resetValue(t, format, what)
-	err = what.Scan(with)
-	assert.NoError(t, err)
-	val = reflect.Indirect(reflect.ValueOf(what))
-	strVal = val.String()
-	assert.EqualValuesf(t, with, strVal, "[%s]Scan: expected %v and %v to be value equal", format, strVal, with)
-
-	err = what.Scan([]byte(with))
-	assert.NoError(t, err)
-	val = reflect.Indirect(reflect.ValueOf(what))
-	strVal = val.String()
-	assert.EqualValuesf(t, with, strVal, "[%s]Scan: expected %v and %v to be value equal", format, strVal, with)
-
-	err = what.Scan(123)
-	assert.Error(t, err)
-
-	// Valuer interface
-	sqlvalue, err := what.Value()
-	assert.NoError(t, err)
-	sqlvalueAsString, ok := sqlvalue.(string)
-	if assert.Truef(t, ok, "[%s]Value: expected driver value to be a string", format) {
-		assert.EqualValuesf(t, with, sqlvalueAsString, "[%s]Value: expected %v and %v to be equal", format, sqlvalue, with)
-	}
-
 	// validation with Registry
 	for _, valid := range append(validSamples, with) {
 		testValid(t, format, valid)
@@ -419,14 +346,6 @@ func testStringFormat(t *testing.T, what testableFormat, format, with string, va
 	for _, invalid := range invalidSamples {
 		testInvalid(t, format, invalid)
 	}
-}
-
-func resetValue(t *testing.T, format string, what encoding.TextUnmarshaler) {
-	err := what.UnmarshalText([]byte("reset value"))
-	assert.NoError(t, err)
-	val := reflect.Indirect(reflect.ValueOf(what))
-	strVal := val.String()
-	assert.Equalf(t, "reset value", strVal, "[%s]UnmarshalText: expected %v and %v to be equal (reset value) ", format, strVal, "reset value")
 }
 
 func testValid(t *testing.T, name, value string) {
