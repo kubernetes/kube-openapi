@@ -15,18 +15,10 @@
 package validate
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestHelpers_addPointerError(t *testing.T) {
-	res := new(Result)
-	r := errorHelp.addPointerError(res, fmt.Errorf("my error"), "my ref", "path")
-	msg := r.Errors[0].Error()
-	assert.Contains(t, msg, "could not resolve reference in path to $ref my ref: my error")
-}
 
 func integerFactory(base int) []interface{} {
 	return []interface{}{

@@ -15,13 +15,11 @@
 package validate
 
 import (
-	"io"
 	"testing"
 	"time"
 
-	"k8s.io/kube-openapi/pkg/validation/runtime"
-	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 type expectedJSONType struct {
@@ -46,12 +44,6 @@ func TestType_schemaInfoForType(t *testing.T) {
 			value:                 strfmt.NewDateTime(),
 			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "date-time",
-		},
-		{
-			// TODO: this exception is really prone to errors: should alias runtime.File in strfmt
-			value:                 runtime.File{},
-			expectedJSONType:      "file",
-			expectedSwaggerFormat: "",
 		},
 		{
 			value:                 strfmt.URI("http://thisisleadingusnowhere.com"),
@@ -251,11 +243,6 @@ func TestType_schemaInfoForType(t *testing.T) {
 			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "duration",
 		},
-		{
-			value:                 strfmt.NewObjectId("507f1f77bcf86cd799439011"),
-			expectedJSONType:      stringType,
-			expectedSwaggerFormat: "bsonobjectid",
-		},
 		/*
 			Test case for : case reflect.Interface:
 				// What to do here?
@@ -273,11 +260,4 @@ func TestType_schemaInfoForType(t *testing.T) {
 		assert.Equal(t, x.expectedJSONType, jsonType)
 		assert.Equal(t, x.expectedSwaggerFormat, swaggerFormat)
 	}
-
-	// Check file declarations as io.ReadCloser are properly detected
-	myFile := runtime.File{}
-	var myReader io.ReadCloser = &myFile
-	jsonType, swaggerFormat := v.schemaInfoForType(myReader)
-	assert.Equal(t, "file", jsonType)
-	assert.Equal(t, "", swaggerFormat)
 }

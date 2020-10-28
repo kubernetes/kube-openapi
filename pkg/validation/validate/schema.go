@@ -16,18 +16,17 @@ package validate
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 
+	"github.com/go-openapi/swag"
 	"k8s.io/kube-openapi/pkg/validation/errors"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 var (
-	specSchemaType    = reflect.TypeOf(&spec.Schema{})
-	specParameterType = reflect.TypeOf(&spec.Parameter{})
-	specHeaderType    = reflect.TypeOf(&spec.Header{})
+	specSchemaType = reflect.TypeOf(&spec.Schema{})
 	//specItemsType     = reflect.TypeOf(&spec.Items{})
 )
 
@@ -65,13 +64,10 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 		rootSchema = schema
 	}
 
-	if schema.ID != "" || schema.Ref.String() != "" || schema.Ref.IsRoot() {
-		err := spec.ExpandSchema(schema, rootSchema, nil)
-		if err != nil {
-			msg := invalidSchemaProvidedMsg(err).Error()
-			panic(msg)
-		}
+	if ref := schema.Ref.String(); ref != "" {
+		panic(fmt.Sprintf("schema references not supported: %s", ref))
 	}
+
 	s := SchemaValidator{
 		Path:         root,
 		in:           "body",

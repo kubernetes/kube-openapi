@@ -18,11 +18,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/go-openapi/swag"
 	"k8s.io/kube-openapi/pkg/validation/errors"
-	"k8s.io/kube-openapi/pkg/validation/runtime"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 type typeValidator struct {
@@ -48,8 +47,6 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 		return stringType, stringFormatDateTime
 	case strfmt.Duration, *strfmt.Duration:
 		return stringType, stringFormatDuration
-	case runtime.File, *runtime.File:
-		return fileType, ""
 	case strfmt.Email, *strfmt.Email:
 		return stringType, stringFormatEmail
 	case strfmt.HexColor, *strfmt.HexColor:
@@ -68,8 +65,6 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 		return stringType, stringFormatISBN13
 	case strfmt.MAC, *strfmt.MAC:
 		return stringType, stringFormatMAC
-	case strfmt.ObjectId, *strfmt.ObjectId:
-		return stringType, stringFormatBSONObjectID
 	case strfmt.Password, *strfmt.Password:
 		return stringType, stringFormatPassword
 	case strfmt.RGBColor, *strfmt.RGBColor:
@@ -129,7 +124,7 @@ func (t *typeValidator) SetPath(path string) {
 func (t *typeValidator) Applies(source interface{}, kind reflect.Kind) bool {
 	// typeValidator applies to Schema, Parameter and Header objects
 	stpe := reflect.TypeOf(source)
-	r := (len(t.Type) > 0 || t.Format != "") && (stpe == specSchemaType || stpe == specParameterType || stpe == specHeaderType)
+	r := (len(t.Type) > 0 || t.Format != "") && stpe == specSchemaType
 	debugLog("type validator for %q applies %t for %T (kind: %v)\n", t.Path, r, source, kind)
 	return r
 }

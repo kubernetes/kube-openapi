@@ -28,10 +28,6 @@ var (
 )
 
 func TestDebug(t *testing.T) {
-	if !enableLongTests {
-		skipNotify(t)
-		t.SkipNow()
-	}
 	tmpFile, _ := ioutil.TempFile("", "debug-test")
 	tmpName := tmpFile.Name()
 	defer func() {

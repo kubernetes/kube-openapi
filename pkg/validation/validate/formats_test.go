@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"github.com/stretchr/testify/assert"
 )
 
 // Validator for string formats
@@ -18,14 +18,10 @@ func TestFormatValidator_EdgeCases(t *testing.T) {
 
 	// formatValidator applies to: Items, Parameter,Schema
 
-	p := spec.Parameter{}
-	p.Typed(stringType, "email")
 	s := spec.Schema{}
 	s.Typed(stringType, "uuid")
-	i := spec.Items{}
-	i.Typed(stringType, "datetime")
 
-	sources := []interface{}{&p, &s, &i}
+	sources := []interface{}{&s}
 
 	for _, source := range sources {
 		// Default formats for strings

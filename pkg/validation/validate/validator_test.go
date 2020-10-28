@@ -19,8 +19,8 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 func TestNumberValidator_EdgeCases(t *testing.T) {
@@ -45,10 +45,7 @@ func TestNumberValidator_EdgeCases(t *testing.T) {
 	// numberValidator applies to: Parameter,Schema,Items,Header
 
 	sources := []interface{}{
-		new(spec.Parameter),
 		new(spec.Schema),
-		new(spec.Items),
-		new(spec.Header),
 	}
 
 	testNumberApply(t, &v, sources)
@@ -95,10 +92,7 @@ func TestStringValidator_EdgeCases(t *testing.T) {
 	// stringValidator applies to: Parameter,Schema,Items,Header
 
 	sources := []interface{}{
-		new(spec.Parameter),
 		new(spec.Schema),
-		new(spec.Items),
-		new(spec.Header),
 	}
 
 	testStringApply(t, &v, sources)
@@ -125,9 +119,7 @@ func TestBasicCommonValidator_EdgeCases(t *testing.T) {
 	// basicCommonValidator applies to: Parameter,Schema,Header
 
 	sources := []interface{}{
-		new(spec.Parameter),
 		new(spec.Schema),
-		new(spec.Header),
 	}
 
 	testCommonApply(t, &v, sources)
@@ -141,68 +133,3 @@ func testCommonApply(t *testing.T, v *basicCommonValidator, sources []interface{
 		assert.True(t, v.Applies(source, reflect.String))
 	}
 }
-
-func TestBasicSliceValidator_EdgeCases(t *testing.T) {
-	// Apply
-
-	v := basicSliceValidator{}
-
-	// basicCommonValidator applies to: Parameter,Schema,Header
-
-	sources := []interface{}{
-		new(spec.Parameter),
-		new(spec.Items),
-		new(spec.Header),
-	}
-
-	testSliceApply(t, &v, sources)
-
-	assert.False(t, v.Applies(new(spec.Schema), reflect.Slice))
-	assert.False(t, v.Applies(new(spec.Parameter), reflect.String))
-
-}
-
-func testSliceApply(t *testing.T, v *basicSliceValidator, sources []interface{}) {
-	for _, source := range sources {
-		assert.True(t, v.Applies(source, reflect.Slice))
-	}
-}
-
-/* unused
-type anything struct {
-	anyProperty int
-}
-
-// hasDuplicates() is currently not exercised by common spec testcases
-// (this method is not used by the validator atm)
-// Here is a unit exerciser
-// NOTE: this method is probably obsolete and superseeded by values.go:UniqueItems()
-// which is superior in every respect to this one.
-func TestBasicSliceValidator_HasDuplicates(t *testing.T) {
-	s := basicSliceValidator{}
-	// hasDuplicates() makes no hypothesis about the underlying object,
-	// save being an array, slice or string (same constraint as reflect.Value.Index())
-	// it also comes without safeguard or anything.
-	vi := []int{1, 2, 3}
-	vs := []string{"a", "b", "c"}
-	vt := []anything{
-		{anyProperty: 1},
-		{anyProperty: 2},
-		{anyProperty: 3},
-	}
-	assert.False(t, s.hasDuplicates(reflect.ValueOf(vi), len(vi)))
-	assert.False(t, s.hasDuplicates(reflect.ValueOf(vs), len(vs)))
-	assert.False(t, s.hasDuplicates(reflect.ValueOf(vt), len(vt)))
-
-	di := []int{1, 1, 3}
-	ds := []string{"a", "b", "a"}
-	dt := []anything{
-		{anyProperty: 1},
-		{anyProperty: 2},
-		{anyProperty: 2},
-	}
-	assert.True(t, s.hasDuplicates(reflect.ValueOf(di), len(di)))
-	assert.True(t, s.hasDuplicates(reflect.ValueOf(ds), len(ds)))
-	assert.True(t, s.hasDuplicates(reflect.ValueOf(dt), len(dt)))
-}
-*/

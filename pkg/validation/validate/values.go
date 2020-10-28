@@ -19,9 +19,9 @@ import (
 	"reflect"
 	"unicode/utf8"
 
+	"github.com/go-openapi/swag"
 	"k8s.io/kube-openapi/pkg/validation/errors"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 // Enum validates if the data is a member of the enum

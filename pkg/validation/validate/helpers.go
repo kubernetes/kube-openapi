@@ -19,15 +19,11 @@ package validate
 
 import (
 	"reflect"
-	"strconv"
-	"strings"
 
 	"k8s.io/kube-openapi/pkg/validation/errors"
-	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 const (
-	swaggerBody     = "body"
 	swaggerExample  = "example"
 	swaggerExamples = "examples"
 )
@@ -39,43 +35,37 @@ const (
 	integerType = "integer"
 	numberType  = "number"
 	booleanType = "boolean"
-	fileType    = "file"
 	nullType    = "null"
 )
 
 const (
 	jsonProperties = "properties"
-	jsonItems      = "items"
-	jsonType       = "type"
-	//jsonSchema     = "schema"
-	jsonDefault = "default"
+	jsonDefault    = "default"
 )
 
 const (
-	stringFormatDate     = "date"
-	stringFormatDateTime = "date-time"
-	stringFormatPassword = "password"
-	stringFormatByte     = "byte"
-	//stringFormatBinary       = "binary"
-	stringFormatCreditCard   = "creditcard"
-	stringFormatDuration     = "duration"
-	stringFormatEmail        = "email"
-	stringFormatHexColor     = "hexcolor"
-	stringFormatHostname     = "hostname"
-	stringFormatIPv4         = "ipv4"
-	stringFormatIPv6         = "ipv6"
-	stringFormatISBN         = "isbn"
-	stringFormatISBN10       = "isbn10"
-	stringFormatISBN13       = "isbn13"
-	stringFormatMAC          = "mac"
-	stringFormatBSONObjectID = "bsonobjectid"
-	stringFormatRGBColor     = "rgbcolor"
-	stringFormatSSN          = "ssn"
-	stringFormatURI          = "uri"
-	stringFormatUUID         = "uuid"
-	stringFormatUUID3        = "uuid3"
-	stringFormatUUID4        = "uuid4"
-	stringFormatUUID5        = "uuid5"
+	stringFormatDate       = "date"
+	stringFormatDateTime   = "date-time"
+	stringFormatPassword   = "password"
+	stringFormatByte       = "byte"
+	stringFormatCreditCard = "creditcard"
+	stringFormatDuration   = "duration"
+	stringFormatEmail      = "email"
+	stringFormatHexColor   = "hexcolor"
+	stringFormatHostname   = "hostname"
+	stringFormatIPv4       = "ipv4"
+	stringFormatIPv6       = "ipv6"
+	stringFormatISBN       = "isbn"
+	stringFormatISBN10     = "isbn10"
+	stringFormatISBN13     = "isbn13"
+	stringFormatMAC        = "mac"
+	stringFormatRGBColor   = "rgbcolor"
+	stringFormatSSN        = "ssn"
+	stringFormatURI        = "uri"
+	stringFormatUUID       = "uuid"
+	stringFormatUUID3      = "uuid3"
+	stringFormatUUID4      = "uuid4"
+	stringFormatUUID5      = "uuid5"
 
 	integerFormatInt32  = "int32"
 	integerFormatInt64  = "int64"
@@ -90,11 +80,8 @@ const (
 
 // Helpers available at the package level
 var (
-	pathHelp     *pathHelper
-	valueHelp    *valueHelper
-	errorHelp    *errorHelper
-	paramHelp    *paramHelper
-	responseHelp *responseHelper
+	valueHelp *valueHelper
+	errorHelp *errorHelper
 )
 
 type errorHelper struct {
@@ -104,49 +91,6 @@ type errorHelper struct {
 func (h *errorHelper) sErr(err errors.Error) *Result {
 	// Builds a Result from standard errors.Error
 	return &Result{Errors: []error{err}}
-}
-
-func (h *errorHelper) addPointerError(res *Result, err error, ref string, fromPath string) *Result {
-	// Provides more context on error messages
-	// reported by the jsoinpointer package by altering the passed Result
-	if err != nil {
-		res.AddErrors(cannotResolveRefMsg(fromPath, ref, err))
-	}
-	return res
-}
-
-type pathHelper struct {
-	// A collection of unexported helpers for path validation
-}
-
-func (h *pathHelper) stripParametersInPath(path string) string {
-	// Returns a path stripped from all path parameters, with multiple or trailing slashes removed.
-	//
-	// Stripping is performed on a slash-separated basis, e.g '/a{/b}' remains a{/b} and not /a.
-	//  - Trailing "/" make a difference, e.g. /a/ !~ /a (ex: canary/bitbucket.org/swagger.json)
-	//  - presence or absence of a parameter makes a difference, e.g. /a/{log} !~ /a/ (ex: canary/kubernetes/swagger.json)
-
-	// Regexp to extract parameters from path, with surrounding {}.
-	// NOTE: important non-greedy modifier
-	rexParsePathParam := mustCompileRegexp(`{[^{}]+?}`)
-	strippedSegments := []string{}
-
-	for _, segment := range strings.Split(path, "/") {
-		strippedSegments = append(strippedSegments, rexParsePathParam.ReplaceAllString(segment, "X"))
-	}
-	return strings.Join(strippedSegments, "/")
-}
-
-func (h *pathHelper) extractPathParams(path string) (params []string) {
-	// Extracts all params from a path, with surrounding "{}"
-	rexParsePathParam := mustCompileRegexp(`{[^{}]+?}`)
-
-	for _, segment := range strings.Split(path, "/") {
-		for _, v := range rexParsePathParam.FindAllStringSubmatch(segment, -1) {
-			params = append(params, v...)
-		}
-	}
-	return
 }
 
 type valueHelper struct {
@@ -203,122 +147,4 @@ func (h *valueHelper) asFloat64(val interface{}) float64 {
 		//panic("Non numeric value in asFloat64()")
 		return 0
 	}
-}
-
-type paramHelper struct {
-	// A collection of unexported helpers for parameters resolution
-}
-
-func (h *paramHelper) safeExpandedParamsFor(path, method, operationID string, res *Result, s *SpecValidator) (params []spec.Parameter) {
-	operation, ok := s.analyzer.OperationFor(method, path)
-	if ok {
-		// expand parameters first if necessary
-		resolvedParams := []spec.Parameter{}
-		for _, ppr := range operation.Parameters {
-			resolvedParam, red := h.resolveParam(path, method, operationID, &ppr, s)
-			res.Merge(red)
-			if resolvedParam != nil {
-				resolvedParams = append(resolvedParams, *resolvedParam)
-			}
-		}
-		// remove params with invalid expansion from Slice
-		operation.Parameters = resolvedParams
-
-		for _, ppr := range s.analyzer.SafeParamsFor(method, path,
-			func(p spec.Parameter, err error) bool {
-				// since params have already been expanded, there are few causes for error
-				res.AddErrors(someParametersBrokenMsg(path, method, operationID))
-				// original error from analyzer
-				res.AddErrors(err)
-				return true
-			}) {
-			params = append(params, ppr)
-		}
-	}
-	return
-}
-
-func (h *paramHelper) resolveParam(path, method, operationID string, param *spec.Parameter, s *SpecValidator) (*spec.Parameter, *Result) {
-	// Ensure parameter is expanded
-	var err error
-	res := new(Result)
-	isRef := param.Ref.String() != ""
-	if s.spec.SpecFilePath() == "" {
-		err = spec.ExpandParameterWithRoot(param, s.spec.Spec(), nil)
-	} else {
-		err = spec.ExpandParameter(param, s.spec.SpecFilePath())
-
-	}
-	if err != nil { // Safeguard
-		// NOTE: we may enter enter here when the whole parameter is an unresolved $ref
-		refPath := strings.Join([]string{"\"" + path + "\"", method}, ".")
-		errorHelp.addPointerError(res, err, param.Ref.String(), refPath)
-		return nil, res
-	}
-	res.Merge(h.checkExpandedParam(param, param.Name, param.In, operationID, isRef))
-	return param, res
-}
-
-func (h *paramHelper) checkExpandedParam(pr *spec.Parameter, path, in, operation string, isRef bool) *Result {
-	// Secure parameter structure after $ref resolution
-	res := new(Result)
-	simpleZero := spec.SimpleSchema{}
-	// Try to explain why... best guess
-	switch {
-	case pr.In == swaggerBody && (pr.SimpleSchema != simpleZero && pr.SimpleSchema.Type != objectType):
-		if isRef {
-			// Most likely, a $ref with a sibling is an unwanted situation: in itself this is a warning...
-			// but we detect it because of the following error:
-			// schema took over Parameter for an unexplained reason
-			res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
-		}
-		res.AddErrors(invalidParameterDefinitionMsg(path, in, operation))
-	case pr.In != swaggerBody && pr.Schema != nil:
-		if isRef {
-			res.AddWarnings(refShouldNotHaveSiblingsMsg(path, operation))
-		}
-		res.AddErrors(invalidParameterDefinitionAsSchemaMsg(path, in, operation))
-	case (pr.In == swaggerBody && pr.Schema == nil) || (pr.In != swaggerBody && pr.SimpleSchema == simpleZero):
-		// Other unexpected mishaps
-		res.AddErrors(invalidParameterDefinitionMsg(path, in, operation))
-	}
-	return res
-}
-
-type responseHelper struct {
-	// A collection of unexported helpers for response resolution
-}
-
-func (r *responseHelper) expandResponseRef(
-	response *spec.Response,
-	path string, s *SpecValidator) (*spec.Response, *Result) {
-	// Ensure response is expanded
-	var err error
-	res := new(Result)
-	if s.spec.SpecFilePath() == "" {
-		// there is no physical document to resolve $ref in response
-		err = spec.ExpandResponseWithRoot(response, s.spec.Spec(), nil)
-	} else {
-		err = spec.ExpandResponse(response, s.spec.SpecFilePath())
-	}
-	if err != nil { // Safeguard
-		// NOTE: we may enter here when the whole response is an unresolved $ref.
-		errorHelp.addPointerError(res, err, response.Ref.String(), path)
-		return nil, res
-	}
-	return response, res
-}
-
-func (r *responseHelper) responseMsgVariants(
-	responseType string,
-	responseCode int) (responseName, responseCodeAsStr string) {
-	// Path variants for messages
-	if responseType == jsonDefault {
-		responseCodeAsStr = jsonDefault
-		responseName = "default response"
-	} else {
-		responseCodeAsStr = strconv.Itoa(responseCode)
-		responseName = "response " + responseCodeAsStr
-	}
-	return
 }

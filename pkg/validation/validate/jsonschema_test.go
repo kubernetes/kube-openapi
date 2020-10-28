@@ -23,11 +23,11 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
-	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"k8s.io/kube-openapi/pkg/validation/swag"
+	"github.com/go-openapi/swag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 // Data structure for jsonschema-suite fixtures
@@ -158,14 +158,6 @@ func TestSchemaFixtures(t *testing.T) {
 	}
 }
 
-func expandOpts(base string) *spec.ExpandOptions {
-	return &spec.ExpandOptions{
-		RelativeBase:    base,
-		SkipSchemas:     false,
-		ContinueOnError: false,
-	}
-}
-
 func TestOptionalJSONSchemaSuite(t *testing.T) {
 	jsonOptionalSchemaFixturesPath := filepath.Join(jsonSchemaFixturesPath, "optional")
 	files, err := ioutil.ReadDir(jsonOptionalSchemaFixturesPath)
@@ -232,8 +224,6 @@ func doTestSchemaSuite(t *testing.T, doc []byte) {
 		_, _ = tmpFile.Write(b)
 		tmpFile.Close()
 		defer func() { _ = os.Remove(tmpFile.Name()) }()
-		err = spec.ExpandSchemaWithBasePath(testDescription.Schema, nil, expandOpts(tmpFile.Name()))
-		require.NoError(t, err, testDescription.Description+" should expand cleanly")
 
 		validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
 		for _, test := range testDescription.Tests {

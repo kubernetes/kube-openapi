@@ -19,102 +19,12 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/kube-openapi/pkg/validation/loads" // Spec loading
+	// Spec loading
+	"github.com/stretchr/testify/require"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"   // OpenAPI format extensions
 	"k8s.io/kube-openapi/pkg/validation/validate" // This package
-	"github.com/stretchr/testify/require"
 )
-
-func ExampleSpec() {
-	// Example with high level spec validation call, without showing warnings
-
-	// Example with spec file in this repo:
-	path := "fixtures/validation/valid-ref.json"
-	doc, err := loads.Spec(path)
-	if err == nil {
-		validate.SetContinueOnErrors(true)         // Set global options
-		errs := validate.Spec(doc, strfmt.Default) // Validates spec with default Swagger 2.0 format definitions
-
-		if errs == nil {
-			fmt.Println("This spec is valid")
-		} else {
-			fmt.Printf("This spec has some validation errors: %v\n", errs)
-		}
-	} else {
-		fmt.Println("Could not load this spec")
-	}
-	// Output: This spec is valid
-}
-
-func ExampleSpec_url() {
-	// Example with high level spec validation call, without showing warnings
-
-	// Example with online spec URL:
-	url := "http://petstore.swagger.io/v2/swagger.json"
-	doc, err := loads.JSONSpec(url)
-	if err == nil {
-		validate.SetContinueOnErrors(true)         // Set global options
-		errs := validate.Spec(doc, strfmt.Default) // Validates spec with default Swagger 2.0 format definitions
-
-		if errs == nil {
-			fmt.Println("This spec is valid")
-		} else {
-			fmt.Printf("This spec has some validation errors: %v\n", errs)
-		}
-	} else {
-		fmt.Println("Could not load this spec")
-	}
-}
-
-func ExampleSpecValidator_Validate() {
-	// Example of spec validation call with full result
-
-	// Example with online spec URL:
-	//url := "http://petstore.swagger.io/v2/swagger.json"
-	//doc, err := loads.JSONSpec(url)
-
-	// Example with spec file in this repo:
-	path := "fixtures/validation/valid-ref.json"
-	doc, err := loads.Spec(path)
-	if err == nil {
-		validator := validate.NewSpecValidator(doc.Schema(), strfmt.Default)
-		validator.SetContinueOnErrors(true)  // Set option for this validator
-		result, _ := validator.Validate(doc) // Validates spec with default Swagger 2.0 format definitions
-		if result.IsValid() {
-			fmt.Println("This spec is valid")
-		} else {
-			fmt.Println("This spec has some validation errors")
-		}
-		if result.HasWarnings() {
-			fmt.Println("This spec has some validation warnings")
-		}
-	}
-	// Output:
-	// This spec is valid
-	// This spec has some validation warnings
-}
-
-func ExampleSpecValidator_Validate_url() {
-	// Example of spec validation call with full result
-
-	// Example with online spec URL:
-	url := "http://petstore.swagger.io/v2/swagger.json"
-	doc, err := loads.JSONSpec(url)
-	if err == nil {
-		validator := validate.NewSpecValidator(doc.Schema(), strfmt.Default)
-		validator.SetContinueOnErrors(true)  // Set option for this validator
-		result, _ := validator.Validate(doc) // Validates spec with default Swagger 2.0 format definitions
-		if result.IsValid() {
-			fmt.Println("This spec is valid")
-		} else {
-			fmt.Println("This spec has some validation errors")
-		}
-		if result.HasWarnings() {
-			fmt.Println("This spec has some validation warnings")
-		}
-	}
-}
 
 func ExampleAgainstSchema() {
 	// Example using encoding/json as unmarshaller

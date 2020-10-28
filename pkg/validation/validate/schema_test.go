@@ -23,9 +23,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/go-openapi/swag"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 func TestSchemaValidator_Validate_Pattern(t *testing.T) {
@@ -106,14 +106,14 @@ func TestSchemaValidator_PatternProperties(t *testing.T) {
 
 }
 
-func TestSchemaValidator_Panic(t *testing.T) {
-	assert.PanicsWithValue(t, `Invalid schema provided to SchemaValidator: object has no field "pointer-to-nowhere"`, schemaValidatorPanicker)
+func TestSchemaValidator_ReferencePanic(t *testing.T) {
+	assert.PanicsWithValue(t, `schema references not supported: http://localhost:1234/integer.json`, schemaRefValidator)
 }
 
-func schemaValidatorPanicker() {
+func schemaRefValidator() {
 	var schemaJSON = `
 {
-    "$ref": "#/pointer-to-nowhere"
+    "$ref": "http://localhost:1234/integer.json"
 }`
 
 	schema := new(spec.Schema)

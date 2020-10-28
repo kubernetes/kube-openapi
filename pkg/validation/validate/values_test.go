@@ -18,9 +18,9 @@ import (
 	"math"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-openapi/pkg/validation/errors"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestValues_ValidateIntEnum(t *testing.T) {

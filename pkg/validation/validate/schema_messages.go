@@ -28,9 +28,6 @@ const (
 	// HasDependencyError indicates that a dependencies construct was not verified
 	HasDependencyError = "%q has a dependency on %s"
 
-	// InvalidSchemaProvidedError indicates that the schema provided to validate a value cannot be properly compiled
-	InvalidSchemaProvidedError = "Invalid schema provided to SchemaValidator: %v"
-
 	// InvalidTypeConversionError indicates that a numerical conversion for the given type could not be carried on
 	InvalidTypeConversionError = "invalid type conversion in %s: %v "
 
@@ -52,9 +49,6 @@ const (
 // Warning messages related to schema validation and returned as results
 const ()
 
-func invalidSchemaProvidedMsg(err error) errors.Error {
-	return errors.New(InternalErrorCode, InvalidSchemaProvidedError, err)
-}
 func invalidTypeConversionMsg(path string, err error) errors.Error {
 	return errors.New(errors.CompositeErrorCode, InvalidTypeConversionError, path, err)
 }

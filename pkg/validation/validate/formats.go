@@ -38,13 +38,7 @@ func (f *formatValidator) Applies(source interface{}, kind reflect.Kind) bool {
 			return false
 		}
 		switch source := source.(type) {
-		case *spec.Items:
-			return kind == reflect.String && f.KnownFormats.ContainsName(source.Format)
-		case *spec.Parameter:
-			return kind == reflect.String && f.KnownFormats.ContainsName(source.Format)
 		case *spec.Schema:
-			return kind == reflect.String && f.KnownFormats.ContainsName(source.Format)
-		case *spec.Header:
 			return kind == reflect.String && f.KnownFormats.ContainsName(source.Format)
 		}
 		return false
