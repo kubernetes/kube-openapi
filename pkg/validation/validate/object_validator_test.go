@@ -51,9 +51,6 @@ func TestItemsMustBeTypeArray(t *testing.T) {
 		"items": "dummy",
 	}
 	expectAllValid(t, ov, dataValid, dataInvalid)
-
-	ov.Options.EnableObjectArrayTypeCheck = true
-	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
 func TestItemsMustHaveType(t *testing.T) {
@@ -63,9 +60,6 @@ func TestItemsMustHaveType(t *testing.T) {
 		"items": "dummy",
 	}
 	expectAllValid(t, ov, dataValid, dataInvalid)
-
-	ov.Options.EnableObjectArrayTypeCheck = true
-	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
 func TestTypeArrayMustHaveItems(t *testing.T) {
@@ -76,9 +70,6 @@ func TestTypeArrayMustHaveItems(t *testing.T) {
 		"key":  "dummy",
 	}
 	expectAllValid(t, ov, dataValid, dataInvalid)
-
-	ov.Options.EnableArrayMustHaveItemsCheck = true
-	expectOnlyInvalid(t, ov, dataValid, dataInvalid)
 }
 
 // Test edge cases in object_validator which are difficult

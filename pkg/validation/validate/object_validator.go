@@ -66,43 +66,6 @@ func (o *objectValidator) isExample() bool {
 	return len(p) > 1 && (p[len(p)-1] == swaggerExample || p[len(p)-1] == swaggerExamples) && p[len(p)-2] != swaggerExample
 }
 
-func (o *objectValidator) checkArrayMustHaveItems(res *Result, val map[string]interface{}) {
-	// for swagger 2.0 schemas, there is an additional constraint to have array items defined explicitly.
-	// with pure jsonschema draft 4, one may have arrays with undefined items (i.e. any type).
-	if t, typeFound := val[jsonType]; typeFound {
-		if tpe, ok := t.(string); ok && tpe == arrayType {
-			if _, itemsKeyFound := val[jsonItems]; !itemsKeyFound {
-				res.AddErrors(errors.Required(jsonItems, o.Path))
-			}
-		}
-	}
-}
-
-func (o *objectValidator) checkItemsMustBeTypeArray(res *Result, val map[string]interface{}) {
-	if !o.isProperties() && !o.isDefault() && !o.isExample() {
-		if _, itemsKeyFound := val[jsonItems]; itemsKeyFound {
-			t, typeFound := val[jsonType]
-			if typeFound {
-				if tpe, ok := t.(string); !ok || tpe != arrayType {
-					res.AddErrors(errors.InvalidType(o.Path, o.In, arrayType, nil))
-				}
-			} else {
-				// there is no type
-				res.AddErrors(errors.Required(jsonType, o.Path))
-			}
-		}
-	}
-}
-
-func (o *objectValidator) precheck(res *Result, val map[string]interface{}) {
-	if o.Options.EnableArrayMustHaveItemsCheck {
-		o.checkArrayMustHaveItems(res, val)
-	}
-	if o.Options.EnableObjectArrayTypeCheck {
-		o.checkItemsMustBeTypeArray(res, val)
-	}
-}
-
 func (o *objectValidator) Validate(data interface{}) *Result {
 	val := data.(map[string]interface{})
 	// TODO: guard against nil data
@@ -116,8 +79,6 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	}
 
 	res := new(Result)
-
-	o.precheck(res, val)
 
 	// check validity of field names
 	if o.AdditionalProperties != nil && !o.AdditionalProperties.Allows {
