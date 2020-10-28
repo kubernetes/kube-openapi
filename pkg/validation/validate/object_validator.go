@@ -133,45 +133,9 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 				}
 			}
 
-			if !regularProperty && k != "$schema" && k != "id" && !matched {
+			if !regularProperty && !matched {
 				// Special properties "$schema" and "id" are ignored
 				res.AddErrors(errors.PropertyNotAllowed(o.Path, o.In, k))
-
-				// BUG(fredbi): This section should move to a part dedicated to spec validation as
-				// it will conflict with regular schemas where a property "headers" is defined.
-
-				//
-				// Croaks a more explicit message on top of the standard one
-				// on some recognized cases.
-				//
-				// NOTE: edge cases with invalid type assertion are simply ignored here.
-				// NOTE: prefix your messages here by "IMPORTANT!" so there are not filtered
-				// by higher level callers (the IMPORTANT! tag will be eventually
-				// removed).
-				if k == "headers" && val[k] != nil {
-					// $ref is forbidden in header
-					if headers, mapOk := val[k].(map[string]interface{}); mapOk {
-						for headerKey, headerBody := range headers {
-							if headerBody != nil {
-								if headerSchema, mapOfMapOk := headerBody.(map[string]interface{}); mapOfMapOk {
-									if _, found := headerSchema["$ref"]; found {
-										var msg string
-										if refString, stringOk := headerSchema["$ref"].(string); stringOk {
-											msg = strings.Join([]string{", one may not use $ref=\":", refString, "\""}, "")
-										}
-										res.AddErrors(refNotAllowedInHeaderMsg(o.Path, headerKey, msg))
-									}
-								}
-							}
-						}
-					}
-					/*
-						case "$ref":
-							if val[k] != nil {
-								// TODO: check context of that ref: warn about siblings, check against invalid context
-							}
-					*/
-				}
 			}
 		}
 	} else {
