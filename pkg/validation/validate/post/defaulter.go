@@ -15,7 +15,7 @@
 package post
 
 import (
-	"github.com/go-openapi/validate"
+	"k8s.io/kube-openapi/pkg/validation/validate"
 )
 
 // ApplyDefaults applies defaults to the underlying data of the result. The data must be a JSON

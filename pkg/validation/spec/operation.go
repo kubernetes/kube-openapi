@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"sort"
 
-	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 func init() {

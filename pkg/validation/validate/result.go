@@ -19,8 +19,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/spec"
+	"k8s.io/kube-openapi/pkg/validation/errors"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // Result represents a validation result set, composed of

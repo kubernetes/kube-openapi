@@ -19,8 +19,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-openapi/runtime"
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/runtime"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -17,7 +17,7 @@ package validate
 import (
 	"net/http"
 
-	"github.com/go-openapi/errors"
+	"k8s.io/kube-openapi/pkg/validation/errors"
 )
 
 // Error messages related to spec validation and returned as results.

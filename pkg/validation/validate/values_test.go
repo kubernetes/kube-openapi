@@ -18,8 +18,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/errors"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	"github.com/stretchr/testify/assert"
 )
 

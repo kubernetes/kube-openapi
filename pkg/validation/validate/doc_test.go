@@ -19,10 +19,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-openapi/loads" // Spec loading
-	"github.com/go-openapi/spec"
-	"github.com/go-openapi/strfmt"   // OpenAPI format extensions
-	"github.com/go-openapi/validate" // This package
+	"k8s.io/kube-openapi/pkg/validation/loads" // Spec loading
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"   // OpenAPI format extensions
+	"k8s.io/kube-openapi/pkg/validation/validate" // This package
 	"github.com/stretchr/testify/require"
 )
 

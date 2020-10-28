@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 	"github.com/stretchr/testify/assert"
 )
 

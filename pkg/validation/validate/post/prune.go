@@ -15,7 +15,7 @@
 package post
 
 import (
-	"github.com/go-openapi/validate"
+	"k8s.io/kube-openapi/pkg/validation/validate"
 )
 
 // Prune recursively removes all non-specified fields from the underlying data of the result.

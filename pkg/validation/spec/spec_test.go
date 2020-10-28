@@ -22,8 +22,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-openapi/spec"
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 	"github.com/stretchr/testify/assert"
 )
 

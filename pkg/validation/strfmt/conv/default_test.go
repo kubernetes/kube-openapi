@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 func TestBase64Value(t *testing.T) {

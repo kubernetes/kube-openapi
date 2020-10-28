@@ -22,7 +22,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/go-openapi/jsonpointer"
+	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
 )
 
   // Some currently unused functions and definitions that

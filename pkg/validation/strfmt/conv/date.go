@@ -1,6 +1,6 @@
 package conv
 
-import "github.com/go-openapi/strfmt"
+import "k8s.io/kube-openapi/pkg/validation/strfmt"
 
 // Date returns a pointer to of the Date value passed in.
 func Date(v strfmt.Date) *strfmt.Date {

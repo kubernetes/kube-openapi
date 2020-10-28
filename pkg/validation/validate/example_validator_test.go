@@ -18,10 +18,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-openapi/analysis"
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/spec"
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/analysis"
+	"k8s.io/kube-openapi/pkg/validation/loads"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 	"github.com/stretchr/testify/assert"
 )
 

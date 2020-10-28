@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-openapi/errors"
+	"k8s.io/kube-openapi/pkg/validation/errors"
 	"github.com/mitchellh/mapstructure"
 )
 

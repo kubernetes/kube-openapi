@@ -15,7 +15,7 @@
 package validate
 
 import (
-	"github.com/go-openapi/errors"
+	"k8s.io/kube-openapi/pkg/validation/errors"
 )
 
 // Error messages related to schema validation and returned as results.

@@ -20,12 +20,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/go-openapi/analysis"
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/loads"
-	"github.com/go-openapi/spec"
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/analysis"
+	"k8s.io/kube-openapi/pkg/validation/errors"
+	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
+	"k8s.io/kube-openapi/pkg/validation/loads"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 // Spec validates an OpenAPI 2.0 specification document.

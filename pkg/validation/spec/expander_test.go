@@ -27,8 +27,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

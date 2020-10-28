@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 // Paths holds the relative paths to the individual endpoints.

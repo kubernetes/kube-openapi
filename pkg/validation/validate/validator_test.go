@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-openapi/spec"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -17,8 +17,8 @@ package spec
 import (
 	"encoding/json"
 
-	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 // ResponseProps properties specific to a response

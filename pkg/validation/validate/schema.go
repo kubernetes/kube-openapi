@@ -18,10 +18,10 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/go-openapi/errors"
-	"github.com/go-openapi/spec"
-	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/errors"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 var (

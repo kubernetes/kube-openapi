@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/go-openapi/jsonpointer"
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 // Swagger this is the root document object for the API specification.

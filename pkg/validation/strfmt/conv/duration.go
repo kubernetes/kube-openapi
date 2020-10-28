@@ -1,6 +1,6 @@
 package conv
 
-import "github.com/go-openapi/strfmt"
+import "k8s.io/kube-openapi/pkg/validation/strfmt"
 
 // Duration returns a pointer to of the Duration value passed in.
 func Duration(v strfmt.Duration) *strfmt.Duration {

@@ -1,7 +1,7 @@
 package conv
 
 import (
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 // Base64 returns a pointer to of the Base64 value passed in.

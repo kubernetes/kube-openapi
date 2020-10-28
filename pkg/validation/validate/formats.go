@@ -17,8 +17,8 @@ package validate
 import (
 	"reflect"
 
-	"github.com/go-openapi/spec"
-	"github.com/go-openapi/strfmt"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 type formatValidator struct {

@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 // Responses is a container for the expected responses of an operation.

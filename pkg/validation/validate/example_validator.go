@@ -17,7 +17,7 @@ package validate
 import (
 	"fmt"
 
-	"github.com/go-openapi/spec"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // ExampleValidator validates example values defined in a spec

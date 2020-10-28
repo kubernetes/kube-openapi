@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/validation/swag"
 )
 
 // PathLoader function to use when loading remote refs

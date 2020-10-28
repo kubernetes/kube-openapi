@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-openapi/spec"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // defaultValidator validates default values in a spec.
