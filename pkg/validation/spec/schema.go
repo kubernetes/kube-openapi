@@ -20,8 +20,8 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/kube-openapi/pkg/validation/jsonpointer"
-	"k8s.io/kube-openapi/pkg/validation/swag"
+	"github.com/go-openapi/jsonpointer"
+	"github.com/go-openapi/swag"
 )
 
 // BooleanProperty creates a boolean property
@@ -199,7 +199,6 @@ type SchemaProps struct {
 type SwaggerSchemaProps struct {
 	Discriminator string                 `json:"discriminator,omitempty"`
 	ReadOnly      bool                   `json:"readOnly,omitempty"`
-	XML           *XMLObject             `json:"xml,omitempty"`
 	ExternalDocs  *ExternalDocumentation `json:"externalDocs,omitempty"`
 	Example       interface{}            `json:"example,omitempty"`
 }
@@ -447,69 +446,6 @@ func (s *Schema) WithExternalDocs(description, url string) *Schema {
 	}
 	s.ExternalDocs.Description = description
 	s.ExternalDocs.URL = url
-	return s
-}
-
-// WithXMLName sets the xml name for the object
-func (s *Schema) WithXMLName(name string) *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Name = name
-	return s
-}
-
-// WithXMLNamespace sets the xml namespace for the object
-func (s *Schema) WithXMLNamespace(namespace string) *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Namespace = namespace
-	return s
-}
-
-// WithXMLPrefix sets the xml prefix for the object
-func (s *Schema) WithXMLPrefix(prefix string) *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Prefix = prefix
-	return s
-}
-
-// AsXMLAttribute flags this object as xml attribute
-func (s *Schema) AsXMLAttribute() *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Attribute = true
-	return s
-}
-
-// AsXMLElement flags this object as an xml node
-func (s *Schema) AsXMLElement() *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Attribute = false
-	return s
-}
-
-// AsWrappedXML flags this object as wrapped, this is mostly useful for array types
-func (s *Schema) AsWrappedXML() *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Wrapped = true
-	return s
-}
-
-// AsUnwrappedXML flags this object as an xml node
-func (s *Schema) AsUnwrappedXML() *Schema {
-	if s.XML == nil {
-		s.XML = new(XMLObject)
-	}
-	s.XML.Wrapped = false
 	return s
 }
 

@@ -32,13 +32,7 @@ func TestCloneRef(t *testing.T) {
 		t.FailNow()
 	}
 
-	var dst Ref
-	err = gob.NewDecoder(&b).Decode(&dst)
-	if !assert.NoError(t, err) {
-		t.FailNow()
-	}
-
-	jazon, err := json.Marshal(dst)
+	jazon, err := json.Marshal(src)
 	if !assert.NoError(t, err) {
 		t.FailNow()
 	}

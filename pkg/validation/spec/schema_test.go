@@ -59,7 +59,6 @@ var schema = Schema{
 	SwaggerSchemaProps: SwaggerSchemaProps{
 		Discriminator: "not this",
 		ReadOnly:      true,
-		XML:           &XMLObject{Name: "sch", Namespace: "io", Prefix: "sw", Attribute: true, Wrapped: true},
 		ExternalDocs: &ExternalDocumentation{
 			Description: "the documentation etc",
 			URL:         "http://readthedocs.org/swagger",
@@ -119,13 +118,6 @@ var schemaJSON = `{
   },
   "discriminator": "not this",
   "readOnly": true,
-  "xml": {
-    "name": "sch",
-    "namespace": "io",
-    "prefix": "sw",
-    "wrapped": true,
-    "attribute": true
-  },
   "externalDocs": {
     "description": "the documentation etc",
     "url": "http://readthedocs.org/swagger"
@@ -185,7 +177,6 @@ func TestSchema(t *testing.T) {
 		assert.Equal(t, schema.Properties, actual2.Properties)
 		assert.Equal(t, schema.Discriminator, actual2.Discriminator)
 		assert.Equal(t, schema.ReadOnly, actual2.ReadOnly)
-		assert.Equal(t, schema.XML, actual2.XML)
 		assert.Equal(t, schema.ExternalDocs, actual2.ExternalDocs)
 		assert.Equal(t, schema.AdditionalProperties, actual2.AdditionalProperties)
 		assert.Equal(t, schema.Extensions, actual2.Extensions)
