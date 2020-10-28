@@ -15,7 +15,7 @@
 package strfmt
 
 import (
-	bsonprim "go.mongodb.org/mongo-driver/bson/primitive"
+	bsonprim "k8s.io/kube-openapi/pkg/validation/strfmt/bson"
 )
 
 func init() {
