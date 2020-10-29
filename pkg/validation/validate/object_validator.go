@@ -115,8 +115,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 				// Cases: properties which are not regular properties and have not been matched by the PatternProperties validator
 				if o.AdditionalProperties != nil && o.AdditionalProperties.Schema != nil {
 					// AdditionalProperties as Schema
-					r := NewSchemaValidator(o.AdditionalProperties.Schema, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value)
-					res.mergeForField(data.(map[string]interface{}), key, r)
+					res.Merge(NewSchemaValidator(o.AdditionalProperties.Schema, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value))
 				} else if regularProperty && !(matched || succeededOnce) {
 					// TODO: this is dead code since regularProperty=false here
 					res.AddErrors(errors.FailedAllPatternProperties(o.Path, o.In, key))
@@ -130,8 +129,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 
 	// Property types:
 	// - regular Property
-	for pName := range o.Properties {
-		pSchema := o.Properties[pName] // one instance per iteration
+	for pName, pSchema := range o.Properties {
 		rName := pName
 		if o.Path != "" {
 			rName = o.Path + "." + pName
@@ -140,12 +138,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 		// Recursively validates each property against its schema
 		if v, ok := val[pName]; ok {
 			r := NewSchemaValidator(&pSchema, o.Root, rName, o.KnownFormats, o.Options.Options()...).Validate(v)
-			res.mergeForField(data.(map[string]interface{}), pName, r)
-		} else if pSchema.Default != nil {
-			// If a default value is defined, creates the property from defaults
-			// NOTE: JSON schema does not enforce default values to be valid against schema. Swagger does.
-			createdFromDefaults[pName] = true
-			res.addPropertySchemata(data.(map[string]interface{}), pName, &pSchema)
+			res.Merge(r)
 		}
 	}
 
@@ -167,8 +160,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 		if !regularProperty && (matched /*|| succeededOnce*/) {
 			for _, pName := range patterns {
 				if v, ok := o.PatternProperties[pName]; ok {
-					r := NewSchemaValidator(&v, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value)
-					res.mergeForField(data.(map[string]interface{}), key, r)
+					res.Merge(NewSchemaValidator(&v, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value))
 				}
 			}
 		}
