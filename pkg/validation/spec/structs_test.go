@@ -20,21 +20,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
 )
 
 func assertSerializeJSON(t testing.TB, actual interface{}, expected string) bool {
 	ser, err := json.Marshal(actual)
 	if err != nil {
 		return assert.Fail(t, "unable to marshal to json (%s): %#v", err, actual)
-	}
-	return assert.Equal(t, string(ser), expected)
-}
-
-func assertSerializeYAML(t testing.TB, actual interface{}, expected string) bool {
-	ser, err := yaml.Marshal(actual)
-	if err != nil {
-		return assert.Fail(t, "unable to marshal to yaml (%s): %#v", err, actual)
 	}
 	return assert.Equal(t, string(ser), expected)
 }
@@ -66,19 +57,6 @@ func assertParsesJSON(t testing.TB, actual string, expected interface{}) bool {
 		act = reflect.Indirect(parsed).Interface()
 	}
 	return assert.Equal(t, act, expected)
-}
-
-func assertParsesYAML(t testing.TB, actual string, expected interface{}) bool {
-	parsed := reflect.New(derefTypeOf(expected))
-	err := yaml.Unmarshal([]byte(actual), parsed.Interface())
-	if err != nil {
-		return assert.Fail(t, "unable to unmarshal from yaml (%s): %s", err, actual)
-	}
-	act := parsed.Interface()
-	if !isPointed(expected) {
-		act = reflect.Indirect(parsed).Interface()
-	}
-	return assert.EqualValues(t, act, expected)
 }
 
 func TestSerialization_SerializeJSON(t *testing.T) {
