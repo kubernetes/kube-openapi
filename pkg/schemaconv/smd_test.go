@@ -29,19 +29,24 @@ import (
 
 func TestToSchema(t *testing.T) {
 	tests := []struct {
-		name string
-		openAPIFilename string
+		name                   string
+		openAPIFilename        string
 		expectedSchemaFilename string
 	}{
 		{
-			name: "kubernetes",
-			openAPIFilename: "swagger.json",
+			name:                   "kubernetes",
+			openAPIFilename:        "swagger.json",
 			expectedSchemaFilename: "new-schema.yaml",
 		},
 		{
-			name: "atomics",
-			openAPIFilename: "atomic-types.json",
+			name:                   "atomics",
+			openAPIFilename:        "atomic-types.json",
 			expectedSchemaFilename: "atomic-types.yaml",
+		},
+		{
+			name:                   "defaults",
+			openAPIFilename:        "defaults.json",
+			expectedSchemaFilename: "defaults.yaml",
 		},
 	}
 	for _, tc := range tests {
