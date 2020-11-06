@@ -145,8 +145,8 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	// Check required properties
 	if len(o.Required) > 0 {
 		for _, k := range o.Required {
-			if v, ok := val[k]; !ok && !createdFromDefaults[k] {
-				res.AddErrors(errors.Required(o.Path+"."+k, o.In, v))
+			if _, ok := val[k]; !ok && !createdFromDefaults[k] {
+				res.AddErrors(errors.Required(o.Path+"."+k, o.In))
 				continue
 			}
 		}

@@ -114,27 +114,11 @@ func Required(path, in string, data interface{}) *errors.Validation {
 	val := reflect.ValueOf(data)
 	if val.IsValid() {
 		if reflect.DeepEqual(reflect.Zero(val.Type()).Interface(), val.Interface()) {
-			return errors.Required(path, in, data)
+			return errors.Required(path, in)
 		}
 		return nil
 	}
-	return errors.Required(path, in, data)
-}
-
-// RequiredString validates a string for requiredness
-func RequiredString(path, in, data string) *errors.Validation {
-	if data == "" {
-		return errors.Required(path, in, data)
-	}
-	return nil
-}
-
-// RequiredNumber validates a number for requiredness
-func RequiredNumber(path, in string, data float64) *errors.Validation {
-	if data == 0 {
-		return errors.Required(path, in, data)
-	}
-	return nil
+	return errors.Required(path, in)
 }
 
 // Pattern validates a string against a regular expression

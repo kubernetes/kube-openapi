@@ -485,7 +485,7 @@ func EnumFail(name, in string, value interface{}, values []interface{}) *Validat
 }
 
 // Required error for when a value is missing
-func Required(name, in string, value interface{}) *Validation {
+func Required(name, in string) *Validation {
 	var msg string
 	if in == "" {
 		msg = fmt.Sprintf(requiredFailNoIn, name)
@@ -496,7 +496,6 @@ func Required(name, in string, value interface{}) *Validation {
 		code:    RequiredFailCode,
 		Name:    name,
 		In:      in,
-		Value:   value,
 		message: msg,
 	}
 }

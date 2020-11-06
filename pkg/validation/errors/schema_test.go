@@ -261,17 +261,15 @@ func TestSchemaErrors(t *testing.T) {
 	assert.Equal(t, "something should be one of [hello world]", err.Error())
 	assert.Equal(t, "yada", err.Value)
 
-	err = Required("something", "query", nil)
+	err = Required("something", "query")
 	assert.Error(t, err)
 	assert.EqualValues(t, RequiredFailCode, err.Code())
 	assert.Equal(t, "something in query is required", err.Error())
-	assert.Equal(t, nil, err.Value)
 
-	err = Required("something", "", nil)
+	err = Required("something", "")
 	assert.Error(t, err)
 	assert.EqualValues(t, RequiredFailCode, err.Code())
 	assert.Equal(t, "something is required", err.Error())
-	assert.Equal(t, nil, err.Value)
 
 	err = TooLong("something", "query", 5, "abcdef")
 	assert.Error(t, err)

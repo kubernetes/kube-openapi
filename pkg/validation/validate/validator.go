@@ -191,14 +191,11 @@ func (n *numberValidator) Validate(val interface{}) *Result {
 }
 
 type stringValidator struct {
-	Default         interface{}
-	Required        bool
-	AllowEmptyValue bool
-	MaxLength       *int64
-	MinLength       *int64
-	Pattern         string
-	Path            string
-	In              string
+	MaxLength *int64
+	MinLength *int64
+	Pattern   string
+	Path      string
+	In        string
 }
 
 func (s *stringValidator) SetPath(path string) {
@@ -220,12 +217,6 @@ func (s *stringValidator) Validate(val interface{}) *Result {
 	data, ok := val.(string)
 	if !ok {
 		return errorHelp.sErr(errors.InvalidType(s.Path, s.In, stringType, val))
-	}
-
-	if s.Required && !s.AllowEmptyValue && (s.Default == nil || s.Default == "") {
-		if err := RequiredString(s.Path, s.In, data); err != nil {
-			return errorHelp.sErr(err)
-		}
 	}
 
 	if s.MaxLength != nil {
