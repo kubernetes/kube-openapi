@@ -129,13 +129,6 @@ func TestValues_ValidateRequired(t *testing.T) {
 
 }
 
-func TestValues_ValidateRequiredNumber(t *testing.T) {
-	err := RequiredNumber("test", "body", 0)
-	assert.Error(t, err)
-	err = RequiredNumber("test", "body", 1)
-	assert.Nil(t, err)
-}
-
 func TestValuMultipleOf(t *testing.T) {
 
 	// positive
