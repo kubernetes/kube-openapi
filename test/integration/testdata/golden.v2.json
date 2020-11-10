@@ -81,6 +81,25 @@
      }
     }
    },
+   "/test/defaults/defaulted": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func19",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/defaults.Defaulted"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/dummytype/bar": {
     "get": {
      "schemes": [
@@ -362,6 +381,76 @@
    "custom.Bal": {
     "type": "string"
    },
+   "defaults.Defaulted": {
+    "type": "object",
+    "required": [
+     "OtherField",
+     "List",
+     "Sub",
+     "OtherSub",
+     "Map"
+    ],
+    "properties": {
+     "Field": {
+      "type": "string",
+      "default": "bar"
+     },
+     "List": {
+      "type": "array",
+      "default": [
+       "foo",
+       "bar"
+      ],
+      "items": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "Map": {
+      "type": "object",
+      "default": {
+       "foo": "bar"
+      },
+      "additionalProperties": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "OtherField": {
+      "type": "integer",
+      "format": "int32",
+      "default": 0
+     },
+     "OtherSub": {
+      "default": {},
+      "$ref": "#/definitions/defaults.SubStruct"
+     },
+     "Sub": {
+      "default": {
+       "i": 5,
+       "s": "foo"
+      },
+      "$ref": "#/definitions/defaults.SubStruct"
+     }
+    }
+   },
+   "defaults.SubStruct": {
+    "type": "object",
+    "required": [
+     "S"
+    ],
+    "properties": {
+     "I": {
+      "type": "integer",
+      "format": "int32",
+      "default": 1
+     },
+     "S": {
+      "type": "string",
+      "default": ""
+     }
+    }
+   },
    "dummytype.Bar": {
     "type": "object",
     "required": [
@@ -370,10 +459,12 @@
     ],
     "properties": {
      "Violation": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
      },
      "ViolationBehind": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
      }
     }
    },
@@ -385,10 +476,12 @@
     ],
     "properties": {
      "Violation": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
      },
      "ViolationBehind": {
-      "type": "boolean"
+      "type": "boolean",
+      "default": false
      }
     }
    },
@@ -401,10 +494,12 @@
     "properties": {
      "First": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      },
      "Second": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      }
     }
    },
@@ -417,10 +512,12 @@
     "properties": {
      "First": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      },
      "Second": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      }
     }
    },
@@ -433,7 +530,8 @@
      "Field": {
       "type": "array",
       "items": {
-       "type": "string"
+       "type": "string",
+       "default": ""
       },
       "x-kubernetes-list-type": "atomic"
      }
@@ -448,14 +546,17 @@
     "properties": {
      "Port": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      },
      "Protocol": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      },
      "a": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      },
      "b": {
       "type": "integer",
@@ -463,7 +564,8 @@
      },
      "c": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      }
     }
    },
@@ -476,6 +578,7 @@
      "Field": {
       "type": "array",
       "items": {
+       "default": {},
        "$ref": "#/definitions/listtype.Item"
       },
       "x-kubernetes-list-map-keys": [
@@ -494,7 +597,8 @@
      "Field": {
       "type": "array",
       "items": {
-       "type": "string"
+       "type": "string",
+       "default": ""
       },
       "x-kubernetes-list-type": "set"
      }
@@ -509,7 +613,8 @@
      "KeyValue": {
       "type": "object",
       "additionalProperties": {
-       "type": "string"
+       "type": "string",
+       "default": ""
       },
       "x-kubernetes-map-type": "atomic"
      }
@@ -524,7 +629,8 @@
      "KeyValue": {
       "type": "object",
       "additionalProperties": {
-       "type": "string"
+       "type": "string",
+       "default": ""
       },
       "x-kubernetes-map-type": "granular"
      }
@@ -538,12 +644,14 @@
     ],
     "properties": {
      "Field": {
+      "default": {},
       "x-kubernetes-map-type": "atomic",
       "$ref": "#/definitions/structtype.ContainedStruct"
      },
      "OtherField": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      }
     }
    },
@@ -558,7 +666,8 @@
     "properties": {
      "Field": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      }
     },
     "x-kubernetes-map-type": "atomic"
@@ -571,12 +680,14 @@
     ],
     "properties": {
      "Field": {
+      "default": {},
       "x-kubernetes-map-type": "granular",
       "$ref": "#/definitions/structtype.ContainedStruct"
      },
      "OtherField": {
       "type": "integer",
-      "format": "int32"
+      "format": "int32",
+      "default": 0
      }
     }
    },
@@ -612,13 +723,16 @@
       "format": "int32"
      },
      "name": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      },
      "type": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      },
      "unionType": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      }
     },
     "x-kubernetes-unions": [
@@ -659,10 +773,12 @@
       "format": "int32"
      },
      "name": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      },
      "unionType": {
-      "type": "string"
+      "type": "string",
+      "default": ""
      }
     },
     "x-kubernetes-unions": [
