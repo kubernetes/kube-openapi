@@ -38,7 +38,6 @@ import (
 
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
-	"k8s.io/kube-openapi/pkg/handler/internal"
 )
 
 const (
@@ -105,12 +104,7 @@ func (o *OpenAPIService) getSwaggerPbGzBytes() ([]byte, string, time.Time) {
 }
 
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
-	var spec spec.Swagger
-	if openapiSpec != nil {
-		spec = *openapiSpec
-		spec.Definitions = internal.PruneDefaults(spec.Definitions)
-	}
-	specBytes, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(&spec)
+	specBytes, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(openapiSpec)
 	if err != nil {
 		return err
 	}
