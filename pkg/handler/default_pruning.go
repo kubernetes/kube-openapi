@@ -24,7 +24,7 @@ import "github.com/go-openapi/spec"
 func PruneDefaults(definitions spec.Definitions) spec.Definitions {
 	definitionsCloned := false
 	for k, v := range definitions {
-		if s := pruneSchema(&v); s != &v {
+		if s := PruneDefaultsSchema(&v); s != &v {
 			if !definitionsCloned {
 				definitionsCloned = true
 				orig := definitions
@@ -39,7 +39,9 @@ func PruneDefaults(definitions spec.Definitions) spec.Definitions {
 	return definitions
 }
 
-func pruneSchema(schema *spec.Schema) *spec.Schema {
+// PruneDefaultsSchema remove all the defaults recursively from the
+// schema in place.
+func PruneDefaultsSchema(schema *spec.Schema) *spec.Schema {
 	if schema == nil {
 		return nil
 	}
@@ -59,7 +61,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	definitionsCloned := false
 	for k, v := range schema.Definitions {
-		if s := pruneSchema(&v); s != &v {
+		if s := PruneDefaultsSchema(&v); s != &v {
 			if !definitionsCloned {
 				definitionsCloned = true
 				clone()
@@ -74,7 +76,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	propertiesCloned := false
 	for k, v := range schema.Properties {
-		if s := pruneSchema(&v); s != &v {
+		if s := PruneDefaultsSchema(&v); s != &v {
 			if !propertiesCloned {
 				propertiesCloned = true
 				clone()
@@ -89,7 +91,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	patternPropertiesCloned := false
 	for k, v := range schema.PatternProperties {
-		if s := pruneSchema(&v); s != &v {
+		if s := PruneDefaultsSchema(&v); s != &v {
 			if !patternPropertiesCloned {
 				patternPropertiesCloned = true
 				clone()
@@ -104,7 +106,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	dependenciesCloned := false
 	for k, v := range schema.Dependencies {
-		if s := pruneSchema(v.Schema); s != v.Schema {
+		if s := PruneDefaultsSchema(v.Schema); s != v.Schema {
 			if !dependenciesCloned {
 				dependenciesCloned = true
 				clone()
@@ -120,7 +122,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	allOfCloned := false
 	for i := range schema.AllOf {
-		if s := pruneSchema(&schema.AllOf[i]); s != &schema.AllOf[i] {
+		if s := PruneDefaultsSchema(&schema.AllOf[i]); s != &schema.AllOf[i] {
 			if !allOfCloned {
 				allOfCloned = true
 				clone()
@@ -133,7 +135,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	anyOfCloned := false
 	for i := range schema.AnyOf {
-		if s := pruneSchema(&schema.AnyOf[i]); s != &schema.AnyOf[i] {
+		if s := PruneDefaultsSchema(&schema.AnyOf[i]); s != &schema.AnyOf[i] {
 			if !anyOfCloned {
 				anyOfCloned = true
 				clone()
@@ -146,7 +148,7 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	oneOfCloned := false
 	for i := range schema.OneOf {
-		if s := pruneSchema(&schema.OneOf[i]); s != &schema.OneOf[i] {
+		if s := PruneDefaultsSchema(&schema.OneOf[i]); s != &schema.OneOf[i] {
 			if !oneOfCloned {
 				oneOfCloned = true
 				clone()
@@ -158,21 +160,21 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 	}
 
 	if schema.Not != nil {
-		if s := pruneSchema(schema.Not); s != schema.Not {
+		if s := PruneDefaultsSchema(schema.Not); s != schema.Not {
 			clone()
 			schema.Not = s
 		}
 	}
 
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.Schema != nil {
-		if s := pruneSchema(schema.AdditionalProperties.Schema); s != schema.AdditionalProperties.Schema {
+		if s := PruneDefaultsSchema(schema.AdditionalProperties.Schema); s != schema.AdditionalProperties.Schema {
 			clone()
 			schema.AdditionalProperties = &spec.SchemaOrBool{Schema: s, Allows: schema.AdditionalProperties.Allows}
 		}
 	}
 
 	if schema.AdditionalItems != nil && schema.AdditionalItems.Schema != nil {
-		if s := pruneSchema(schema.AdditionalItems.Schema); s != schema.AdditionalItems.Schema {
+		if s := PruneDefaultsSchema(schema.AdditionalItems.Schema); s != schema.AdditionalItems.Schema {
 			clone()
 			schema.AdditionalItems = &spec.SchemaOrBool{Schema: s, Allows: schema.AdditionalItems.Allows}
 		}
@@ -180,14 +182,14 @@ func pruneSchema(schema *spec.Schema) *spec.Schema {
 
 	if schema.Items != nil {
 		if schema.Items.Schema != nil {
-			if s := pruneSchema(schema.Items.Schema); s != schema.Items.Schema {
+			if s := PruneDefaultsSchema(schema.Items.Schema); s != schema.Items.Schema {
 				clone()
 				schema.Items = &spec.SchemaOrArray{Schema: s}
 			}
 		} else {
 			itemsCloned := false
 			for i := range schema.Items.Schemas {
-				if s := pruneSchema(&schema.Items.Schemas[i]); s != &schema.Items.Schemas[i] {
+				if s := PruneDefaultsSchema(&schema.Items.Schemas[i]); s != &schema.Items.Schemas[i] {
 					if !itemsCloned {
 						clone()
 						schema.Items = &spec.SchemaOrArray{
