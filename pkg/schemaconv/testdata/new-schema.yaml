@@ -9611,7 +9611,7 @@ types:
       namedType: __untyped_atomic_
     elementRelationship: atomic
 - name: io.k8s.apimachinery.pkg.api.resource.Quantity
-  scalar: string
+  scalar: untyped
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIGroup
   map:
     fields:
