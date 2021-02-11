@@ -7,7 +7,6 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633
-	github.com/ghodss/yaml v0.0.0-20150909031657-73d445a93680
 	github.com/go-openapi/jsonpointer v0.19.3
 	github.com/go-openapi/jsonreference v0.19.3
 	github.com/go-openapi/spec v0.19.3
@@ -29,5 +28,5 @@ require (
 	k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac
 	k8s.io/klog/v2 v2.0.0
 	sigs.k8s.io/structured-merge-diff/v4 v4.0.2
-	sigs.k8s.io/yaml v1.1.0
+	sigs.k8s.io/yaml v1.2.0
 )
