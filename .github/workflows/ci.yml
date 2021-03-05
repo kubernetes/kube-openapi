@@ -1,0 +1,31 @@
+name: ci-pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: src/k8s.io/kube-openapi/        
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: '^1.16'
+
+    - name: Build
+      run: |
+        cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
+        go mod tidy && git diff --exit-code
+        go build ./cmd/... ./pkg/...
+    - name: Test
+      run: |
+        cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
+        GOPATH=${GITHUB_WORKSPACE} go test ./cmd/... ./pkg/... ./test/...
