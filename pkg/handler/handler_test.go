@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/go-openapi/spec"
 	json "github.com/json-iterator/go"
 	yaml "gopkg.in/yaml.v2"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 var returnedSwagger = []byte(`{

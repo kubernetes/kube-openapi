@@ -9,7 +9,6 @@ require (
 	github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633
 	github.com/go-openapi/jsonpointer v0.19.3
 	github.com/go-openapi/jsonreference v0.19.3
-	github.com/go-openapi/spec v0.19.3
 	github.com/go-openapi/swag v0.19.5
 	github.com/golang/protobuf v1.4.2
 	github.com/google/gofuzz v1.0.0

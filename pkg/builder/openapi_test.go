@@ -24,9 +24,9 @@ import (
 	"testing"
 
 	"github.com/emicklei/go-restful"
-	"github.com/go-openapi/spec"
 	"github.com/stretchr/testify/assert"
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // setUp is a convenience function for setting up for (most) tests.
@@ -212,13 +212,13 @@ func getConfig(fullMethods bool) (*openapi.Config, *restful.Container) {
 		},
 		GetDefinitions: func(_ openapi.ReferenceCallback) map[string]openapi.OpenAPIDefinition {
 			return map[string]openapi.OpenAPIDefinition{
-				"k8s.io/kube-openapi/pkg/builder.TestInput":           *TestInput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder.TestOutput":          *TestOutput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder.TestInput":             *TestInput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder.TestOutput":            *TestOutput{}.OpenAPIDefinition(),
 				"k8s.io/kube-openapi/pkg/builder.TestExtensionV2Schema": *TestExtensionV2Schema{}.OpenAPIDefinition(),
 				// Bazel changes the package name, this is ok for testing, but we need to fix it if it happened
 				// in the main code.
-				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestInput":           *TestInput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestOutput":          *TestOutput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestInput":             *TestInput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestOutput":            *TestOutput{}.OpenAPIDefinition(),
 				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestExtensionV2Schema": *TestExtensionV2Schema{}.OpenAPIDefinition(),
 			}
 		},

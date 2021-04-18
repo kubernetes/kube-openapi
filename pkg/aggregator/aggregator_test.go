@@ -24,10 +24,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/go-openapi/spec"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-openapi/pkg/handler"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/yaml"
 )
 

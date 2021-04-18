@@ -20,7 +20,78 @@ import (
 	"strconv"
 
 	"github.com/go-openapi/jsonpointer"
+	"github.com/go-openapi/swag"
 )
+
+// Swagger this is the root document object for the API specification.
+// It combines what previously was the Resource Listing and API Declaration (version 1.2 and earlier)
+// together into one document.
+//
+// For more information: http://goo.gl/8us55a#swagger-object-
+type Swagger struct {
+	VendorExtensible
+	SwaggerProps
+}
+
+// JSONLookup look up a value by the json property name
+func (s Swagger) JSONLookup(token string) (interface{}, error) {
+	if ex, ok := s.Extensions[token]; ok {
+		return &ex, nil
+	}
+	r, _, err := jsonpointer.GetForToken(s.SwaggerProps, token)
+	return r, err
+}
+
+// MarshalJSON marshals this swagger structure to json
+func (s Swagger) MarshalJSON() ([]byte, error) {
+	b1, err := json.Marshal(s.SwaggerProps)
+	if err != nil {
+		return nil, err
+	}
+	b2, err := json.Marshal(s.VendorExtensible)
+	if err != nil {
+		return nil, err
+	}
+	return swag.ConcatJSON(b1, b2), nil
+}
+
+// UnmarshalJSON unmarshals a swagger spec from json
+func (s *Swagger) UnmarshalJSON(data []byte) error {
+	var sw Swagger
+	if err := json.Unmarshal(data, &sw.SwaggerProps); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(data, &sw.VendorExtensible); err != nil {
+		return err
+	}
+	*s = sw
+	return nil
+}
+
+// SwaggerProps captures the top-level properties of an Api specification
+//
+// NOTE: validation rules
+// - the scheme, when present must be from [http, https, ws, wss]
+// - BasePath must start with a leading "/"
+// - Paths is required
+type SwaggerProps struct {
+	ID                  string                 `json:"id,omitempty"`
+	Consumes            []string               `json:"consumes,omitempty"`
+	Produces            []string               `json:"produces,omitempty"`
+	Schemes             []string               `json:"schemes,omitempty"`
+	Swagger             string                 `json:"swagger,omitempty"`
+	Info                *Info                  `json:"info,omitempty"`
+	Host                string                 `json:"host,omitempty"`
+	BasePath            string                 `json:"basePath,omitempty"`
+	Paths               *Paths                 `json:"paths"`
+	Definitions         Definitions            `json:"definitions,omitempty"`
+	Parameters          map[string]Parameter   `json:"parameters,omitempty"`
+	Responses           map[string]Response    `json:"responses,omitempty"`
+	SecurityDefinitions SecurityDefinitions    `json:"securityDefinitions,omitempty"`
+	Security            []map[string][]string  `json:"security,omitempty"`
+	Tags                []Tag                  `json:"tags,omitempty"`
+	ExternalDocs        *ExternalDocumentation `json:"externalDocs,omitempty"`
+}
 
 // Dependencies represent a dependencies property
 type Dependencies map[string]SchemaOrStringArray
@@ -124,6 +195,13 @@ func (s *SchemaOrStringArray) UnmarshalJSON(data []byte) error {
 //
 // For more information: http://goo.gl/8us55a#definitionsObject
 type Definitions map[string]Schema
+
+// SecurityDefinitions a declaration of the security schemes available to be used in the specification.
+// This does not enforce the security schemes on the operations and only serves to provide
+// the relevant details for each scheme.
+//
+// For more information: http://goo.gl/8us55a#securityDefinitionsObject
+type SecurityDefinitions map[string]*SecurityScheme
 
 // StringOrArray represents a value that can either be a string
 // or an array of strings. Mainly here for serialization purposes
