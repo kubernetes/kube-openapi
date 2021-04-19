@@ -16,9 +16,7 @@ package spec
 
 import (
 	"encoding/json"
-	"strings"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 )
 
@@ -68,33 +66,6 @@ type Parameter struct {
 	SimpleSchema
 	VendorExtensible
 	ParamProps
-}
-
-// JSONLookup look up a value by the json property name
-func (p Parameter) JSONLookup(token string) (interface{}, error) {
-	if ex, ok := p.Extensions[token]; ok {
-		return &ex, nil
-	}
-	if token == jsonRef {
-		return &p.Ref, nil
-	}
-
-	r, _, err := jsonpointer.GetForToken(p.CommonValidations, token)
-	if err != nil && !strings.HasPrefix(err.Error(), "object has no field") {
-		return nil, err
-	}
-	if r != nil {
-		return r, nil
-	}
-	r, _, err = jsonpointer.GetForToken(p.SimpleSchema, token)
-	if err != nil && !strings.HasPrefix(err.Error(), "object has no field") {
-		return nil, err
-	}
-	if r != nil {
-		return r, nil
-	}
-	r, _, err = jsonpointer.GetForToken(p.ParamProps, token)
-	return r, err
 }
 
 // UnmarshalJSON hydrates this items instance with the data from JSON

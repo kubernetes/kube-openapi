@@ -17,7 +17,6 @@ package spec
 import (
 	"encoding/json"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 )
 
@@ -72,15 +71,6 @@ func (op OperationProps) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	VendorExtensible
 	OperationProps
-}
-
-// JSONLookup look up a value by the json property name
-func (o Operation) JSONLookup(token string) (interface{}, error) {
-	if ex, ok := o.Extensions[token]; ok {
-		return &ex, nil
-	}
-	r, _, err := jsonpointer.GetForToken(o.OperationProps, token)
-	return r, err
 }
 
 // UnmarshalJSON hydrates this items instance with the data from JSON

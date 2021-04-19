@@ -17,9 +17,7 @@ package spec
 import (
 	"encoding/json"
 	"fmt"
-	"strconv"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 )
 
@@ -31,15 +29,6 @@ import (
 type Swagger struct {
 	VendorExtensible
 	SwaggerProps
-}
-
-// JSONLookup look up a value by the json property name
-func (s Swagger) JSONLookup(token string) (interface{}, error) {
-	if ex, ok := s.Extensions[token]; ok {
-		return &ex, nil
-	}
-	r, _, err := jsonpointer.GetForToken(s.SwaggerProps, token)
-	return r, err
 }
 
 // MarshalJSON marshals this swagger structure to json
@@ -102,15 +91,6 @@ type SchemaOrBool struct {
 	Schema *Schema
 }
 
-// JSONLookup implements an interface to customize json pointer lookup
-func (s SchemaOrBool) JSONLookup(token string) (interface{}, error) {
-	if token == "allows" {
-		return s.Allows, nil
-	}
-	r, _, err := jsonpointer.GetForToken(s.Schema, token)
-	return r, err
-}
-
 var jsTrue = []byte("true")
 var jsFalse = []byte("false")
 
@@ -147,12 +127,6 @@ func (s *SchemaOrBool) UnmarshalJSON(data []byte) error {
 type SchemaOrStringArray struct {
 	Schema   *Schema
 	Property []string
-}
-
-// JSONLookup implements an interface to customize json pointer lookup
-func (s SchemaOrStringArray) JSONLookup(token string) (interface{}, error) {
-	r, _, err := jsonpointer.GetForToken(s.Schema, token)
-	return r, err
 }
 
 // MarshalJSON converts this schema object or array into JSON structure
@@ -215,16 +189,6 @@ func (s StringOrArray) Contains(value string) bool {
 		}
 	}
 	return false
-}
-
-// JSONLookup implements an interface to customize json pointer lookup
-func (s SchemaOrArray) JSONLookup(token string) (interface{}, error) {
-	if _, err := strconv.Atoi(token); err == nil {
-		r, _, err := jsonpointer.GetForToken(s.Schemas, token)
-		return r, err
-	}
-	r, _, err := jsonpointer.GetForToken(s.Schema, token)
-	return r, err
 }
 
 // UnmarshalJSON unmarshals this string or array object from a JSON array or JSON string

@@ -17,7 +17,6 @@ package spec
 import (
 	"encoding/json"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 )
 
@@ -36,18 +35,6 @@ type Response struct {
 	Refable
 	ResponseProps
 	VendorExtensible
-}
-
-// JSONLookup look up a value by the json property name
-func (r Response) JSONLookup(token string) (interface{}, error) {
-	if ex, ok := r.Extensions[token]; ok {
-		return &ex, nil
-	}
-	if token == "$ref" {
-		return &r.Ref, nil
-	}
-	ptr, _, err := jsonpointer.GetForToken(r.ResponseProps, token)
-	return ptr, err
 }
 
 // UnmarshalJSON hydrates this items instance with the data from JSON

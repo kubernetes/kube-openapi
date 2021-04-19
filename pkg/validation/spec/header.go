@@ -16,9 +16,7 @@ package spec
 
 import (
 	"encoding/json"
-	"strings"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 )
 
@@ -70,28 +68,4 @@ func (h *Header) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &h.HeaderProps)
-}
-
-// JSONLookup look up a value by the json property name
-func (h Header) JSONLookup(token string) (interface{}, error) {
-	if ex, ok := h.Extensions[token]; ok {
-		return &ex, nil
-	}
-
-	r, _, err := jsonpointer.GetForToken(h.CommonValidations, token)
-	if err != nil && !strings.HasPrefix(err.Error(), "object has no field") {
-		return nil, err
-	}
-	if r != nil {
-		return r, nil
-	}
-	r, _, err = jsonpointer.GetForToken(h.SimpleSchema, token)
-	if err != nil && !strings.HasPrefix(err.Error(), "object has no field") {
-		return nil, err
-	}
-	if r != nil {
-		return r, nil
-	}
-	r, _, err = jsonpointer.GetForToken(h.HeaderProps, token)
-	return r, err
 }

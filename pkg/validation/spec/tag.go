@@ -17,7 +17,6 @@ package spec
 import (
 	"encoding/json"
 
-	"github.com/go-openapi/jsonpointer"
 	"github.com/go-openapi/swag"
 )
 
@@ -36,16 +35,6 @@ type TagProps struct {
 type Tag struct {
 	VendorExtensible
 	TagProps
-}
-
-// JSONLookup implements an interface to customize json pointer lookup
-func (t Tag) JSONLookup(token string) (interface{}, error) {
-	if ex, ok := t.Extensions[token]; ok {
-		return &ex, nil
-	}
-
-	r, _, err := jsonpointer.GetForToken(t.TagProps, token)
-	return r, err
 }
 
 // MarshalJSON marshal this to JSON
