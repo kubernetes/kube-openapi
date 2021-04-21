@@ -23,8 +23,8 @@ limitations under the License.
 package generated
 
 import (
-	spec "github.com/go-openapi/spec"
 	common "k8s.io/kube-openapi/pkg/common"
+	spec "k8s.io/kube-openapi/pkg/validation/spec"
 	custom "k8s.io/kube-openapi/test/integration/testdata/custom"
 )
 

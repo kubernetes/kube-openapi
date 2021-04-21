@@ -21,26 +21,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func float64Ptr(f float64) *float64 {
-	return &f
-}
-func int64Ptr(f int64) *int64 {
-	return &f
-}
-
-var header = Header{
-	VendorExtensible: VendorExtensible{Extensions: map[string]interface{}{
-		"x-framework": "swagger-go",
-	}},
-	HeaderProps: HeaderProps{Description: "the description of this header"},
-	SimpleSchema: SimpleSchema{
-		Items: &Items{
-			Refable: Refable{Ref: MustCreateRef("Cat")},
-		},
-		Type:    "string",
-		Format:  "date",
-		Default: "8",
-	},
+var items = Items{
+	Refable: Refable{Ref: MustCreateRef("Dog")},
 	CommonValidations: CommonValidations{
 		Maximum:          float64Ptr(100),
 		ExclusiveMaximum: true,
@@ -55,14 +37,22 @@ var header = Header{
 		MultipleOf:       float64Ptr(5),
 		Enum:             []interface{}{"hello", "world"},
 	},
+	SimpleSchema: SimpleSchema{
+		Type:   "string",
+		Format: "date",
+		Items: &Items{
+			Refable: Refable{Ref: MustCreateRef("Cat")},
+		},
+		CollectionFormat: "csv",
+		Default:          "8",
+	},
 }
 
-const headerJSON = `{
-  "items": {
-    "$ref": "Cat"
-  },
-  "x-framework": "swagger-go",
-  "description": "the description of this header",
+const itemsJSON = `{
+	"items": {
+		"$ref": "Cat"
+	},
+  "$ref": "Dog",
   "maximum": 100,
   "minimum": 5,
   "exclusiveMaximum": true,
@@ -77,14 +67,15 @@ const headerJSON = `{
   "enum": ["hello", "world"],
   "type": "string",
   "format": "date",
-  "default": "8"
+	"collectionFormat": "csv",
+	"default": "8"
 }`
 
-func TestIntegrationHeader(t *testing.T) {
-	var actual Header
-	if assert.NoError(t, json.Unmarshal([]byte(headerJSON), &actual)) {
-		assert.EqualValues(t, actual, header)
+func TestIntegrationItems(t *testing.T) {
+	var actual Items
+	if assert.NoError(t, json.Unmarshal([]byte(itemsJSON), &actual)) {
+		assert.EqualValues(t, actual, items)
 	}
 
-	assertParsesJSON(t, headerJSON, header)
+	assertParsesJSON(t, itemsJSON, items)
 }

@@ -23,7 +23,7 @@ import (
 
 	"k8s.io/kube-openapi/pkg/handler"
 
-	"github.com/go-openapi/spec"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 func TestDefaultPruning(t *testing.T) {

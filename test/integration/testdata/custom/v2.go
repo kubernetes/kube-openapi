@@ -17,8 +17,8 @@ limitations under the License.
 package custom
 
 import (
-	"github.com/go-openapi/spec"
 	"k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // +k8s:openapi-gen=true

@@ -25,10 +25,10 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"github.com/go-openapi/spec"
 	builderv2 "k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/test/integration/pkg/generated"
 )
 

@@ -27,9 +27,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-openapi/spec"
 	fuzz "github.com/google/gofuzz"
 	"k8s.io/kube-openapi/pkg/util/sets"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visible bool)) {
