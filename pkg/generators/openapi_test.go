@@ -559,6 +559,58 @@ Dependencies: []string{
 `, funcBuffer.String())
 }
 
+func TestSingleEmbeddedStruct(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+import "time"
+
+// Nested is used as embedded struct field
+type Nested struct {
+  // A simple string
+  time.Duration 
+}
+
+// Blah demonstrate a struct with embedded struct field.
+type Blah struct {
+  // An embedded struct field
+  // +default="10ms"
+  Nested `+"`"+`json:"nested,omitempty" protobuf:"bytes,5,opt,name=nested"`+"`"+`
+}
+	`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded struct field.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"nested": {
+SchemaProps: spec.SchemaProps{
+Description: "An embedded struct field",
+Default: "10ms",
+Ref: ref("base/foo.Nested"),
+},
+},
+},
+},
+},
+Dependencies: []string{
+"base/foo.Nested",},
+}
+}
+
+`, funcBuffer.String())
+}
+
 func TestEmbeddedInlineStruct(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
