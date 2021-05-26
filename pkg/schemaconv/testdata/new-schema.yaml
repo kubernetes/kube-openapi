@@ -9410,8 +9410,8 @@ types:
     elementRelationship: atomic
   map:
     elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.CustomResourceSubresources
   map:
     fields:
@@ -9444,8 +9444,8 @@ types:
     elementRelationship: atomic
   map:
     elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaProps
   map:
     fields:
@@ -9588,8 +9588,8 @@ types:
     elementRelationship: atomic
   map:
     elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaPropsOrBool
   scalar: untyped
   list:
@@ -9598,8 +9598,8 @@ types:
     elementRelationship: atomic
   map:
     elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1beta1.JSONSchemaPropsOrStringArray
   scalar: untyped
   list:
@@ -9608,8 +9608,8 @@ types:
     elementRelationship: atomic
   map:
     elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: io.k8s.apimachinery.pkg.api.resource.Quantity
   scalar: untyped
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.APIGroup
@@ -9924,8 +9924,8 @@ types:
     elementRelationship: atomic
   map:
     elementType:
-      namedType: __untyped_atomic_
-    elementRelationship: atomic
+      namedType: __untyped_deduced_
+    elementRelationship: separable
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Preconditions
   map:
     fields:
