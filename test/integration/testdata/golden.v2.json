@@ -176,6 +176,25 @@
      }
     }
    },
+   "/test/lifecycletype/lifecyclestruct": {
+    "get": {
+     "schemes": [
+      "https"
+     ],
+     "operationId": "func20",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/lifecycletype.LifecycleStruct"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/listtype/atomiclist": {
     "get": {
      "schemes": [
@@ -518,6 +537,95 @@
      "Second": {
       "type": "string",
       "default": ""
+     }
+    }
+   },
+   "lifecycletype.Item": {
+    "type": "object",
+    "required": [
+     "Protocol",
+     "Port"
+    ],
+    "properties": {
+     "Port": {
+      "type": "integer",
+      "format": "int32",
+      "default": 0
+     },
+     "Protocol": {
+      "type": "string",
+      "default": ""
+     }
+    }
+   },
+   "lifecycletype.LifecycleStruct": {
+    "type": "object",
+    "required": [
+     "AlphaField",
+     "BetaField",
+     "DeprecatedField",
+     "StableField",
+     "FieldWithInvalidFeatureGate",
+     "FieldWithoutLifecycleTag"
+    ],
+    "properties": {
+     "AlphaField": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-api-lifecycle": {
+       "kubernetes": {
+        "featureGate": "AlphaFeatureGate",
+        "minVersion": "v1.20",
+        "status": "alpha"
+       }
+      }
+     },
+     "BetaField": {
+      "default": {},
+      "x-kubernetes-api-lifecycle": {
+       "kubernetes": {
+        "featureGate": "BetaFeatureGate",
+        "minVersion": "v1.21",
+        "status": "beta"
+       }
+      },
+      "$ref": "#/definitions/lifecycletype.Item"
+     },
+     "DeprecatedField": {
+      "type": "array",
+      "items": {
+       "type": "string",
+       "default": ""
+      },
+      "x-kubernetes-api-lifecycle": {
+       "kubernetes": {
+        "featureGate": "DeprecatedFeatureGate",
+        "minVersion": "v1.22",
+        "status": "deprecated"
+       }
+      },
+      "x-kubernetes-list-type": "atomic"
+     },
+     "FieldWithInvalidFeatureGate": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-api-lifecycle": {
+       "kubernetes": {
+        "featureGate": "InvalidFeatureGate",
+        "minVersion": "v1.20",
+        "status": "alpha"
+       }
+      }
+     },
+     "FieldWithoutLifecycleTag": {
+      "description": "FieldWithoutLifecycleTag is a GA field",
+      "type": "string",
+      "default": ""
+     },
+     "StableField": {
+      "type": "integer",
+      "format": "int32",
+      "default": 0
      }
     }
    },

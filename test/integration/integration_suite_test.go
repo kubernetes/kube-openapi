@@ -36,8 +36,10 @@ const (
 		"," + testPkgDir + "/structtype" +
 		"," + testPkgDir + "/dummytype" +
 		"," + testPkgDir + "/uniontype" +
+		"," + testPkgDir + "/lifecycletype" +
 		"," + testPkgDir + "/custom" +
 		"," + testPkgDir + "/defaults"
+	inputFeatureGateFile     = "featuregatetype/all_featuregate.go"
 	outputBase               = "pkg"
 	outputPackage            = "generated"
 	outputBaseFileName       = "openapi_generated"
@@ -91,6 +93,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 			"-p", outputPackage,
 			"-O", outputBaseFileName,
 			"-r", gr,
+			"-f", testdataFile(inputFeatureGateFile),
 		)
 		command.Dir = workingDirectory
 		session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -125,6 +128,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 				"-p", outputPackage,
 				"-O", outputBaseFileName,
 				"-r", testdataFile(goldenReportFileName),
+				"-f", testdataFile(inputFeatureGateFile),
 				"--verify-only",
 			)
 			command.Dir = workingDirectory
