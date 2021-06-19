@@ -143,6 +143,9 @@ type Blah struct {
 	// an int member with a default
 	// +default=1
 	OmittedInt int `+"`"+`json:"omitted,omitempty"`+"`"+`
+	// a member with an alpha lifecycle tag
+	// +lifecycle:component=kubernetes,minVersion=v1.20,status=alpha,featureGate=AlphaFeatureGate
+	AlphaField string
 }
 		`)
 	if callErr != nil {
@@ -365,8 +368,27 @@ Type: []string{"integer"},
 Format: "int32",
 },
 },
+"AlphaField": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-api-lifecycle": map[string]interface{}{
+"kubernetes": map[string]interface{}{
+"status": "alpha",
+"minVersion": "v1.20",
+"featureGate": "AlphaFeatureGate",
 },
-Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListType","Map","StringPointer"},
+},
+},
+},
+SchemaProps: spec.SchemaProps{
+Description: "a member with an alpha lifecycle tag",
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListType","Map","StringPointer","AlphaField"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
@@ -1562,6 +1584,94 @@ map[string]interface{}{
 },
 },
 },
+},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestAPILifecycle(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Blah is a test.
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:type_test
+type Blah struct {
+	// +lifecycle:component=kubernetes,minVersion=v1.20,status=alpha,featureGate=AlphaFeatureGate
+	AlphaField string
+
+	// +lifecycle:component=kubernetes,minVersion=v1.21,status=beta,featureGate=BetaFeatureGate
+	BetaField []string
+}
+		`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"AlphaField": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-api-lifecycle": map[string]interface{}{
+"kubernetes": map[string]interface{}{
+"status": "alpha",
+"minVersion": "v1.20",
+"featureGate": "AlphaFeatureGate",
+},
+},
+},
+},
+SchemaProps: spec.SchemaProps{
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+"BetaField": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-api-lifecycle": map[string]interface{}{
+"kubernetes": map[string]interface{}{
+"status": "beta",
+"minVersion": "v1.21",
+"featureGate": "BetaFeatureGate",
+},
+},
+},
+},
+SchemaProps: spec.SchemaProps{
+Type: []string{"array"},
+Items: &spec.SchemaOrArray{
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+},
+},
+},
+Required: []string{"AlphaField","BetaField"},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "type_test",
 },
 },
 },
