@@ -48,6 +48,11 @@ func TestToSchema(t *testing.T) {
 			openAPIFilename:        "defaults.json",
 			expectedSchemaFilename: "defaults.yaml",
 		},
+		{
+			name:                   "preserve-unknown",
+			openAPIFilename:        "preserve-unknown.json",
+			expectedSchemaFilename: "preserve-unknown.yaml",
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -62,7 +67,7 @@ func testToSchema(t *testing.T, openAPIPath, expectedNewSchemaPath string) {
 	fakeSchema := prototesting.Fake{Path: openAPIPath}
 	s, err := fakeSchema.OpenAPISchema()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("failed to get schema for %s: %v", openAPIPath, err)
 	}
 	models, err := proto.NewOpenAPIData(s)
 	if err != nil {
