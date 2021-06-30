@@ -121,6 +121,7 @@ func createWebServices() []*restful.WebService {
 	w.Route(buildRouteForType(w, "structtype", "AtomicStruct"))
 	w.Route(buildRouteForType(w, "structtype", "DeclaredAtomicStruct"))
 	w.Route(buildRouteForType(w, "defaults", "Defaulted"))
+	w.Route(buildRouteForType(w, "lifecycletype", "LifecycleStruct"))
 	return []*restful.WebService{w}
 }
 

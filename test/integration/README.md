@@ -19,12 +19,13 @@ on API rule violations.
 
 ```bash
 $ go run ../../cmd/openapi-gen/openapi-gen.go \
-  -i "k8s.io/kube-openapi/test/integration/testdata/custom,k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/maptype,k8s.io/kube-openapi/test/integration/testdata/structtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype,k8s.io/kube-openapi/test/integration/testdata/defaults" \
+  -i "k8s.io/kube-openapi/test/integration/testdata/custom,k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/maptype,k8s.io/kube-openapi/test/integration/testdata/structtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype,k8s.io/kube-openapi/test/integration/testdata/defaults,k8s.io/kube-openapi/test/integration/testdata/lifecycletype" \
   -o pkg \
   -p generated \
   -O openapi_generated \
   -h ../../boilerplate/boilerplate.go.txt \
-  -r ./testdata/golden.v2.report
+  -r ./testdata/golden.v2.report \
+  -f ./testdata/featuregatetype/all_featuregate.go
 ```
 The generated file `pkg/generated/openapi_generated.go` should have been created.
 
