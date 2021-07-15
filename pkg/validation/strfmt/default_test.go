@@ -94,6 +94,7 @@ func TestFormatHostname(t *testing.T) {
 		"x.",
 		"a.b.c.dot-",
 		"a.b.c.é;ö",
+		"one.two-three.-four",
 	}
 	validHostnames := []string{
 		"somewhere.com",
@@ -137,6 +138,9 @@ func TestFormatHostname(t *testing.T) {
 		"www.élégigôö.org",
 		// long top-level domains
 		"www.詹姆斯.london",
+		// last segment with hypens and digits
+		"one.two-three.four-five",
+		"one.two-three.four-five-5",
 	}
 
 	testStringFormat(t, &hostname, "hostname", str, []string{}, invalidHostnames)
