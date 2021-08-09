@@ -36,6 +36,7 @@ const (
 		"," + testPkgDir + "/structtype" +
 		"," + testPkgDir + "/dummytype" +
 		"," + testPkgDir + "/uniontype" +
+		"," + testPkgDir + "/enumtype" +
 		"," + testPkgDir + "/custom" +
 		"," + testPkgDir + "/defaults"
 	outputBase               = "pkg"
