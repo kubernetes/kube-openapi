@@ -146,7 +146,11 @@ func TestFormatHostname(t *testing.T) {
 func TestFormatIPv4(t *testing.T) {
 	ipv4 := IPv4("192.168.254.1")
 	str := string("192.168.254.2")
-	testStringFormat(t, &ipv4, "ipv4", str, []string{}, []string{"198.168.254.2.2"})
+	testStringFormat(t, &ipv4, "ipv4", str, []string{
+		"127.0.0.1",    // local
+		"192.168.1.1",  // normal
+		"192.168.1.01", // leading zeros (compatibility with go < 1.17)
+	}, []string{"198.168.254.2.2"})
 }
 
 func TestFormatIPv6(t *testing.T) {
@@ -159,7 +163,11 @@ func TestFormatIPv6(t *testing.T) {
 func TestFormatCIDR(t *testing.T) {
 	cidr := CIDR("192.168.254.1/24")
 	str := string("192.168.254.2/24")
-	testStringFormat(t, &cidr, "cidr", str, []string{"192.0.2.1/24", "2001:db8:a0b:12f0::1/32"}, []string{"198.168.254.2", "2001:db8:a0b:12f0::1"})
+	testStringFormat(t, &cidr, "cidr", str, []string{
+		"192.0.2.1/24",  // normal
+		"192.0.02.1/24", // leading zeros (compatibility with go < 1.17)
+		"2001:db8:a0b:12f0::1/32",
+	}, []string{"198.168.254.2", "2001:db8:a0b:12f0::1"})
 }
 
 func TestFormatMAC(t *testing.T) {
