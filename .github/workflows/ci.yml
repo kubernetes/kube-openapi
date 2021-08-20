@@ -15,7 +15,7 @@ jobs:
         go: [ '1.13', '1.x' ]
         gostable: [true]
         include:
-        - go: '1.17.0-rc2'
+        - go: '^1.17'
           gostable: false
     steps:
     - uses: actions/checkout@v2
