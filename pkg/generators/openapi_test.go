@@ -1570,3 +1570,60 @@ map[string]interface{}{
 
 `, funcBuffer.String())
 }
+
+func TestEnum(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// EnumType is the enumType.
+// +enum
+type EnumType string
+
+// EnumA is a.
+const EnumA EnumType = "a"
+// EnumB is b.
+const EnumB EnumType = "b"
+
+// Blah is a test.
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:type_test
+type Blah struct {
+  // Value is the value.
+	Value EnumType
+}`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	_ = assert
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"Value": {
+SchemaProps: spec.SchemaProps{`+"\n"+
+		"Description: \"Value is the value.\\n\\nPossible enum values:\\n - `a`: is a.\\n - `b`: is b.\","+`
+Default: "",
+Type: []string{"string"},
+Format: "",
+Enum: []interface{}{"a", "b"}},
+},
+},
+Required: []string{"Value"},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "type_test",
+},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}

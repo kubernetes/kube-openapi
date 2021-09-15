@@ -40,6 +40,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Baz":                   schema_test_integration_testdata_dummytype_Baz(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Foo":                   schema_test_integration_testdata_dummytype_Foo(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Waldo":                 schema_test_integration_testdata_dummytype_Waldo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/enumtype.FruitsBasket":           schema_test_integration_testdata_enumtype_FruitsBasket(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/listtype.AtomicList":             schema_test_integration_testdata_listtype_AtomicList(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/listtype.Item":                   schema_test_integration_testdata_listtype_Item(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/listtype.MapList":                schema_test_integration_testdata_listtype_MapList(ref),
@@ -271,6 +272,34 @@ func schema_test_integration_testdata_dummytype_Waldo(ref common.ReferenceCallba
 					},
 				},
 				Required: []string{"First", "Second"},
+			},
+		},
+	}
+}
+
+func schema_test_integration_testdata_enumtype_FruitsBasket(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"content": {
+						SchemaProps: spec.SchemaProps{
+							Description: "\n\n\nPossible enum values:\n - `apple`: is the Apple\n - `banana`: is the Banana\n - `onigiri`: is the Rice ball that does not seem to belong to a fruits basket but has a long comment that is so long that it spans multiple lines",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"apple", "banana", "onigiri"}},
+					},
+					"count": {
+						SchemaProps: spec.SchemaProps{
+							Default: 0,
+							Type:    []string{"integer"},
+							Format:  "int32",
+						},
+					},
+				},
+				Required: []string{"content", "count"},
 			},
 		},
 	}
