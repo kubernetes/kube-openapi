@@ -19,7 +19,7 @@ on API rule violations.
 
 ```bash
 $ go run ../../cmd/openapi-gen/openapi-gen.go \
-  -i "k8s.io/kube-openapi/test/integration/testdata/custom,k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/maptype,k8s.io/kube-openapi/test/integration/testdata/structtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype,k8s.io/kube-openapi/test/integration/testdata/defaults" \
+  -i "k8s.io/kube-openapi/test/integration/testdata/custom,k8s.io/kube-openapi/test/integration/testdata/enumtype,k8s.io/kube-openapi/test/integration/testdata/listtype,k8s.io/kube-openapi/test/integration/testdata/maptype,k8s.io/kube-openapi/test/integration/testdata/structtype,k8s.io/kube-openapi/test/integration/testdata/dummytype,k8s.io/kube-openapi/test/integration/testdata/uniontype,k8s.io/kube-openapi/test/integration/testdata/defaults" \
   -o pkg \
   -p generated \
   -O openapi_generated \
@@ -42,7 +42,7 @@ If you've created a new type, make sure you add it in `createWebServices()` in
 ---
 **NOTE:**
 
-If you've created a new package, make sure you also add it to to the
+If you've created a new package, make sure you also add it to the
 `inputDir` in `integration_suite_test.go`.
 ---
 
