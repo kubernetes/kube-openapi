@@ -9,7 +9,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
-// Validator for string formats
+// valueValidator for string formats
 func TestFormatValidator_EdgeCases(t *testing.T) {
 	// Apply
 	v := formatValidator{
