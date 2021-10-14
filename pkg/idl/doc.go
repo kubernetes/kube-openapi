@@ -105,7 +105,17 @@ type MapType string
 // OpenAPIGen needs to be described.
 type OpenAPIGen string
 
-// Optional needs to be described.
+// Optional annotates a field to specify it may be omitted.
+// By default, fields will be marked as required if not otherwise specified.
+//
+// Example:
+//	+optional
+//
+// Additionally, the json struct tag directive "omitempty" can be used to imply
+// the same.
+//
+// Example:
+//	OptionalField `json:"optionalField,omitempty"`
 type Optional string
 
 // PatchMergeKey needs to be described.
