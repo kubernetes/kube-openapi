@@ -7,6 +7,9 @@
   "paths": {
    "/test/custom/bac": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -26,6 +29,9 @@
    },
    "/test/custom/bah": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -45,6 +51,9 @@
    },
    "/test/custom/bak": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -64,6 +73,9 @@
    },
    "/test/custom/bal": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -83,6 +95,9 @@
    },
    "/test/defaults/defaulted": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -102,6 +117,9 @@
    },
    "/test/dummytype/bar": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -121,6 +139,9 @@
    },
    "/test/dummytype/baz": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -140,6 +161,9 @@
    },
    "/test/dummytype/foo": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -159,6 +183,9 @@
    },
    "/test/dummytype/waldo": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -178,6 +205,9 @@
    },
    "/test/listtype/atomiclist": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -197,6 +227,9 @@
    },
    "/test/listtype/maplist": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -216,6 +249,9 @@
    },
    "/test/listtype/setlist": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -235,6 +271,9 @@
    },
    "/test/maptype/atomicmap": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -254,6 +293,9 @@
    },
    "/test/maptype/granularmap": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -273,6 +315,9 @@
    },
    "/test/structtype/atomicstruct": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -292,6 +337,9 @@
    },
    "/test/structtype/declaredatomicstruct": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -311,6 +359,9 @@
    },
    "/test/structtype/granularstruct": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -330,6 +381,9 @@
    },
    "/test/uniontype/inlinedunion": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
@@ -349,6 +403,9 @@
    },
    "/test/uniontype/toplevelunion": {
     "get": {
+     "produces": [
+      "application/json"
+     ],
      "schemes": [
       "https"
      ],
