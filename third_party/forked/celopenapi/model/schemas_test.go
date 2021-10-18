@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/cel-go/checker/decls"
 	"github.com/google/cel-go/common/types"
 
 	"google.golang.org/protobuf/proto"
@@ -81,14 +80,13 @@ func TestSchemaDeclType(t *testing.T) {
 
 func TestSchemaDeclTypes(t *testing.T) {
 	ts := testSchema()
-	cust, typeMap := SchemaDeclTypes(ts, "mock_template")
+	cust, typeMap := SchemaDeclTypes(ts, "CustomObject")
 	nested, _ := cust.FindField("nested")
 	metadata, _ := cust.FindField("metadata")
-	metadataElem := metadata.Type.ElemType
 	expectedObjTypeMap := map[string]*DeclType{
 		"CustomObject":                cust,
 		"CustomObject.nested":         nested.Type,
-		"CustomObject.metadata.@elem": metadataElem,
+		"CustomObject.metadata":       metadata.Type,
 	}
 	objTypeMap := map[string]*DeclType{}
 	for name, t := range typeMap {
@@ -97,7 +95,7 @@ func TestSchemaDeclTypes(t *testing.T) {
 		}
 	}
 	if len(objTypeMap) != len(expectedObjTypeMap) {
-		t.Errorf("got different type set. got=%v, wanted=%v", typeMap, expectedObjTypeMap)
+		t.Errorf("got different type set. got=%v, wanted=%v", objTypeMap, expectedObjTypeMap)
 	}
 	for exp, expType := range expectedObjTypeMap {
 		actType, found := objTypeMap[exp]
@@ -108,14 +106,6 @@ func TestSchemaDeclTypes(t *testing.T) {
 		if !proto.Equal(expType.ExprType(), actType.ExprType()) {
 			t.Errorf("incompatible CEL types. got=%v, wanted=%v", actType.ExprType(), expType.ExprType())
 		}
-	}
-
-	metaExprType := metadata.Type.ExprType()
-	expectedMetaExprType := decls.NewMapType(
-		decls.String,
-		decls.NewObjectType("CustomObject.metadata.@elem"))
-	if !proto.Equal(expectedMetaExprType, metaExprType) {
-		t.Errorf("got metadata CEL type %v, wanted %v", metaExprType, expectedMetaExprType)
 	}
 }
 

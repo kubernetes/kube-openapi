@@ -10,7 +10,7 @@ require (
 	github.com/go-openapi/jsonreference v0.19.3
 	github.com/go-openapi/swag v0.19.5
 	github.com/golang/protobuf v1.5.2
-	github.com/google/cel-go v0.7.3
+	github.com/google/cel-go v0.9.0
 	github.com/google/gofuzz v1.1.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1
@@ -21,8 +21,8 @@ require (
 	github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.5.1
-	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/genproto v0.0.0-20210831024726-fe130286e0e2
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c

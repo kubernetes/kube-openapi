@@ -31,60 +31,56 @@ func SchemaDeclTypes(s *spec.Schema, maybeRootType string) (*DeclType, map[strin
 
 // SchemaDeclType returns the CEL Policy Templates type name associated with the schema element.
 func SchemaDeclType(s *spec.Schema) *DeclType {
-	if len(s.Type) > 1 {
-		// TODO
-	}
 	if len(s.Type) < 1 {
-		panic("no type")
-	}
-	// TODO: what about type params (from cel-policy-templates?
-	declType, found := openAPISchemaTypes[s.Type[0]]
-	if !found {
 		return NewObjectTypeRef("*error*")
 	}
-	switch declType.TypeName() {
-	case ListType.TypeName():
-		if s.Items.Len() == 1 {
-			return NewListType(SchemaDeclType(s.Items.Schema))
+	for _, schemaType := range s.Type {
+		declType, found := openAPISchemaTypes[schemaType]
+		if !found {
+			continue
 		}
-		// TODO: handle array
-
-	case MapType.TypeName():
-		if s.AdditionalProperties != nil {
-			return NewMapType(StringType, SchemaDeclType(s.AdditionalProperties.Schema))
-		}
-		fields := make(map[string]*DeclField, len(s.Properties))
-		required := make(map[string]struct{}, len(s.Required))
-		for _, name := range s.Required {
-			required[name] = struct{}{}
-		}
-		for name, prop := range s.Properties {
-			_, isReq := required[name]
-			fields[name] = &DeclField{
-				Name:         name,
-				Required:     isReq,
-				Type:         SchemaDeclType(&prop),
-				defaultValue: prop.Default,
-				enumValues:   prop.Enum,
+		switch declType.TypeName() {
+		case ListType.TypeName():
+			if s.Items.Len() == 1 {
+				return NewListType(SchemaDeclType(s.Items.Schema))
+			}
+		case MapType.TypeName():
+			if s.AdditionalProperties != nil {
+				return NewMapType(StringType, SchemaDeclType(s.AdditionalProperties.Schema))
+			}
+			fields := make(map[string]*DeclField, len(s.Properties))
+			required := make(map[string]struct{}, len(s.Required))
+			for _, name := range s.Required {
+				required[name] = struct{}{}
+			}
+			for name, prop := range s.Properties {
+				_, isReq := required[name]
+				fields[name] = &DeclField{
+					Name:         name,
+					Required:     isReq,
+					Type:         SchemaDeclType(&prop),
+					defaultValue: prop.Default,
+					enumValues:   prop.Enum,
+				}
+			}
+			return NewObjectType("object", fields)
+		case StringType.TypeName():
+			switch s.Format {
+			case "byte", "binary":
+				return BytesType
+			case "google-duration":
+				return DurationType
+			case "date", "date-time", "google-datetime":
+				return TimestampType
+			case "int64":
+				return IntType
+			case "uint64":
+				return UintType
 			}
 		}
-		return NewObjectType("object", fields)
-	case StringType.TypeName():
-		switch s.Format {
-		case "byte", "binary":
-			return BytesType
-		case "google-duration":
-			return DurationType
-		case "date", "date-time", "google-datetime":
-			return TimestampType
-		case "int64":
-			return IntType
-		case "uint64":
-			return UintType
-		}
+		return declType
 	}
-
-	return declType
+	return NewObjectTypeRef("*error*")
 }
 
 var (

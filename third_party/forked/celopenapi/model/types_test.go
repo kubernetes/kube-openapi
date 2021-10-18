@@ -67,10 +67,11 @@ func TestTypes_MapType(t *testing.T) {
 func TestTypes_RuleTypesFieldMapping(t *testing.T) {
 	stdEnv, _ := cel.NewEnv()
 	reg := NewRegistry(stdEnv)
-	rt, err := NewRuleTypes("mock_template", testSchema(), reg)
+	rt, err := NewRuleTypes("CustomObject", testSchema(), reg)
 	if err != nil {
 		t.Fatal(err)
 	}
+	rt.TypeProvider = stdEnv.TypeProvider()
 	nestedFieldType, found := rt.FindFieldType("CustomObject", "nested")
 	if !found {
 		t.Fatal("got field not found for 'CustomObject.nested', wanted found")
