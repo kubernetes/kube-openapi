@@ -6,9 +6,11 @@ reviewers:
 - apelisse
 - roycaihw
 - sttts
+- jpbetz
 approvers:
 - lavalamp
 - sttts
 - apelisse
+- jpbetz
 emritus_approvers:
 - mbohlool
