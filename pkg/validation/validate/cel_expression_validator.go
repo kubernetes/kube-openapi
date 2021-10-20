@@ -17,6 +17,8 @@ package validate
 import (
 	"fmt"
 	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/common/types/ref"
+	"github.com/google/cel-go/interpreter"
 	utilcel "k8s.io/kube-openapi/pkg/util/cel"
 	"k8s.io/kube-openapi/pkg/validation/errors"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -64,7 +66,22 @@ func (c *celExpressionValidator) Applies(source interface{}, _ reflect.Kind) boo
 }
 
 func (c *celExpressionValidator) Validate(data interface{}) *Result {
+	bindings := map[string]interface{}{}
+	rootBinding := func() ref.Val { return utilcel.UnstructuredToVal(data, c.Schema) }
+	bindings[utilcel.ScopedVarName] = rootBinding
+	if m, ok := data.(map[string]interface{}); c.Schema.Type.Contains("object") && ok {
+		for k, v := range m {
+			propSchema := c.Schema.Properties[k]
+			val := v
+			bindings[k] = func() ref.Val { return utilcel.UnstructuredToVal(val, &propSchema) }
+		}
+	}
 	res := new(Result)
+	activation, err := interpreter.NewActivation(bindings)
+	if err != nil {
+		res.AddErrors(errors.ErrorExecutingValidatorRule(c.Path, "", "<variable binding phase for all rules on value>", err, data))
+		return res
+	}
 	if len(c.CompileErrors) > 0 {
 		// Program complication is pre-checked at CRD creation/update time, so it is an internal bug if compilation errors to make it this far.
 		// But if somehow we get any, we surface them here as validation errors.
@@ -74,15 +91,7 @@ func (c *celExpressionValidator) Validate(data interface{}) *Result {
 	}
 	for i, program := range c.Programs {
 		rule := c.Rules[i]
-
-		vars := map[string]interface{}{}
-		if obj, ok := data.(map[string]interface{}); ok {
-			for k, v := range obj {
-				vars[k] = v
-			}
-		}
-		vars[utilcel.ScopedVarName] = data
-		evalResult, _, err := program.Eval(vars)
+		evalResult, _, err := program.Eval(activation)
 		if err != nil {
 			res.AddErrors(errors.ErrorExecutingValidatorRule(c.Path, "", rule.Rule, err, data))
 			continue
