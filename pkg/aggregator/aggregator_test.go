@@ -24,7 +24,6 @@ import (
 	"reflect"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/kube-openapi/pkg/handler"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -1763,7 +1762,7 @@ func BenchmarkMergeSpecsIgnorePathConflictsWithKubeSpec(b *testing.B) {
 			}
 		}
 
-		specBytes, _ := jsoniter.Marshal(sp)
+		specBytes, _ := json.Marshal(sp)
 		handler.ToProtoBinary(specBytes)
 
 		b.StopTimer()

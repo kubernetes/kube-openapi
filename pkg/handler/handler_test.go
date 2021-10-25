@@ -1,6 +1,7 @@
 package handler
 
 import (
+	json "encoding/json"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	json "github.com/json-iterator/go"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
