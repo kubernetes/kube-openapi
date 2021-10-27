@@ -23,12 +23,15 @@ import (
 	"reflect"
 )
 
-func newCelExpressionValidator(path string, schema *spec.Schema) *celExpressionValidator {
+func newCelExpressionValidator(path string, schema *spec.Schema) valueValidator {
 	rules := &spec.CELValidationRules{}
 	err := schema.Extensions.GetObject("x-kubernetes-validator", rules)
 	if err != nil {
 		// The x-kubernetes-validator fields are validated at CRD registration time, so must be valid by the time they are used for validation
 		panic(fmt.Sprintf("Unexpected error accessing x-kubernetes-validator at %s: %v", err, path))
+	}
+	if len(*rules) == 0 {
+		return nil
 	}
 	programs, errs := utilcel.Compile(schema)
 	if errs != nil {

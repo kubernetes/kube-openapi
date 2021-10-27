@@ -89,7 +89,9 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 		s.objectValidator(),
 	}
 	if s.Options.validationRulesEnabled {
-		s.validators = append(s.validators, s.celExpressionValidator())
+		if cv := s.celExpressionValidator(); cv != nil {
+			s.validators = append(s.validators, cv)
+		}
 	}
 	return &s
 }
@@ -255,6 +257,5 @@ func (s *SchemaValidator) objectValidator() valueValidator {
 }
 
 func (s *SchemaValidator) celExpressionValidator() valueValidator {
-	validator := newCelExpressionValidator(s.Path, s.Schema)
-	return validator
+	return newCelExpressionValidator(s.Path, s.Schema)
 }

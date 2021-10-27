@@ -108,6 +108,14 @@ func TestCelValueValidator(t *testing.T) {
 			isValid: true,
 		},
 		{
+			name: "no validator",
+			input: map[string]interface{}{
+				"minReplicas": int64(5),
+				"maxReplicas": int64(10),
+			},
+			isValid: true,
+		},
+		{
 			name: "invalid int compare",
 			input: map[string]interface{}{
 				"minReplicas": int64(11),
@@ -190,14 +198,22 @@ func TestCelValueValidator(t *testing.T) {
 			defer func() {
 				schema.Extensions = nil
 			}()
-			schema.Extensions = map[string]interface{}{
-				"x-kubernetes-validator": []interface{}{
-					map[string]interface{}{
-						"rule": tc.expr,
+			if tc.expr != "" {
+				schema.Extensions = map[string]interface{}{
+					"x-kubernetes-validator": []interface{}{
+						map[string]interface{}{
+							"rule": tc.expr,
+						},
 					},
-				},
+				}
 			}
 			validator := newCelExpressionValidator("", schema)
+			if validator == nil {
+				if !tc.isValid {
+					t.Fatalf("Expected a non-nil validator since isValid is expected to be false")
+				}
+				return
+			}
 			result := validator.Validate(tc.input)
 			if result.IsValid() != tc.isValid {
 				t.Fatalf("Expected isValid=%t, but got %t. Errors: %v", tc.isValid, result.IsValid(), result.Errors)
