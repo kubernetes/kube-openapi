@@ -50,7 +50,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "minReplicas < maxReplicas",
 								"message": "minReplicas should be smaller than maxReplicas",
@@ -70,7 +70,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "self.startsWith('s')",
 								"message": "scoped field should start with 's'",
@@ -91,7 +91,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "string(self).endsWith('s')",
 								"message": "scoped field should end with 's'",
@@ -111,7 +111,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "self == true",
 								"message": "scoped field should be true",
@@ -131,7 +131,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "self > 0",
 								"message": "scoped field should be greater than 0",
@@ -151,7 +151,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "self > 1.0",
 								"message": "scoped field should be greater than 1.0",
@@ -186,7 +186,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "nestedObj.val == 10",
 								"message": "val should be equal to 10",
@@ -227,7 +227,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "size(self.nestedObj[0]) == 10",
 								"message": "size of first element in nestedObj should be equal to 10",
@@ -268,7 +268,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "size(self[0][0]) == 10",
 								"message": "size of items under items of scoped field should be equal to 10",
@@ -310,7 +310,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "self[0].nestedObj.val == 10",
 								"message": "val under nestedObj under properties under items should be equal to 10",
@@ -339,7 +339,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "size(self) > 0",
 								"message": "size of scoped field should be greater than 0",
@@ -359,7 +359,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "size(self) == 10",
 								"message": "size of scoped field should be equal to 10",
@@ -380,7 +380,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"rule":    "size(self) == 10",
 								"message": "size of scoped field should be equal to 10",
@@ -401,7 +401,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"message": "size of scoped field should be equal to 10",
 							},
@@ -421,7 +421,7 @@ func TestCelCompilation(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validator": []interface{}{
+						"x-kubernetes-validators": []interface{}{
 							map[string]interface{}{
 								"message": "size of scoped field should be equal to 10",
 							},
