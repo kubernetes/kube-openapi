@@ -192,7 +192,7 @@ func TestCelExpressionValidator(t *testing.T) {
 				"spec": {
 					VendorExtensible: spec.VendorExtensible{
 						Extensions: map[string]interface{}{
-							"x-kubernetes-validators": []interface{}{
+							"x-kubernetes-validations": []interface{}{
 								map[string]interface{}{
 									"rule": "minReplicas < maxReplicas",
 								},
@@ -209,7 +209,7 @@ func TestCelExpressionValidator(t *testing.T) {
 								},
 								VendorExtensible: spec.VendorExtensible{
 									Extensions: map[string]interface{}{
-										"x-kubernetes-validators": []interface{}{
+										"x-kubernetes-validations": []interface{}{
 											map[string]interface{}{
 												"rule": "self >= 0",
 											},
@@ -224,7 +224,7 @@ func TestCelExpressionValidator(t *testing.T) {
 								},
 								VendorExtensible: spec.VendorExtensible{
 									Extensions: map[string]interface{}{
-										"x-kubernetes-validators": []interface{}{
+										"x-kubernetes-validations": []interface{}{
 											map[string]interface{}{
 												"rule": "self >= 0",
 											},
@@ -235,7 +235,7 @@ func TestCelExpressionValidator(t *testing.T) {
 							"nestedObj": {
 								VendorExtensible: spec.VendorExtensible{
 									Extensions: map[string]interface{}{
-										"x-kubernetes-validators": []interface{}{
+										"x-kubernetes-validations": []interface{}{
 											map[string]interface{}{
 												"rule":    "val < 10",
 												"message": "val is a bit too big",
@@ -262,7 +262,7 @@ func TestCelExpressionValidator(t *testing.T) {
 							"objMap": {
 								VendorExtensible: spec.VendorExtensible{
 									Extensions: map[string]interface{}{
-										"x-kubernetes-validators": []interface{}{
+										"x-kubernetes-validations": []interface{}{
 											map[string]interface{}{
 												"rule": "self.all(m, self[m].val > 10)",
 											},
@@ -292,7 +292,7 @@ func TestCelExpressionValidator(t *testing.T) {
 							"details": {
 								VendorExtensible: spec.VendorExtensible{
 									Extensions: map[string]interface{}{
-										"x-kubernetes-validators": []interface{}{
+										"x-kubernetes-validations": []interface{}{
 											map[string]interface{}{
 												"rule": "messages.all(m, m.val > 10)",
 											},

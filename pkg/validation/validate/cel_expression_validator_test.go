@@ -200,7 +200,7 @@ func TestCelValueValidator(t *testing.T) {
 			}()
 			if tc.expr != "" {
 				schema.Extensions = map[string]interface{}{
-					"x-kubernetes-validators": []interface{}{
+					"x-kubernetes-validations": []interface{}{
 						map[string]interface{}{
 							"rule": tc.expr,
 						},

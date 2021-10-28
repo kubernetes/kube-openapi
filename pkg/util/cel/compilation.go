@@ -35,9 +35,9 @@ const ScopedVarName = "self"
 func Compile(schema *spec.Schema) ([]cel.Program, []error) {
 	var allErrors []error
 	celRules := &spec.ValidationRules{}
-	err := schema.Extensions.GetObject("x-kubernetes-validators", celRules)
+	err := schema.Extensions.GetObject("x-kubernetes-validations", celRules)
 	if err != nil {
-		allErrors = append(allErrors, fmt.Errorf("unexpected error accessing x-kubernetes-validators: %v", err.Error()))
+		allErrors = append(allErrors, fmt.Errorf("unexpected error accessing x-kubernetes-validations: %v", err.Error()))
 		return nil, allErrors
 	}
 

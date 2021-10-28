@@ -30,7 +30,7 @@ func (svo SchemaValidatorOptions) Options() []Option {
 	return []Option{}
 }
 
-// ValidationRulesEnabled enables validation of rules defined in x-kubernetes-validators
+// ValidationRulesEnabled enables validation of rules defined in x-kubernetes-validations
 // schema extensions.
 var ValidationRulesEnabled = func(opts *SchemaValidatorOptions) {
 	opts.validationRulesEnabled = true

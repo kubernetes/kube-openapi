@@ -568,11 +568,11 @@ func MultipleOfMustBePositive(name, in string, factor interface{}) *Validation {
 	}
 }
 
-// FailedValidatorRule error for when a value fails a x-kubernetes-validators rule.
+// FailedValidatorRule error for when a value fails a x-kubernetes-validations rule.
 func FailedValidatorRule(name, in, rule, message string, value interface{}) *Validation {
 	var msg string
 	if message != "" {
-		// If x-kubernetes-validators rule provided a custom message, use it.
+		// If x-kubernetes-validations rule provided a custom message, use it.
 		msg = fmt.Sprintf("%s: %s", name, message)
 	} else {
 		msg = fmt.Sprintf("%s failed validator rule '%s'", name, rule)
@@ -587,7 +587,7 @@ func FailedValidatorRule(name, in, rule, message string, value interface{}) *Val
 	}
 }
 
-// ErrorExecutingValidatorRule error for when execution of a x-kubernetes-validators rule results in an error.
+// ErrorExecutingValidatorRule error for when execution of a x-kubernetes-validations rule results in an error.
 func ErrorExecutingValidatorRule(name, in, rule string, err error, value interface{}) *Validation {
 	var msg = fmt.Sprintf("%s failed to execute validator rule '%s' due to error: %v", name, rule, err)
 

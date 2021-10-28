@@ -25,10 +25,10 @@ import (
 
 func newCelExpressionValidator(path string, schema *spec.Schema) valueValidator {
 	rules := &spec.ValidationRules{}
-	err := schema.Extensions.GetObject("x-kubernetes-validators", rules)
+	err := schema.Extensions.GetObject("x-kubernetes-validations", rules)
 	if err != nil {
-		// The x-kubernetes-validators fields are validated at CRD registration time, so must be valid by the time they are used for validation
-		panic(fmt.Sprintf("Unexpected error accessing x-kubernetes-validators at %s: %v", err, path))
+		// The x-kubernetes-validations fields are validated at CRD registration time, so must be valid by the time they are used for validation
+		panic(fmt.Sprintf("Unexpected error accessing x-kubernetes-validations at %s: %v", err, path))
 	}
 	if len(*rules) == 0 {
 		return nil
