@@ -24,11 +24,11 @@ import (
 )
 
 func newCelExpressionValidator(path string, schema *spec.Schema) valueValidator {
-	rules := &spec.CELValidationRules{}
-	err := schema.Extensions.GetObject("x-kubernetes-validator", rules)
+	rules := &spec.ValidationRules{}
+	err := schema.Extensions.GetObject("x-kubernetes-validations", rules)
 	if err != nil {
-		// The x-kubernetes-validator fields are validated at CRD registration time, so must be valid by the time they are used for validation
-		panic(fmt.Sprintf("Unexpected error accessing x-kubernetes-validator at %s: %v", err, path))
+		// The x-kubernetes-validations fields are validated at CRD registration time, so must be valid by the time they are used for validation
+		panic(fmt.Sprintf("Unexpected error accessing x-kubernetes-validations at %s: %v", err, path))
 	}
 	if len(*rules) == 0 {
 		return nil
@@ -44,11 +44,11 @@ func newCelExpressionValidator(path string, schema *spec.Schema) valueValidator 
 }
 
 type celExpressionValidator struct {
-	Path     string
-	Schema   *spec.Schema
+	Path          string
+	Schema        *spec.Schema
 	CompileErrors []error
-	Rules    spec.CELValidationRules
-	Programs []cel.Program
+	Rules         spec.ValidationRules
+	Programs      []cel.Program
 }
 
 func (c *celExpressionValidator) SetPath(path string) {
