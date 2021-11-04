@@ -61,7 +61,7 @@ func mustValidateAtLeastOneSchemaMsg(path string) errors.Error {
 func mustValidateAllSchemasMsg(path, additionalMsg string) errors.Error {
 	return errors.New(errors.CompositeErrorCode, MustValidateAllSchemasError, path, additionalMsg)
 }
-func mustNotValidatechemaMsg(path string) errors.Error {
+func mustNotValidateSchemaMsg(path string) errors.Error {
 	return errors.New(errors.CompositeErrorCode, MustNotValidateSchemaError, path)
 }
 func hasADependencyMsg(path, depkey string) errors.Error {

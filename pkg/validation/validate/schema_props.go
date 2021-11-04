@@ -208,7 +208,7 @@ func (s *schemaPropsValidator) Validate(data interface{}) *Result {
 		result := s.notValidator.Validate(data)
 		// We keep inner IMPORTANT! errors no matter what MatchCount tells us
 		if result.IsValid() {
-			mainResult.AddErrors(mustNotValidatechemaMsg(s.Path))
+			mainResult.AddErrors(mustNotValidateSchemaMsg(s.Path))
 		}
 	}
 
