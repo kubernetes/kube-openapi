@@ -12,10 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.13', '1.x' ]
+        go: [ '1.16', '1.x' ]
         gostable: [true]
         include:
-        - go: '^1.17'
+        - go: '1.x'
           gostable: false
     steps:
     - uses: actions/checkout@v2
