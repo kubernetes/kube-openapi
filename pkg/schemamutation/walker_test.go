@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package aggregator
+package schemamutation
 
 import (
 	"encoding/json"
@@ -263,8 +263,8 @@ func TestReplaceReferences(t *testing.T) {
 
 			// replay the same mutation using the mutating walker
 			seenRefs := sets.NewString()
-			walker := mutatingReferenceWalker{
-				walkRefCallback: func(ref *spec.Ref) *spec.Ref {
+			walker := Walker{
+				RefCallback: func(ref *spec.Ref) *spec.Ref {
 					seenRefs.Insert(ref.String())
 					if mutatedRefs.Has(ref.String()) {
 						r, err := spec.NewRef(strings.Replace(ref.String(), "ref", "mutated", -1))
@@ -275,8 +275,9 @@ func TestReplaceReferences(t *testing.T) {
 					}
 					return ref
 				},
+				SchemaCallback: SchemaCallBackNoop,
 			}
-			mutatedViaWalker := walker.Start(s)
+			mutatedViaWalker := walker.WalkRoot(s)
 
 			// compare that we got the same
 			if !reflect.DeepEqual(mutatedViaJSON, mutatedViaWalker) {
@@ -287,6 +288,102 @@ func TestReplaceReferences(t *testing.T) {
 			}
 			if shouldNotSee := seenRefs.Intersection(invisibleRefs); shouldNotSee.Len() > 0 {
 				t.Errorf("refs seen that the walker is not expected to see: %v", shouldNotSee.List())
+			}
+		})
+	}
+}
+
+func TestReplaceSchema(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		t.Run(fmt.Sprintf("iteration-%d", i), func(t *testing.T) {
+			seed := time.Now().UnixNano()
+			f := fuzz.NewWithSeed(seed).NilChance(0).MaxDepth(5)
+			rootSchema := &spec.Schema{}
+			f.Funcs(func(s *spec.Schema, c fuzz.Continue) {
+				c.Fuzz(&s.Description)
+				s.Description += " original"
+				if c.RandBool() {
+					// append enums
+					var enums []string
+					c.Fuzz(&enums)
+					for _, enum := range enums {
+						s.Enum = append(s.Enum, enum)
+					}
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.Properties)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.AdditionalProperties)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.PatternProperties)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.AdditionalItems)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.AnyOf)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.AllOf)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.OneOf)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.Not)
+				}
+				if c.RandBool() {
+					c.Fuzz(&s.Definitions)
+				}
+				if c.RandBool() {
+					items := new(spec.SchemaOrArray)
+					if c.RandBool() {
+						c.Fuzz(&items.Schema)
+					} else {
+						c.Fuzz(&items.Schemas)
+					}
+					s.Items = items
+				}
+			})
+			f.Fuzz(rootSchema)
+			w := &Walker{SchemaCallback: func(schema *spec.Schema) *spec.Schema {
+				s := *schema
+				s.Description = strings.Replace(s.Description, "original", "modified", -1)
+				return &s
+			}, RefCallback: RefCallbackNoop}
+			newSchema := w.WalkSchema(rootSchema)
+			origBytes, err := json.Marshal(rootSchema)
+			if err != nil {
+				t.Fatalf("cannot marshal original schema: %v", err)
+			}
+			origJSON := string(origBytes)
+			mutatedWithString := strings.Replace(origJSON, "original", "modified", -1)
+			newBytes, err := json.Marshal(newSchema)
+			if err != nil {
+				t.Fatalf("cannot marshal mutated schema: %v", err)
+			}
+			if mutatedWithString != string(newBytes) {
+				t.Fatalf("mutation result mismatches, got %q but expected %q, diff: %s\n", mutatedWithString, newBytes, stringDiff(mutatedWithString, string(newBytes)))
+			}
+			if !strings.Contains(origJSON, `"enum":[`) {
+				t.Logf("did not contain enum, skipping enum checks")
+				return
+			}
+			// test enum removal
+			w = &Walker{SchemaCallback: func(schema *spec.Schema) *spec.Schema {
+				s := *schema
+				s.Enum = nil
+				return &s
+			}, RefCallback: RefCallbackNoop}
+			newSchema = w.WalkSchema(rootSchema)
+			newBytes, err = json.Marshal(newSchema)
+			if err != nil {
+				t.Fatalf("cannot marshal mutated schema: %v", err)
+			}
+			if strings.Contains(string(newBytes), `"enum":[`) {
+				t.Errorf("enum still exists in %q", newBytes)
 			}
 		})
 	}
