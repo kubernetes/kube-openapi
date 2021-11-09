@@ -1764,7 +1764,11 @@ func BenchmarkMergeSpecsIgnorePathConflictsWithKubeSpec(b *testing.B) {
 		}
 
 		specBytes, _ := jsoniter.Marshal(sp)
-		handler.ToProtoBinary(specBytes)
+		var json map[string]interface{}
+		if err := jsoniter.Unmarshal(specBytes, &json); err != nil {
+			b.Fatal(err)
+		}
+		handler.ToProtoBinary(json)
 
 		b.StopTimer()
 	}

@@ -37,7 +37,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	if err := json.Unmarshal(returnedJSON, &decodedJSON); err != nil {
 		t.Fatal(err)
 	}
-	returnedPb, err := ToProtoBinary(returnedJSON)
+	returnedPb, err := ToProtoBinary(decodedJSON)
 	if err != nil {
 		t.Errorf("Unexpected error in preparing returnedPb: %v", err)
 	}
@@ -172,7 +172,11 @@ func TestToProtoBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ToProtoBinary(bs); err != nil {
+	var j map[string]interface{}
+	if err := json.Unmarshal(bs, &j); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ToProtoBinary(j); err != nil {
 		t.Fatal()
 	}
 	// TODO: add some kind of roundtrip test here
