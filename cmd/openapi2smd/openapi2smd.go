@@ -17,10 +17,10 @@ limitations under the License.
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/googleapis/gnostic/compiler"
 	openapi_v2 "github.com/googleapis/gnostic/openapiv2"
 	yaml "gopkg.in/yaml.v2"
 
@@ -33,12 +33,12 @@ func main() {
 		log.Fatal("this program takes input on stdin and writes output to stdout.")
 	}
 
-	var info yaml.MapSlice
-	if err := yaml.NewDecoder(os.Stdin).Decode(&info); err != nil {
-		log.Fatalf("error decoding stdin: %v", err)
+	input, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		log.Fatalf("error reading stdin: %v", err)
 	}
 
-	document, err := openapi_v2.NewDocument(info, compiler.NewContext("$root", nil))
+	document, err := openapi_v2.ParseDocument(input)
 	if err != nil {
 		log.Fatalf("error interpreting stdin: %v", err)
 	}
