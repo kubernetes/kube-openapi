@@ -12,17 +12,18 @@ require (
 	github.com/go-openapi/jsonreference v0.19.3
 	github.com/go-openapi/spec v0.19.3
 	github.com/go-openapi/swag v0.19.5
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.3.3
+	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/google/gofuzz v1.0.0
 	github.com/google/uuid v1.1.1
-	github.com/googleapis/gnostic v0.5.1
+	github.com/googleapis/gnostic v0.4.1
 	github.com/json-iterator/go v1.1.6
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d
 	github.com/onsi/ginkgo v0.0.0-20170829012221-11459a886d9c
 	github.com/onsi/gomega v0.0.0-20170829124025-dcabb60a477c
 	github.com/spf13/pflag v0.0.0-20170130214245-9ff6c6923cff
-	github.com/stretchr/testify v1.5.1
+	github.com/stretchr/testify v1.3.0
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/gengo v0.0.0-20200413195148-3a45101e95ac
