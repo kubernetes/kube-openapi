@@ -22,14 +22,15 @@ import (
 	"log"
 	"os"
 
-	builderv2 "k8s.io/kube-openapi/pkg/builder"
+	"github.com/getkin/kin-openapi/openapi3"
+	builderv3 "k8s.io/kube-openapi/pkg/builder3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/test/integration/pkg/generated"
 	"k8s.io/kube-openapi/test/integration/testutil"
 )
 
 // TODO: Change this to output the generated swagger to stdout.
-const defaultSwaggerFile = "generated.json"
+const defaultSwaggerFile = "generated.v3.json"
 
 func main() {
 	// Get the name of the generated swagger file from the args
@@ -53,7 +54,7 @@ func main() {
 	config := testutil.CreateOpenAPIBuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
 	// Build the Paths using a simple WebService for the final spec
-	swagger, serr := builderv2.BuildOpenAPISpec(testutil.CreateWebServices(), config)
+	swagger, serr := builderv3.BuildOpenAPISpec(testutil.CreateWebServices(), config)
 	if serr != nil {
 		log.Fatalf("ERROR: %s", serr.Error())
 	}
@@ -63,8 +64,23 @@ func main() {
 	if err != nil {
 		log.Fatalf("json marshal error: %s", err.Error())
 	}
+
+	loader := openapi3.NewLoader()
+	specForValidator, err := loader.LoadFromData(specBytes)
+
+	if err != nil {
+		log.Fatalf("OpenAPI v3 ref resolve error: %s", err.Error())
+	}
+
+	err = specForValidator.Validate(loader.Context)
+
+	if err != nil {
+		log.Fatalf("OpenAPI v3 validation error: %s", err.Error())
+	}
+
 	err = ioutil.WriteFile(swaggerFilename, specBytes, 0644)
 	if err != nil {
 		log.Fatalf("stdout write error: %s", err.Error())
 	}
+
 }

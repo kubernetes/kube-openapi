@@ -46,6 +46,9 @@ const (
 	generatedReportFileName  = "generated.v2.report"
 	goldenSwaggerFileName    = "golden.v2.json"
 	goldenReportFileName     = "golden.v2.report"
+	generatedOpenAPIv3FileName = "generated.v3.json"
+	goldenOpenAPIv3Filename    = "golden.v3.json"
+
 	timeoutSeconds           = 5.0
 )
 
@@ -98,7 +101,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
 
-		By("writing swagger")
+		By("writing swagger v2.0")
 		// Create the OpenAPI swagger builder.
 		binary_path, berr = gexec.Build("./builder/main.go")
 		Expect(berr).ShouldNot(HaveOccurred())
@@ -107,6 +110,20 @@ var _ = Describe("Open API Definitions Generation", func() {
 		gs := generatedFile(generatedSwaggerFileName)
 		By("writing swagger to " + gs)
 		command = exec.Command(binary_path, gs)
+		command.Dir = workingDirectory
+		session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
+		Expect(err).ShouldNot(HaveOccurred())
+		Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+
+		By("writing OpenAPI v3.0")
+		// Create the OpenAPI swagger builder.
+		binary_path, berr = gexec.Build("./builder3/main.go")
+		Expect(berr).ShouldNot(HaveOccurred())
+
+		// Execute the builder, generating an OpenAPI swagger file with definitions.
+		gov3 := generatedFile(generatedOpenAPIv3FileName)
+		By("writing swagger to " + gov3)
+		command = exec.Command(binary_path, gov3)
 		command.Dir = workingDirectory
 		session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -135,13 +152,28 @@ var _ = Describe("Open API Definitions Generation", func() {
 		})
 	})
 
-	Describe("Validating OpenAPI Definition Generation", func() {
+	Describe("Validating OpenAPI V2 Definition Generation", func() {
 		It("Generated OpenAPI swagger definitions should match golden files", func() {
 			// Diff the generated swagger against the golden swagger. Exit code should be zero.
 			command := exec.Command(
 				"diff",
 				testdataFile(goldenSwaggerFileName),
 				generatedFile(generatedSwaggerFileName),
+			)
+			command.Dir = workingDirectory
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+		})
+	})
+
+	Describe("Validating OpenAPI V3 Definition Generation", func() {
+		It("Generated OpenAPI swagger definitions should match golden files", func() {
+			// Diff the generated swagger against the golden swagger. Exit code should be zero.
+			command := exec.Command(
+				"diff",
+				testdataFile(goldenOpenAPIv3Filename),
+				generatedFile(generatedOpenAPIv3FileName),
 			)
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
