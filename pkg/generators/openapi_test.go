@@ -1607,7 +1607,7 @@ Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "Value": {
 SchemaProps: spec.SchemaProps{`+"\n"+
-		"Description: \"Value is the value.\\n\\nPossible enum values:\\n - `a`: is a.\\n - `b`: is b.\","+`
+		"Description: \"Value is the value.\\n\\nPossible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
 Default: "",
 Type: []string{"string"},
 Format: "",

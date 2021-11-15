@@ -287,7 +287,7 @@ func schema_test_integration_testdata_enumtype_FruitsBasket(ref common.Reference
 				Properties: map[string]spec.Schema{
 					"content": {
 						SchemaProps: spec.SchemaProps{
-							Description: "\n\n\nPossible enum values:\n - `apple`: is the Apple\n - `banana`: is the Banana\n - `onigiri`: is the Rice ball that does not seem to belong to a fruits basket but has a long comment that is so long that it spans multiple lines",
+							Description: "\n\n\nPossible enum values:\n - `\"apple\"` is the Apple\n - `\"banana\"` is the Banana\n - `\"onigiri\"` is the Rice ball that does not seem to belong to a fruits basket but has a long comment that is so long that it spans multiple lines",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
