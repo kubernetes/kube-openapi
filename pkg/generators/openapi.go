@@ -173,7 +173,11 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 	sw.Do("return map[string]$.OpenAPIDefinition|raw${\n", argsFromType(nil))
 
 	for _, t := range c.Order {
-		err := newOpenAPITypeWriter(sw, c).generateCall(t)
+		tw, err := newOpenAPITypeWriter(sw, c)
+		if err != nil {
+			return err
+		}
+		err = tw.generateCall(t)
 		if err != nil {
 			return err
 		}
@@ -188,7 +192,11 @@ func (g *openAPIGen) Init(c *generator.Context, w io.Writer) error {
 func (g *openAPIGen) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
 	klog.V(5).Infof("generating for type %v", t)
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
-	err := newOpenAPITypeWriter(sw, c).generate(t)
+	tw, err := newOpenAPITypeWriter(sw, c)
+	if err != nil {
+		return err
+	}
+	err = tw.generate(t)
 	if err != nil {
 		return err
 	}
@@ -229,13 +237,17 @@ type openAPITypeWriter struct {
 	GetDefinitionInterface *types.Type
 }
 
-func newOpenAPITypeWriter(sw *generator.SnippetWriter, c *generator.Context) openAPITypeWriter {
-	return openAPITypeWriter{
+func newOpenAPITypeWriter(sw *generator.SnippetWriter, c *generator.Context) (*openAPITypeWriter, error) {
+	ec, err := newEnumContext(c)
+	if err != nil {
+		return nil, err
+	}
+	return &openAPITypeWriter{
 		SnippetWriter: sw,
 		context:       c,
 		refTypes:      map[string]*types.Type{},
-		enumContext:   newEnumContext(c),
-	}
+		enumContext:   ec,
+	}, nil
 }
 
 func methodReturnsValue(mt *types.Type, pkg, name string) bool {

@@ -38,6 +38,10 @@ type enumValue struct {
 type enumType struct {
 	Name   types.Name
 	Values []*enumValue
+
+	// indexes map constant value to its index in Values
+	// so that we can de-dup constant values in case of an alias
+	indexes map[string]int
 }
 
 // enumMap is a map from the name to the matching enum type.
@@ -47,8 +51,19 @@ type enumContext struct {
 	enumTypes enumMap
 }
 
-func newEnumContext(c *generator.Context) *enumContext {
-	return &enumContext{enumTypes: parseEnums(c)}
+func newEnumType(name types.Name) *enumType {
+	return &enumType{
+		Name:    name,
+		indexes: make(map[string]int),
+	}
+}
+
+func newEnumContext(c *generator.Context) (*enumContext, error) {
+	et, err := parseEnums(c)
+	if err != nil {
+		return nil, err
+	}
+	return &enumContext{enumTypes: et}, nil
 }
 
 // EnumType checks and finds the enumType for a given type.
@@ -86,7 +101,7 @@ func (et *enumType) DescriptionLines() []string {
 	return append([]string{"", enumTypeDescriptionHeader}, lines...)
 }
 
-func parseEnums(c *generator.Context) enumMap {
+func parseEnums(c *generator.Context) (enumMap, error) {
 	// First, find the builtin "string" type
 	stringType := c.Universe.Type(types.Name{Name: "string"})
 
@@ -96,9 +111,7 @@ func parseEnums(c *generator.Context) enumMap {
 		for _, t := range p.Types {
 			if isEnumType(stringType, t) {
 				if _, ok := enumTypes[t.Name]; !ok {
-					enumTypes[t.Name] = &enumType{
-						Name: t.Name,
-					}
+					enumTypes[t.Name] = newEnumType(t.Name)
 				}
 			}
 		}
@@ -111,16 +124,30 @@ func parseEnums(c *generator.Context) enumMap {
 					Value:   *c.ConstValue,
 					Comment: strings.Join(c.CommentLines, " "),
 				}
-				enumTypes[enumType.Name].appendValue(value)
+				if err := enumTypes[enumType.Name].appendValue(value); err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
-	return enumTypes
+	return enumTypes, nil
 }
 
-func (et *enumType) appendValue(value *enumValue) {
+func (et *enumType) appendValue(value *enumValue) error {
+	if idx, ok := et.indexes[value.Value]; ok {
+		if value.Comment != "" {
+			existing := et.Values[idx]
+			if existing.Comment != "" {
+				return fmt.Errorf("duplicated comment for %v", value.Value)
+			}
+			existing.Comment = value.Comment
+		}
+		return nil
+	}
 	et.Values = append(et.Values, value)
+	et.indexes[value.Value] = len(et.Values) - 1
+	return nil
 }
 
 // Description returns the description line for the enumValue
@@ -128,8 +155,17 @@ func (et *enumType) appendValue(value *enumValue) {
 //  - `"FooValue"` is the Foo value
 func (ev *enumValue) Description() string {
 	comment := strings.TrimSpace(ev.Comment)
-	// The comment should starts with the type name, trim it first.
-	comment = strings.TrimPrefix(comment, ev.Name)
+	// The comment should start with the type name, trim it first.
+	// TODO(jiahuif) gengo needs a way to normalize aliases of constants
+	// // Foo is foo
+	// const Foo = "foo"
+	// const FooAlias = Foo
+	// will provide Name = "FooAlias", Comment = "// Foo if foo",
+	// split the string to workaround it
+	parts := strings.SplitN(comment, " ", 2)
+	if len(parts) == 2 {
+		comment = parts[1]
+	}
 	// Trim the possible space after previous step.
 	comment = strings.TrimSpace(comment)
 	// The comment may be multiline, cascade all consecutive whitespaces.

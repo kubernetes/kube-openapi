@@ -71,11 +71,17 @@ func testOpenAPITypeWriter(t *testing.T, code string) (error, error, *assert.Ass
 
 	callBuffer := &bytes.Buffer{}
 	callSW := generator.NewSnippetWriter(callBuffer, context, "$", "$")
-	callError := newOpenAPITypeWriter(callSW, context).generateCall(blahT)
+	tw, callError := newOpenAPITypeWriter(callSW, context)
+	if callError == nil { // proceed only when NO error
+		callError = tw.generateCall(blahT)
+	}
 
 	funcBuffer := &bytes.Buffer{}
 	funcSW := generator.NewSnippetWriter(funcBuffer, context, "$", "$")
-	funcError := newOpenAPITypeWriter(funcSW, context).generate(blahT)
+	tw, funcError := newOpenAPITypeWriter(funcSW, context)
+	if funcError == nil { // proceed only when NO error
+		funcError = tw.generate(blahT)
+	}
 
 	return callError, funcError, assert, callBuffer, funcBuffer
 }
@@ -1576,14 +1582,21 @@ func TestEnum(t *testing.T) {
 package foo
 
 // EnumType is the enumType.
-// +enum
 type EnumType string
+
+// for "backward" compat
+// +enum
+type EnumTypeAlias = EnumType
 
 // EnumA is a.
 const EnumA EnumType = "a"
 // EnumB is b.
 const EnumB EnumType = "b"
 
+const (
+	AliasA = EnumA
+	AliasB = EnumB
+)
 // Blah is a test.
 // +k8s:openapi-gen=true
 // +k8s:openapi-gen=x-kubernetes-type-tag:type_test
