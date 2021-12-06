@@ -19,7 +19,7 @@ package builder3
 import (
 	"sort"
 
-	"github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful/v3"
 	"k8s.io/kube-openapi/pkg/spec3"
 )
 

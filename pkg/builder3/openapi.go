@@ -19,7 +19,7 @@ package builder3
 import (
 	"encoding/json"
 	"fmt"
-	restful "github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful/v3"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util"
