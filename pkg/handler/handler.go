@@ -19,9 +19,7 @@ package handler
 import (
 	"bytes"
 	"compress/gzip"
-	"crypto/sha512"
 	"encoding/json"
-	"fmt"
 	"mime"
 	"net/http"
 	"sync"
@@ -57,53 +55,14 @@ type OpenAPIService struct {
 
 	lastModified time.Time
 
-	jsonCache  cache
-	protoCache cache
-}
-
-type cache struct {
-	BuildCache func() ([]byte, error)
-	once       sync.Once
-	bytes      []byte
-	etag       string
-	err        error
-}
-
-func (c *cache) Get() ([]byte, string, error) {
-	c.once.Do(func() {
-		bytes, err := c.BuildCache()
-		// if there is an error updating the cache, there can be situations where
-		// c.bytes contains a valid value (carried over from the previous update)
-		// but c.err is also not nil; the cache user is expected to check for this
-		c.err = err
-		if c.err == nil {
-			// don't override previous spec if we had an error
-			c.bytes = bytes
-			c.etag = computeETag(c.bytes)
-		}
-	})
-	return c.bytes, c.etag, c.err
-}
-
-func (c *cache) New(cacheBuilder func() ([]byte, error)) cache {
-	return cache{
-		bytes:      c.bytes,
-		etag:       c.etag,
-		BuildCache: cacheBuilder,
-	}
+	jsonCache  common.HandlerCache
+	protoCache common.HandlerCache
 }
 
 func init() {
 	mime.AddExtensionType(".json", mimeJson)
 	mime.AddExtensionType(".pb-v1", mimePb)
 	mime.AddExtensionType(".gz", mimePbGz)
-}
-
-func computeETag(data []byte) string {
-	if data == nil {
-		return ""
-	}
-	return fmt.Sprintf("\"%X\"", sha512.Sum512(data))
 }
 
 // NewOpenAPIService builds an OpenAPIService starting with the given spec.

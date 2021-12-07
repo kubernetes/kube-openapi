@@ -64,13 +64,8 @@ type OpenAPIV3Group struct {
 
 	lastModified time.Time
 
-	specBytes []byte
-	specPb    []byte
-	specPbGz  []byte
-
-	specBytesETag string
-	specPbETag    string
-	specPbGzETag  string
+	pbCache   common.HandlerCache
+	jsonCache common.HandlerCache
 }
 
 func init() {
@@ -119,9 +114,11 @@ func (o *OpenAPIService) getSingleGroupBytes(getType string, group string) ([]by
 		return nil, "", time.Now(), fmt.Errorf("Cannot find CRD group %s", group)
 	}
 	if getType == subTypeJSON {
-		return v.specBytes, v.specBytesETag, v.lastModified, nil
+		specBytes, etag, err := v.jsonCache.Get()
+		return specBytes, etag, v.lastModified, err
 	} else if getType == subTypeProtobuf {
-		return v.specPb, v.specPbETag, v.lastModified, nil
+		specPb, etag, err := v.pbCache.Get()
+		return specPb, etag, v.lastModified, err
 	}
 	return nil, "", time.Now(), fmt.Errorf("Invalid accept clause %s", getType)
 }
@@ -222,27 +219,13 @@ func (o *OpenAPIV3Group) UpdateSpec(specBytes []byte) (err error) {
 	o.rwMutex.Lock()
 	defer o.rwMutex.Unlock()
 
-	specPb, err := ToV3ProtoBinary(specBytes)
-	if err != nil {
-		return err
-	}
+	o.pbCache = o.pbCache.New(func() ([]byte, error) {
+		return ToV3ProtoBinary(specBytes)
+	})
 
-	specPbGz := toGzip(specPb)
-
-	specBytesETag := computeETag(specBytes)
-	specPbETag := computeETag(specPb)
-	specPbGzETag := computeETag(specPbGz)
-
-	lastModified := time.Now()
-
-	o.specBytes = specBytes
-	o.specPb = specPb
-	o.specPbGz = specPbGz
-
-	o.specBytesETag = specBytesETag
-	o.specPbETag = specPbETag
-	o.specPbGzETag = specPbGzETag
-
-	o.lastModified = lastModified
+	o.jsonCache = o.jsonCache.New(func() ([]byte, error) {
+		return specBytes, nil
+	})
+	o.lastModified = time.Now()
 	return nil
 }
