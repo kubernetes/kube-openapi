@@ -18,7 +18,6 @@ package handler3
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
@@ -150,14 +149,6 @@ func ToV3ProtoBinary(json []byte) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(document)
-}
-
-func toGzip(data []byte) []byte {
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	zw.Write(data)
-	zw.Close()
-	return buf.Bytes()
 }
 
 func (o *OpenAPIService) HandleDiscovery(w http.ResponseWriter, r *http.Request) {
