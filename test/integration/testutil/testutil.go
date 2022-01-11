@@ -18,12 +18,11 @@ package testutil
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/emicklei/go-restful"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/pkg/validation/spec"
+	"strings"
 )
 
 // CreateOpenAPIBuilderConfig hard-codes some values in the API builder
@@ -51,30 +50,36 @@ func CreateOpenAPIBuilderConfig() *common.Config {
 	}
 }
 
-// CreateWebServices hard-codes a simple WebService which only defines a GET path
+// CreateWebServices hard-codes a simple WebService which only defines a GET and POST path
 // for testing.
 func CreateWebServices() []*restful.WebService {
 	w := new(restful.WebService)
-	w.Route(buildRouteForType(w, "dummytype", "Foo"))
-	w.Route(buildRouteForType(w, "dummytype", "Bar"))
-	w.Route(buildRouteForType(w, "dummytype", "Baz"))
-	w.Route(buildRouteForType(w, "dummytype", "Waldo"))
-	w.Route(buildRouteForType(w, "listtype", "AtomicList"))
-	w.Route(buildRouteForType(w, "listtype", "MapList"))
-	w.Route(buildRouteForType(w, "listtype", "SetList"))
-	w.Route(buildRouteForType(w, "uniontype", "TopLevelUnion"))
-	w.Route(buildRouteForType(w, "uniontype", "InlinedUnion"))
-	w.Route(buildRouteForType(w, "custom", "Bal"))
-	w.Route(buildRouteForType(w, "custom", "Bak"))
-	w.Route(buildRouteForType(w, "custom", "Bac"))
-	w.Route(buildRouteForType(w, "custom", "Bah"))
-	w.Route(buildRouteForType(w, "maptype", "GranularMap"))
-	w.Route(buildRouteForType(w, "maptype", "AtomicMap"))
-	w.Route(buildRouteForType(w, "structtype", "GranularStruct"))
-	w.Route(buildRouteForType(w, "structtype", "AtomicStruct"))
-	w.Route(buildRouteForType(w, "structtype", "DeclaredAtomicStruct"))
-	w.Route(buildRouteForType(w, "defaults", "Defaulted"))
+	addRoutes(w, buildRouteForType(w, "dummytype", "Foo")...)
+	addRoutes(w, buildRouteForType(w, "dummytype", "Bar")...)
+	addRoutes(w, buildRouteForType(w, "dummytype", "Baz")...)
+	addRoutes(w, buildRouteForType(w, "dummytype", "Waldo")...)
+	addRoutes(w, buildRouteForType(w, "listtype", "AtomicList")...)
+	addRoutes(w, buildRouteForType(w, "listtype", "MapList")...)
+	addRoutes(w, buildRouteForType(w, "listtype", "SetList")...)
+	addRoutes(w, buildRouteForType(w, "uniontype", "TopLevelUnion")...)
+	addRoutes(w, buildRouteForType(w, "uniontype", "InlinedUnion")...)
+	addRoutes(w, buildRouteForType(w, "custom", "Bal")...)
+	addRoutes(w, buildRouteForType(w, "custom", "Bak")...)
+	addRoutes(w, buildRouteForType(w, "custom", "Bac")...)
+	addRoutes(w, buildRouteForType(w, "custom", "Bah")...)
+	addRoutes(w, buildRouteForType(w, "maptype", "GranularMap")...)
+	addRoutes(w, buildRouteForType(w, "maptype", "AtomicMap")...)
+	addRoutes(w, buildRouteForType(w, "structtype", "GranularStruct")...)
+	addRoutes(w, buildRouteForType(w, "structtype", "AtomicStruct")...)
+	addRoutes(w, buildRouteForType(w, "structtype", "DeclaredAtomicStruct")...)
+	addRoutes(w, buildRouteForType(w, "defaults", "Defaulted")...)
 	return []*restful.WebService{w}
+}
+
+func addRoutes(ws *restful.WebService, routes ...*restful.RouteBuilder) {
+	for _, r := range routes {
+		ws.Route(r)
+	}
 }
 
 // Implements OpenAPICanonicalTypeNamer
@@ -89,13 +94,37 @@ func (t *typeNamer) OpenAPICanonicalTypeName() string {
 	return fmt.Sprintf("k8s.io/kube-openapi/test/integration/testdata/%s.%s", t.pkg, t.name)
 }
 
-func buildRouteForType(ws *restful.WebService, pkg, name string) *restful.RouteBuilder {
+func buildRouteForType(ws *restful.WebService, pkg, name string) []*restful.RouteBuilder {
 	namer := typeNamer{
 		pkg:  pkg,
 		name: name,
 	}
-	return ws.GET(fmt.Sprintf("test/%s/%s", pkg, strings.ToLower(name))).
+
+	var routes []*restful.RouteBuilder
+
+	routes = append(routes, ws.GET(fmt.Sprintf("test/%s/%s", pkg, strings.ToLower(name))).
+		Operation(fmt.Sprintf("get-%s.%s", pkg, name)).
 		Produces("application/json").
 		To(func(*restful.Request, *restful.Response) {}).
-		Writes(&namer)
+		Writes(&namer))
+
+	routes = append(routes, ws.POST(fmt.Sprintf("test/%s", pkg)).
+		Operation(fmt.Sprintf("create-%s.%s", pkg, name)).
+		Produces("application/json").
+		To(func(*restful.Request, *restful.Response) {}).
+		Returns(201, "Created", &namer).
+		Writes(&namer))
+
+	if pkg == "dummytype" {
+		statusErrType := typeNamer{
+			pkg:  "dummytype",
+			name: "StatusError",
+		}
+
+		for _, route := range routes {
+			route.Returns(500, "Internal Service Error", &statusErrType)
+		}
+	}
+
+	return routes
 }

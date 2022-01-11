@@ -49,3 +49,7 @@ If you've created a new package, make sure you also add it to the
 ```bash
 $ go run builder/main.go testdata/golden.v2.json
 ```
+
+```bash
+$ go run builder3/main.go testdata/golden.v3.json
+```
