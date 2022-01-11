@@ -53,6 +53,8 @@ func (c *HandlerCache) Get() ([]byte, string, error) {
 	return c.bytes, c.etag, c.err
 }
 
+// New creates a new HandlerCache for situations where a cache refresh is needed.
+// This function is not thread-safe and should not be called at the same time as Get().
 func (c *HandlerCache) New(cacheBuilder func() ([]byte, error)) HandlerCache {
 	return HandlerCache{
 		bytes:      c.bytes,
