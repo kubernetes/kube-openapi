@@ -18,11 +18,12 @@ package testutil
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/emicklei/go-restful"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/pkg/validation/spec"
-	"strings"
 )
 
 // CreateOpenAPIBuilderConfig hard-codes some values in the API builder
@@ -50,7 +51,7 @@ func CreateOpenAPIBuilderConfig() *common.Config {
 	}
 }
 
-// CreateWebServices hard-codes a simple WebService which only defines a GET and POST path
+// CreateWebServices hard-codes a simple WebService which only defines a GET and POST paths
 // for testing.
 func CreateWebServices() []*restful.WebService {
 	w := new(restful.WebService)
@@ -100,20 +101,19 @@ func buildRouteForType(ws *restful.WebService, pkg, name string) []*restful.Rout
 		name: name,
 	}
 
-	var routes []*restful.RouteBuilder
-
-	routes = append(routes, ws.GET(fmt.Sprintf("test/%s/%s", pkg, strings.ToLower(name))).
-		Operation(fmt.Sprintf("get-%s.%s", pkg, name)).
-		Produces("application/json").
-		To(func(*restful.Request, *restful.Response) {}).
-		Writes(&namer))
-
-	routes = append(routes, ws.POST(fmt.Sprintf("test/%s", pkg)).
-		Operation(fmt.Sprintf("create-%s.%s", pkg, name)).
-		Produces("application/json").
-		To(func(*restful.Request, *restful.Response) {}).
-		Returns(201, "Created", &namer).
-		Writes(&namer))
+	routes := []*restful.RouteBuilder{
+		ws.GET(fmt.Sprintf("test/%s/%s", pkg, strings.ToLower(name))).
+			Operation(fmt.Sprintf("get-%s.%s", pkg, name)).
+			Produces("application/json").
+			To(func(*restful.Request, *restful.Response) {}).
+			Writes(&namer),
+		ws.POST(fmt.Sprintf("test/%s", pkg)).
+			Operation(fmt.Sprintf("create-%s.%s", pkg, name)).
+			Produces("application/json").
+			To(func(*restful.Request, *restful.Response) {}).
+			Returns(201, "Created", &namer).
+			Writes(&namer),
+	}
 
 	if pkg == "dummytype" {
 		statusErrType := typeNamer{
