@@ -29,6 +29,7 @@ func computeETag(data []byte) string {
 	return fmt.Sprintf("\"%X\"", sha512.Sum512(data))
 }
 
+// HandlerCache represents an OpenAPI v2/v3 marshaling cache.
 type HandlerCache struct {
 	BuildCache func() ([]byte, error)
 	once       sync.Once
@@ -37,6 +38,9 @@ type HandlerCache struct {
 	err        error
 }
 
+// Get either returns the cached value or calls BuildCache() once before caching and returning
+// its results. If BuildCache returns an error, the last valid value for the cache (from prior
+// calls to New()) is used instead if possible.
 func (c *HandlerCache) Get() ([]byte, string, error) {
 	c.once.Do(func() {
 		bytes, err := c.BuildCache()
