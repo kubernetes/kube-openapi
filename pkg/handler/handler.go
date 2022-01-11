@@ -35,6 +35,7 @@ import (
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/common/restfuladapter"
+	"k8s.io/kube-openapi/pkg/internal/handler"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -55,8 +56,8 @@ type OpenAPIService struct {
 
 	lastModified time.Time
 
-	jsonCache  common.HandlerCache
-	protoCache common.HandlerCache
+	jsonCache  handler.HandlerCache
+	protoCache handler.HandlerCache
 }
 
 func init() {

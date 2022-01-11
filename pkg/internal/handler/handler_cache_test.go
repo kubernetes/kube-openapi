@@ -14,17 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+package handler_test
 
 import (
 	"errors"
 	"testing"
+
+	"k8s.io/kube-openapi/pkg/internal/handler"
 )
 
 func TestCache(t *testing.T) {
 	calledCount := 0
 	expectedBytes := []byte("ABC")
-	cacheObj := HandlerCache{
+	cacheObj := handler.HandlerCache{
 		BuildCache: func() ([]byte, error) {
 			calledCount++
 			return expectedBytes, nil
@@ -41,7 +43,7 @@ func TestCache(t *testing.T) {
 }
 
 func TestCacheError(t *testing.T) {
-	cacheObj := HandlerCache{
+	cacheObj := handler.HandlerCache{
 		BuildCache: func() ([]byte, error) {
 			return nil, errors.New("cache error")
 		},
@@ -54,7 +56,7 @@ func TestCacheError(t *testing.T) {
 
 func TestCacheRefresh(t *testing.T) {
 	// check that returning an error while having no prior cached value results in a nil value from cache.Get()
-	cacheObj := (&HandlerCache{}).New(func() ([]byte, error) {
+	cacheObj := (&handler.HandlerCache{}).New(func() ([]byte, error) {
 		return nil, errors.New("returning nil bytes")
 	})
 	// make multiple calls to Get() to ensure errors are preserved across subsequent calls

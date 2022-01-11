@@ -32,6 +32,7 @@ import (
 	openapi_v3 "github.com/googleapis/gnostic/openapiv3"
 	"github.com/munnerz/goautoneg"
 	"k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/internal/handler"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -63,8 +64,8 @@ type OpenAPIV3Group struct {
 
 	lastModified time.Time
 
-	pbCache   common.HandlerCache
-	jsonCache common.HandlerCache
+	pbCache   handler.HandlerCache
+	jsonCache handler.HandlerCache
 }
 
 func init() {
