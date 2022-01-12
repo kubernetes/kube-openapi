@@ -5,9 +5,26 @@
    "version": "1.0"
   },
   "paths": {
+   "/test/custom": {
+    "post": {
+     "operationId": "create-custom.Bah",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/custom.Bah"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
    "/test/custom/bac": {
     "get": {
-     "operationId": "func12",
+     "operationId": "get-custom.Bac",
      "responses": {
       "200": {
        "description": "OK",
@@ -24,7 +41,7 @@
    },
    "/test/custom/bah": {
     "get": {
-     "operationId": "func13",
+     "operationId": "get-custom.Bah",
      "responses": {
       "200": {
        "description": "OK",
@@ -41,7 +58,7 @@
    },
    "/test/custom/bak": {
     "get": {
-     "operationId": "func11",
+     "operationId": "get-custom.Bak",
      "responses": {
       "200": {
        "description": "OK",
@@ -58,7 +75,7 @@
    },
    "/test/custom/bal": {
     "get": {
-     "operationId": "func10",
+     "operationId": "get-custom.Bal",
      "responses": {
       "200": {
        "description": "OK",
@@ -73,9 +90,26 @@
      }
     }
    },
+   "/test/defaults": {
+    "post": {
+     "operationId": "create-defaults.Defaulted",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/defaults.Defaulted"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
    "/test/defaults/defaulted": {
     "get": {
-     "operationId": "func19",
+     "operationId": "get-defaults.Defaulted",
      "responses": {
       "200": {
        "description": "OK",
@@ -90,16 +124,43 @@
      }
     }
    },
-   "/test/dummytype/bar": {
-    "get": {
-     "operationId": "func2",
+   "/test/dummytype": {
+    "post": {
+     "operationId": "create-dummytype.Waldo",
      "responses": {
-      "200": {
-       "description": "OK",
+      "201": {
+       "description": "Created",
        "content": {
         "application/json": {
          "schema": {
-          "$ref": "#/components/schemas/dummytype.Bar"
+          "$ref": "#/components/schemas/dummytype.Waldo"
+         }
+        }
+       }
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/dummytype/bar": {
+    "get": {
+     "operationId": "get-dummytype.Bar",
+     "responses": {
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
          }
         }
        }
@@ -109,14 +170,14 @@
    },
    "/test/dummytype/baz": {
     "get": {
-     "operationId": "func3",
+     "operationId": "get-dummytype.Baz",
      "responses": {
-      "200": {
-       "description": "OK",
+      "500": {
+       "description": "Internal Service Error",
        "content": {
         "application/json": {
          "schema": {
-          "$ref": "#/components/schemas/dummytype.Baz"
+          "$ref": "#/components/schemas/dummytype.StatusError"
          }
         }
        }
@@ -126,14 +187,14 @@
    },
    "/test/dummytype/foo": {
     "get": {
-     "operationId": "func1",
+     "operationId": "get-dummytype.Foo",
      "responses": {
-      "200": {
-       "description": "OK",
+      "500": {
+       "description": "Internal Service Error",
        "content": {
         "application/json": {
          "schema": {
-          "$ref": "#/components/schemas/dummytype.Foo"
+          "$ref": "#/components/schemas/dummytype.StatusError"
          }
         }
        }
@@ -143,14 +204,31 @@
    },
    "/test/dummytype/waldo": {
     "get": {
-     "operationId": "func4",
+     "operationId": "get-dummytype.Waldo",
      "responses": {
-      "200": {
-       "description": "OK",
+      "500": {
+       "description": "Internal Service Error",
        "content": {
         "application/json": {
          "schema": {
-          "$ref": "#/components/schemas/dummytype.Waldo"
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/listtype": {
+    "post": {
+     "operationId": "create-listtype.SetList",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/listtype.SetList"
          }
         }
        }
@@ -160,7 +238,7 @@
    },
    "/test/listtype/atomiclist": {
     "get": {
-     "operationId": "func5",
+     "operationId": "get-listtype.AtomicList",
      "responses": {
       "200": {
        "description": "OK",
@@ -177,7 +255,7 @@
    },
    "/test/listtype/maplist": {
     "get": {
-     "operationId": "func6",
+     "operationId": "get-listtype.MapList",
      "responses": {
       "200": {
        "description": "OK",
@@ -194,7 +272,7 @@
    },
    "/test/listtype/setlist": {
     "get": {
-     "operationId": "func7",
+     "operationId": "get-listtype.SetList",
      "responses": {
       "200": {
        "description": "OK",
@@ -209,9 +287,26 @@
      }
     }
    },
+   "/test/maptype": {
+    "post": {
+     "operationId": "create-maptype.AtomicMap",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/maptype.AtomicMap"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
    "/test/maptype/atomicmap": {
     "get": {
-     "operationId": "func15",
+     "operationId": "get-maptype.AtomicMap",
      "responses": {
       "200": {
        "description": "OK",
@@ -228,7 +323,7 @@
    },
    "/test/maptype/granularmap": {
     "get": {
-     "operationId": "func14",
+     "operationId": "get-maptype.GranularMap",
      "responses": {
       "200": {
        "description": "OK",
@@ -243,9 +338,26 @@
      }
     }
    },
+   "/test/structtype": {
+    "post": {
+     "operationId": "create-structtype.DeclaredAtomicStruct",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/structtype.DeclaredAtomicStruct"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
    "/test/structtype/atomicstruct": {
     "get": {
-     "operationId": "func17",
+     "operationId": "get-structtype.AtomicStruct",
      "responses": {
       "200": {
        "description": "OK",
@@ -262,7 +374,7 @@
    },
    "/test/structtype/declaredatomicstruct": {
     "get": {
-     "operationId": "func18",
+     "operationId": "get-structtype.DeclaredAtomicStruct",
      "responses": {
       "200": {
        "description": "OK",
@@ -279,7 +391,7 @@
    },
    "/test/structtype/granularstruct": {
     "get": {
-     "operationId": "func16",
+     "operationId": "get-structtype.GranularStruct",
      "responses": {
       "200": {
        "description": "OK",
@@ -294,9 +406,26 @@
      }
     }
    },
+   "/test/uniontype": {
+    "post": {
+     "operationId": "create-uniontype.InlinedUnion",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/uniontype.InlinedUnion"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
    "/test/uniontype/inlinedunion": {
     "get": {
-     "operationId": "func9",
+     "operationId": "get-uniontype.InlinedUnion",
      "responses": {
       "200": {
        "description": "OK",
@@ -313,7 +442,7 @@
    },
    "/test/uniontype/toplevelunion": {
     "get": {
-     "operationId": "func8",
+     "operationId": "get-uniontype.TopLevelUnion",
      "responses": {
       "200": {
        "description": "OK",
@@ -467,6 +596,24 @@
        "default": 0
       },
       "Second": {
+       "type": "string",
+       "default": ""
+      }
+     }
+    },
+    "dummytype.StatusError": {
+     "type": "object",
+     "required": [
+      "Code",
+      "Message"
+     ],
+     "properties": {
+      "Code": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "Message": {
        "type": "string",
        "default": ""
       }

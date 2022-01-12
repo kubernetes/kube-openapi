@@ -14,6 +14,8 @@ API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/du
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Baz,ViolationBehind
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Foo,First
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Foo,Second
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,StatusError,Code
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,StatusError,Message
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Waldo,First
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/dummytype,Waldo,Second
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/listtype,AtomicList,Field

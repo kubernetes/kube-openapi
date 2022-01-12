@@ -5,6 +5,28 @@
    "version": "1.0"
   },
   "paths": {
+   "/test/custom": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-custom.Bah",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/custom.Bah"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/custom/bac": {
     "get": {
      "produces": [
@@ -13,7 +35,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func12",
+     "operationId": "get-custom.Bac",
      "responses": {
       "200": {
        "description": "OK",
@@ -35,7 +57,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func13",
+     "operationId": "get-custom.Bah",
      "responses": {
       "200": {
        "description": "OK",
@@ -57,7 +79,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func11",
+     "operationId": "get-custom.Bak",
      "responses": {
       "200": {
        "description": "OK",
@@ -79,12 +101,34 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func10",
+     "operationId": "get-custom.Bal",
      "responses": {
       "200": {
        "description": "OK",
        "schema": {
         "$ref": "#/definitions/custom.Bal"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/defaults": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-defaults.Defaulted",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/defaults.Defaulted"
        }
       },
       "404": {
@@ -101,7 +145,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func19",
+     "operationId": "get-defaults.Defaulted",
      "responses": {
       "200": {
        "description": "OK",
@@ -115,6 +159,34 @@
      }
     }
    },
+   "/test/dummytype": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-dummytype.Waldo",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/dummytype.Waldo"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "schema": {
+        "$ref": "#/definitions/dummytype.StatusError"
+       }
+      }
+     }
+    }
+   },
    "/test/dummytype/bar": {
     "get": {
      "produces": [
@@ -123,16 +195,16 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func2",
+     "operationId": "get-dummytype.Bar",
      "responses": {
-      "200": {
-       "description": "OK",
-       "schema": {
-        "$ref": "#/definitions/dummytype.Bar"
-       }
-      },
       "404": {
        "$ref": "#/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "schema": {
+        "$ref": "#/definitions/dummytype.StatusError"
+       }
       }
      }
     }
@@ -145,16 +217,16 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func3",
+     "operationId": "get-dummytype.Baz",
      "responses": {
-      "200": {
-       "description": "OK",
-       "schema": {
-        "$ref": "#/definitions/dummytype.Baz"
-       }
-      },
       "404": {
        "$ref": "#/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "schema": {
+        "$ref": "#/definitions/dummytype.StatusError"
+       }
       }
      }
     }
@@ -167,16 +239,16 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func1",
+     "operationId": "get-dummytype.Foo",
      "responses": {
-      "200": {
-       "description": "OK",
-       "schema": {
-        "$ref": "#/definitions/dummytype.Foo"
-       }
-      },
       "404": {
        "$ref": "#/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "schema": {
+        "$ref": "#/definitions/dummytype.StatusError"
+       }
       }
      }
     }
@@ -189,12 +261,34 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func4",
+     "operationId": "get-dummytype.Waldo",
      "responses": {
-      "200": {
-       "description": "OK",
+      "404": {
+       "$ref": "#/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
        "schema": {
-        "$ref": "#/definitions/dummytype.Waldo"
+        "$ref": "#/definitions/dummytype.StatusError"
+       }
+      }
+     }
+    }
+   },
+   "/test/listtype": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-listtype.SetList",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/listtype.SetList"
        }
       },
       "404": {
@@ -211,7 +305,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func5",
+     "operationId": "get-listtype.AtomicList",
      "responses": {
       "200": {
        "description": "OK",
@@ -233,7 +327,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func6",
+     "operationId": "get-listtype.MapList",
      "responses": {
       "200": {
        "description": "OK",
@@ -255,12 +349,34 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func7",
+     "operationId": "get-listtype.SetList",
      "responses": {
       "200": {
        "description": "OK",
        "schema": {
         "$ref": "#/definitions/listtype.SetList"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/maptype": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-maptype.AtomicMap",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/maptype.AtomicMap"
        }
       },
       "404": {
@@ -277,7 +393,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func15",
+     "operationId": "get-maptype.AtomicMap",
      "responses": {
       "200": {
        "description": "OK",
@@ -299,12 +415,34 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func14",
+     "operationId": "get-maptype.GranularMap",
      "responses": {
       "200": {
        "description": "OK",
        "schema": {
         "$ref": "#/definitions/maptype.GranularMap"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-structtype.DeclaredAtomicStruct",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/structtype.DeclaredAtomicStruct"
        }
       },
       "404": {
@@ -321,7 +459,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func17",
+     "operationId": "get-structtype.AtomicStruct",
      "responses": {
       "200": {
        "description": "OK",
@@ -343,7 +481,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func18",
+     "operationId": "get-structtype.DeclaredAtomicStruct",
      "responses": {
       "200": {
        "description": "OK",
@@ -365,12 +503,34 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func16",
+     "operationId": "get-structtype.GranularStruct",
      "responses": {
       "200": {
        "description": "OK",
        "schema": {
         "$ref": "#/definitions/structtype.GranularStruct"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/uniontype": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-uniontype.InlinedUnion",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/uniontype.InlinedUnion"
        }
       },
       "404": {
@@ -387,7 +547,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func9",
+     "operationId": "get-uniontype.InlinedUnion",
      "responses": {
       "200": {
        "description": "OK",
@@ -409,7 +569,7 @@
      "schemes": [
       "https"
      ],
-     "operationId": "func8",
+     "operationId": "get-uniontype.TopLevelUnion",
      "responses": {
       "200": {
        "description": "OK",
@@ -555,6 +715,24 @@
       "default": 0
      },
      "Second": {
+      "type": "string",
+      "default": ""
+     }
+    }
+   },
+   "dummytype.StatusError": {
+    "type": "object",
+    "required": [
+     "Code",
+     "Message"
+    ],
+    "properties": {
+     "Code": {
+      "type": "integer",
+      "format": "int32",
+      "default": 0
+     },
+     "Message": {
       "type": "string",
       "default": ""
      }

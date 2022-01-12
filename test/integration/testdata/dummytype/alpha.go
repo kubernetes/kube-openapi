@@ -34,3 +34,9 @@ type Baz struct {
 	Violation       bool
 	ViolationBehind bool
 }
+
+// +k8s:openapi-gen=true
+type StatusError struct {
+	Code    int
+	Message string
+}
