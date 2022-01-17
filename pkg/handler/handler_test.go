@@ -9,9 +9,11 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/davecgh/go-spew/spew"
 	yaml "gopkg.in/yaml.v2"
+	"k8s.io/kube-openapi/pkg/internal/handler"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -176,4 +178,37 @@ func TestToProtoBinary(t *testing.T) {
 		t.Fatal()
 	}
 	// TODO: add some kind of roundtrip test here
+}
+
+func TestEagerMarshaling(t *testing.T) {
+	jsonCacheLoaded := false
+	protoCacheLoaded := false
+	o := &OpenAPIService{}
+	o.eagerMarshalingTimer = buildEagerMarshalingTimer(o)
+	o.jsonCache = handler.HandlerCache{BuildCache: func() ([]byte, error) {
+		jsonCacheLoaded = true
+		return nil, nil
+	}}
+	o.protoCache = handler.HandlerCache{
+		BuildCache: func() ([]byte, error) {
+			protoCacheLoaded = true
+			return nil, nil
+		},
+	}
+	// kick off the eager marshalling timer
+	_ = o.eagerMarshalingTimer.Reset(time.Microsecond)
+	timeout := time.After(100 * time.Millisecond)
+	for {
+		if jsonCacheLoaded && protoCacheLoaded {
+			// test passed: both cache eager-loaded
+			return
+		}
+		select {
+		case <-timeout:
+			t.Errorf("timeout waiting for cache to eager load")
+			break
+		default:
+			time.Sleep(time.Millisecond)
+		}
+	}
 }

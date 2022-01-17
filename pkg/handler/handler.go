@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/json"
+	"math"
 	"mime"
 	"net/http"
 	"sync"
@@ -54,6 +55,10 @@ type OpenAPIService struct {
 	// rwMutex protects All members of this service.
 	rwMutex sync.RWMutex
 
+	// eagerMarshalingTimer fires if no updates to the spec are made
+	// for the defined duration.
+	eagerMarshalingTimer *time.Timer
+
 	lastModified time.Time
 
 	jsonCache  handler.HandlerCache
@@ -69,7 +74,9 @@ func init() {
 // NewOpenAPIService builds an OpenAPIService starting with the given spec.
 func NewOpenAPIService(spec *spec.Swagger) (*OpenAPIService, error) {
 	o := &OpenAPIService{}
+	o.eagerMarshalingTimer = buildEagerMarshalingTimer(o)
 	if err := o.UpdateSpec(spec); err != nil {
+		_ = o.eagerMarshalingTimer.Stop()
 		return nil, err
 	}
 	return o, nil
@@ -109,6 +116,8 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 		return ToProtoBinary(json)
 	})
 	o.lastModified = time.Now()
+
+	_ = o.eagerMarshalingTimer.Reset(handler.EagerMarshalingCoolDown)
 
 	return nil
 }
@@ -255,4 +264,13 @@ func BuildAndRegisterOpenAPIVersionedServiceFromRoutes(servePath string, routeCo
 		return nil, err
 	}
 	return o, o.RegisterOpenAPIVersionedService(servePath, handler)
+}
+
+func buildEagerMarshalingTimer(o *OpenAPIService) *time.Timer {
+	return time.AfterFunc(
+		time.Duration(math.MaxInt64), // placeholder duration, will be reset later
+		func() {
+			_, _, _ = o.jsonCache.Get()
+			_, _, _ = o.protoCache.Get()
+		})
 }
