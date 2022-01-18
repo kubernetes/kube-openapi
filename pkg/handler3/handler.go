@@ -21,6 +21,7 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
+	"math"
 	"mime"
 	"net/http"
 	"sort"
@@ -51,7 +52,6 @@ const (
 
 // OpenAPIService is the service responsible for serving OpenAPI spec. It has
 // the ability to safely change the spec while serving it.
-// OpenAPI V3 currently does not use the lazy marshaling strategy that OpenAPI V2 is using
 type OpenAPIService struct {
 	// rwMutex protects All members of this service.
 	rwMutex      sync.RWMutex
@@ -61,6 +61,10 @@ type OpenAPIService struct {
 
 type OpenAPIV3Group struct {
 	rwMutex sync.RWMutex
+
+	// eagerMarshalingTimer fires if no updates to the spec are made
+	// for the defined duration.
+	eagerMarshalingTimer *time.Timer
 
 	lastModified time.Time
 
@@ -83,6 +87,18 @@ func NewOpenAPIService(spec *spec.Swagger) (*OpenAPIService, error) {
 	o := &OpenAPIService{}
 	o.v3Schema = make(map[string]*OpenAPIV3Group)
 	return o, nil
+}
+
+// NewOpenAPIGroup builds an empty OpenAPIGroup
+func NewOpenAPIGroup() *OpenAPIV3Group {
+	g := &OpenAPIV3Group{}
+	g.eagerMarshalingTimer = time.AfterFunc(
+		time.Duration(math.MaxInt64), // placeholder duration, will be reset later
+		func() {
+			_, _, _ = g.jsonCache.Get()
+			_, _, _ = g.pbCache.Get()
+		})
+	return g
 }
 
 func (o *OpenAPIService) getGroupBytes() ([]byte, error) {
@@ -133,7 +149,7 @@ func (o *OpenAPIService) UpdateGroupVersion(group string, openapi *spec3.OpenAPI
 	}
 
 	if _, ok := o.v3Schema[group]; !ok {
-		o.v3Schema[group] = &OpenAPIV3Group{}
+		o.v3Schema[group] = NewOpenAPIGroup()
 	}
 	return o.v3Schema[group].UpdateSpec(specBytes)
 }
@@ -210,6 +226,8 @@ func (o *OpenAPIService) RegisterOpenAPIV3VersionedService(servePath string, han
 func (o *OpenAPIV3Group) UpdateSpec(specBytes []byte) (err error) {
 	o.rwMutex.Lock()
 	defer o.rwMutex.Unlock()
+
+	_ = o.eagerMarshalingTimer.Reset(handler.EagerMarshalingCoolDown)
 
 	o.pbCache = o.pbCache.New(func() ([]byte, error) {
 		return ToV3ProtoBinary(specBytes)
