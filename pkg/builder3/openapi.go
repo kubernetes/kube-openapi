@@ -77,6 +77,7 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 	ret := &spec3.Operation{
 		OperationProps: spec3.OperationProps{
 			Description: route.Description(),
+			Deprecated:  route.Deprecated(),
 			Responses: &spec3.Responses{
 				ResponsesProps: spec3.ResponsesProps{
 					StatusCodeResponses: make(map[int]*spec3.Response),

@@ -66,3 +66,7 @@ func (r *RouteAdapter) RequestPayloadSample() interface{} {
 func (r *RouteAdapter) ResponsePayloadSample() interface{} {
 	return r.Route.WriteSample
 }
+
+func (r *RouteAdapter) Deprecated() bool {
+	return r.Route.Deprecated
+}

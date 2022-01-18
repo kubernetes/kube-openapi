@@ -6,7 +6,7 @@ require (
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/emicklei/go-restful/v3 v3.8.0
-	github.com/getkin/kin-openapi v0.76.0
+ 	github.com/getkin/kin-openapi v0.76.0
 	github.com/go-openapi/jsonreference v0.19.3
 	github.com/go-openapi/swag v0.19.5
 	github.com/golang/protobuf v1.5.2
@@ -14,7 +14,7 @@ require (
 	github.com/google/go-cmp v0.5.5
 	github.com/google/gofuzz v1.1.0
 	github.com/google/uuid v1.1.2
-	github.com/mitchellh/mapstructure v1.1.2
+ 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d
 	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0

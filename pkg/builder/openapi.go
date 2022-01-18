@@ -286,6 +286,7 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 			Description: route.Description(),
 			Consumes:    route.Consumes(),
 			Produces:    route.Produces(),
+			Deprecated:  route.Deprecated(),
 			Schemes:     o.config.ProtocolList,
 			Responses: &spec.Responses{
 				ResponsesProps: spec.ResponsesProps{

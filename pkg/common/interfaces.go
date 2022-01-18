@@ -36,6 +36,8 @@ type Route interface {
 	// StatusCodeResponses defines a mapping of HTTP Status Codes to the specific response(s).
 	// Multiple responses with the same HTTP Status Code are acceptable.
 	StatusCodeResponses() []StatusCodeResponse
+	// Deprecated marks a route as deprecated
+	Deprecated() bool
 }
 
 // StatusCodeResponse is an explicit response type with an HTTP Status Code.
