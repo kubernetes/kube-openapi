@@ -160,7 +160,7 @@ func (ev *enumValue) Description() string {
 	// // Foo is foo
 	// const Foo = "foo"
 	// const FooAlias = Foo
-	// will provide Name = "FooAlias", Comment = "// Foo if foo",
+	// will result Name = "FooAlias", Comment = "// Foo if foo",
 	// split the string to workaround it
 	parts := strings.SplitN(comment, " ", 2)
 	if len(parts) == 2 {

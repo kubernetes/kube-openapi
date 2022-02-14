@@ -1582,6 +1582,7 @@ func TestEnum(t *testing.T) {
 package foo
 
 // EnumType is the enumType.
+// +enum
 type EnumType string
 
 // for "backward" compat
@@ -1597,6 +1598,7 @@ const (
 	AliasA = EnumA
 	AliasB = EnumB
 )
+
 // Blah is a test.
 // +k8s:openapi-gen=true
 // +k8s:openapi-gen=x-kubernetes-type-tag:type_test
