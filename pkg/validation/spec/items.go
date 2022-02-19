@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -26,29 +27,29 @@ const (
 
 // SimpleSchema describe swagger simple schemas for parameters and headers
 type SimpleSchema struct {
-	Type             string      `json:"type,omitempty"`
-	Nullable         bool        `json:"nullable,omitempty"`
-	Format           string      `json:"format,omitempty"`
-	Items            *Items      `json:"items,omitempty"`
-	CollectionFormat string      `json:"collectionFormat,omitempty"`
-	Default          interface{} `json:"default,omitempty"`
-	Example          interface{} `json:"example,omitempty"`
+	Type             string      `json:"type,omitempty" yaml:"type,omitempty"`
+	Nullable         bool        `json:"nullable,omitempty" yaml:"nullable,omitempty"`
+	Format           string      `json:"format,omitempty" yaml:"format,omitempty"`
+	Items            *Items      `json:"items,omitempty" yaml:"items,omitempty"`
+	CollectionFormat string      `json:"collectionFormat,omitempty" yaml:"collectionFormat,omitempty"`
+	Default          interface{} `json:"default,omitempty" yaml:"default,omitempty"`
+	Example          interface{} `json:"example,omitempty" yaml:"example,omitempty"`
 }
 
 // CommonValidations describe common JSON-schema validations
 type CommonValidations struct {
-	Maximum          *float64      `json:"maximum,omitempty"`
-	ExclusiveMaximum bool          `json:"exclusiveMaximum,omitempty"`
-	Minimum          *float64      `json:"minimum,omitempty"`
-	ExclusiveMinimum bool          `json:"exclusiveMinimum,omitempty"`
-	MaxLength        *int64        `json:"maxLength,omitempty"`
-	MinLength        *int64        `json:"minLength,omitempty"`
-	Pattern          string        `json:"pattern,omitempty"`
-	MaxItems         *int64        `json:"maxItems,omitempty"`
-	MinItems         *int64        `json:"minItems,omitempty"`
-	UniqueItems      bool          `json:"uniqueItems,omitempty"`
-	MultipleOf       *float64      `json:"multipleOf,omitempty"`
-	Enum             []interface{} `json:"enum,omitempty"`
+	Maximum          *float64      `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	ExclusiveMaximum bool          `json:"exclusiveMaximum,omitempty" yaml:"exclusiveMaximum,omitempty"`
+	Minimum          *float64      `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	ExclusiveMinimum bool          `json:"exclusiveMinimum,omitempty" yaml:"exclusiveMinimum,omitempty"`
+	MaxLength        *int64        `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
+	MinLength        *int64        `json:"minLength,omitempty" yaml:"minLength,omitempty"`
+	Pattern          string        `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	MaxItems         *int64        `json:"maxItems,omitempty" yaml:"maxItems,omitempty"`
+	MinItems         *int64        `json:"minItems,omitempty" yaml:"minItems,omitempty"`
+	UniqueItems      bool          `json:"uniqueItems,omitempty" yaml:"uniqueItems,omitempty"`
+	MultipleOf       *float64      `json:"multipleOf,omitempty" yaml:"multipleOf,omitempty"`
+	Enum             []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
 }
 
 // Items a limited subset of JSON-Schema's items object.
@@ -60,6 +61,25 @@ type Items struct {
 	CommonValidations
 	SimpleSchema
 	VendorExtensible
+}
+
+func (i *Items) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&i.CommonValidations); err != nil {
+		return err
+	}
+
+	if err := value.Decode(&i.Refable); err != nil {
+		return err
+	}
+
+	if err := value.Decode(&i.SimpleSchema); err != nil {
+		return err
+	}
+
+	if err := i.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
 }
 
 // UnmarshalJSON hydrates this items instance with the data from JSON

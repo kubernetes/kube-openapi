@@ -16,9 +16,12 @@ package spec
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // Extensions vendor specific extensions
@@ -133,14 +136,43 @@ func (v *VendorExtensible) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (v *VendorExtensible) UnmarshalYAML(value *yaml.Node) error {
+	// var d map[string]interface{}
+	if value.Kind != yaml.MappingNode {
+		return errors.New("expected mappingNode")
+	} else if len(value.Content)%2 != 0 {
+		return errors.New("expected even child nodes")
+	}
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		if strings.HasPrefix(keyStr, "x-") || strings.HasPrefix(keyStr, "X-") {
+			if v.Extensions == nil {
+				v.Extensions = map[string]interface{}{}
+			}
+
+			var decodedVal interface{}
+			if err := value.Content[i+1].Decode(&decodedVal); err != nil {
+				return err
+			}
+			v.Extensions[strings.ToLower(keyStr)] = decodedVal
+		}
+	}
+	return nil
+}
+
 // InfoProps the properties for an info definition
 type InfoProps struct {
-	Description    string       `json:"description,omitempty"`
-	Title          string       `json:"title,omitempty"`
-	TermsOfService string       `json:"termsOfService,omitempty"`
-	Contact        *ContactInfo `json:"contact,omitempty"`
-	License        *License     `json:"license,omitempty"`
-	Version        string       `json:"version,omitempty"`
+	Description    string       `json:"description,omitempty" yaml:"description,omitempty"`
+	Title          string       `json:"title,omitempty" yaml:"title,omitempty"`
+	TermsOfService string       `json:"termsOfService,omitempty" yaml:"termsOfService,omitempty"`
+	Contact        *ContactInfo `json:"contact,omitempty" yaml:"contact,omitempty"`
+	License        *License     `json:"license,omitempty" yaml:"license,omitempty"`
+	Version        string       `json:"version,omitempty" yaml:"version,omitempty"`
 }
 
 // Info object provides metadata about the API.
@@ -171,4 +203,11 @@ func (i *Info) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &i.VendorExtensible)
+}
+
+func (i *Info) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&i.InfoProps); err != nil {
+		return err
+	}
+	return i.VendorExtensible.UnmarshalYAML(value)
 }

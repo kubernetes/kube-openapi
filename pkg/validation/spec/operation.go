@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 // OperationProps describes an operation
@@ -26,18 +27,18 @@ import (
 // - schemes, when present must be from [http, https, ws, wss]: see validate
 // - Security is handled as a special case: see MarshalJSON function
 type OperationProps struct {
-	Description  string                 `json:"description,omitempty"`
-	Consumes     []string               `json:"consumes,omitempty"`
-	Produces     []string               `json:"produces,omitempty"`
-	Schemes      []string               `json:"schemes,omitempty"`
-	Tags         []string               `json:"tags,omitempty"`
-	Summary      string                 `json:"summary,omitempty"`
-	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
-	ID           string                 `json:"operationId,omitempty"`
-	Deprecated   bool                   `json:"deprecated,omitempty"`
-	Security     []map[string][]string  `json:"security,omitempty"`
-	Parameters   []Parameter            `json:"parameters,omitempty"`
-	Responses    *Responses             `json:"responses,omitempty"`
+	Description  string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	Consumes     []string               `json:"consumes,omitempty" yaml:"consumes,omitempty"`
+	Produces     []string               `json:"produces,omitempty" yaml:"produces,omitempty"`
+	Schemes      []string               `json:"schemes,omitempty" yaml:"schemes,omitempty"`
+	Tags         []string               `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Summary      string                 `json:"summary,omitempty" yaml:"summary,omitempty"`
+	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
+	ID           string                 `json:"operationId,omitempty" yaml:"operationId,omitempty"`
+	Deprecated   bool                   `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
+	Security     []map[string][]string  `json:"security,omitempty" yaml:"security,omitempty"`
+	Parameters   []Parameter            `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Responses    *Responses             `json:"responses,omitempty" yaml:"responses,omitempty"`
 }
 
 // MarshalJSON takes care of serializing operation properties to JSON
@@ -49,7 +50,7 @@ func (op OperationProps) MarshalJSON() ([]byte, error) {
 	type Alias OperationProps
 	if op.Security == nil {
 		return json.Marshal(&struct {
-			Security []map[string][]string `json:"security,omitempty"`
+			Security []map[string][]string `json:"security,omitempty" yaml:"security,omitempty"`
 			*Alias
 		}{
 			Security: op.Security,
@@ -57,7 +58,7 @@ func (op OperationProps) MarshalJSON() ([]byte, error) {
 		})
 	}
 	return json.Marshal(&struct {
-		Security []map[string][]string `json:"security"`
+		Security []map[string][]string `json:"security" yaml:"security"`
 		*Alias
 	}{
 		Security: op.Security,
@@ -71,6 +72,13 @@ func (op OperationProps) MarshalJSON() ([]byte, error) {
 type Operation struct {
 	VendorExtensible
 	OperationProps
+}
+
+func (o *Operation) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&o.OperationProps); err != nil {
+		return err
+	}
+	return o.VendorExtensible.UnmarshalYAML(value)
 }
 
 // UnmarshalJSON hydrates this items instance with the data from JSON

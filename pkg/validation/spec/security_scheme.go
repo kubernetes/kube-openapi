@@ -18,18 +18,19 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 // SecuritySchemeProps describes a swagger security scheme in the securityDefinitions section
 type SecuritySchemeProps struct {
-	Description      string            `json:"description,omitempty"`
-	Type             string            `json:"type"`
-	Name             string            `json:"name,omitempty"`             // api key
-	In               string            `json:"in,omitempty"`               // api key
-	Flow             string            `json:"flow,omitempty"`             // oauth2
-	AuthorizationURL string            `json:"authorizationUrl,omitempty"` // oauth2
-	TokenURL         string            `json:"tokenUrl,omitempty"`         // oauth2
-	Scopes           map[string]string `json:"scopes,omitempty"`           // oauth2
+	Description      string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Type             string            `json:"type" yaml:"type"`
+	Name             string            `json:"name,omitempty" yaml:"name,omitempty"`                         // api key
+	In               string            `json:"in,omitempty" yaml:"in,omitempty"`                             // api key
+	Flow             string            `json:"flow,omitempty" yaml:"flow,omitempty"`                         // oauth2
+	AuthorizationURL string            `json:"authorizationUrl,omitempty" yaml:"authorizationUrl,omitempty"` // oauth2
+	TokenURL         string            `json:"tokenUrl,omitempty" yaml:"tokenUrl,omitempty"`                 // oauth2
+	Scopes           map[string]string `json:"scopes,omitempty" yaml:"scopes,omitempty"`                     // oauth2
 }
 
 // SecurityScheme allows the definition of a security scheme that can be used by the operations.
@@ -61,4 +62,11 @@ func (s *SecurityScheme) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &s.VendorExtensible)
+}
+
+func (s *SecurityScheme) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&s.SecuritySchemeProps); err != nil {
+		return err
+	}
+	return value.Decode(&s.VendorExtensible)
 }

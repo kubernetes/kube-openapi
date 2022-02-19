@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -26,7 +27,7 @@ const (
 
 // HeaderProps describes a response header
 type HeaderProps struct {
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
 // Header describes a header for a response of the API
@@ -68,4 +69,18 @@ func (h *Header) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &h.HeaderProps)
+}
+
+// UnmarshalJSON unmarshals this header from JSON
+func (h *Header) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&h.CommonValidations); err != nil {
+		return err
+	}
+	if err := value.Decode(&h.SimpleSchema); err != nil {
+		return err
+	}
+	if err := value.Decode(&h.VendorExtensible); err != nil {
+		return err
+	}
+	return value.Decode(&h.HeaderProps)
 }

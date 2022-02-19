@@ -21,11 +21,13 @@ import (
 	"path/filepath"
 
 	"github.com/go-openapi/jsonreference"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // Refable is a struct for things that accept a $ref property
 type Refable struct {
-	Ref Ref
+	Ref Ref `yaml:"$ref,omitempty"`
 }
 
 // MarshalJSON marshals the ref to json
@@ -146,6 +148,22 @@ func (r *Ref) UnmarshalJSON(d []byte) error {
 		return err
 	}
 	return r.fromMap(v)
+}
+
+func (r *Ref) UnmarshalYAML(n *yaml.Node) error {
+	var valueStr string
+	if err := util.DecodeYAMLString(n, &valueStr); err != nil {
+		return err
+	}
+
+	ref, err := jsonreference.New(valueStr)
+	if err != nil {
+		return err
+	}
+
+	r.Ref = ref
+
+	return nil
 }
 
 func (r *Ref) fromMap(v map[string]interface{}) error {

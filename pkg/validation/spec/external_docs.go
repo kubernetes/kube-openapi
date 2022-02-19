@@ -19,6 +19,6 @@ package spec
 //
 // For more information: http://goo.gl/8us55a#externalDocumentationObject
 type ExternalDocumentation struct {
-	Description string `json:"description,omitempty"`
-	URL         string `json:"url,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	URL         string `json:"url,omitempty" yaml:"url,omitempty"`
 }

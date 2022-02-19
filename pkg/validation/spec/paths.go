@@ -16,9 +16,12 @@ package spec
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // Paths holds the relative paths to the individual endpoints.
@@ -29,7 +32,45 @@ import (
 // For more information: http://goo.gl/8us55a#pathsObject
 type Paths struct {
 	VendorExtensible
-	Paths map[string]PathItem `json:"-"` // custom serializer to flatten this, each entry must start with "/"
+	Paths map[string]PathItem `json:"-" yaml:"-"` // custom serializer to flatten this, each entry must start with "/"
+}
+
+func (p *Paths) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return errors.New("invalid yaml node provided. Expected key-value map")
+	} else if len(value.Content)%2 != 0 {
+		return errors.New("invalid mapping node provided. Expected even number of children")
+	}
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		val := value.Content[i+1]
+
+		if strings.HasPrefix(keyStr, "x-") || strings.HasPrefix(keyStr, "X-") {
+			if p.Extensions == nil {
+				p.Extensions = make(map[string]interface{})
+			}
+			var d interface{}
+			if err := val.Decode(&d); err != nil {
+				return err
+			}
+			p.Extensions[strings.ToLower(keyStr)] = d
+		} else if strings.HasPrefix(keyStr, "/") {
+			if p.Paths == nil {
+				p.Paths = make(map[string]PathItem)
+			}
+			pi := PathItem{}
+			if err := pi.UnmarshalYAML(val); err != nil {
+				return err
+			}
+			p.Paths[strings.ToLower(keyStr)] = pi
+		}
+	}
+	return nil
 }
 
 // UnmarshalJSON hydrates this items instance with the data from JSON

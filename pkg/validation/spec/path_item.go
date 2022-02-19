@@ -18,18 +18,19 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 // PathItemProps the path item specific properties
 type PathItemProps struct {
-	Get        *Operation  `json:"get,omitempty"`
-	Put        *Operation  `json:"put,omitempty"`
-	Post       *Operation  `json:"post,omitempty"`
-	Delete     *Operation  `json:"delete,omitempty"`
-	Options    *Operation  `json:"options,omitempty"`
-	Head       *Operation  `json:"head,omitempty"`
-	Patch      *Operation  `json:"patch,omitempty"`
-	Parameters []Parameter `json:"parameters,omitempty"`
+	Get        *Operation  `json:"get,omitempty" yaml:"get,omitempty"`
+	Put        *Operation  `json:"put,omitempty" yaml:"put,omitempty"`
+	Post       *Operation  `json:"post,omitempty" yaml:"post,omitempty"`
+	Delete     *Operation  `json:"delete,omitempty" yaml:"delete,omitempty"`
+	Options    *Operation  `json:"options,omitempty" yaml:"options,omitempty"`
+	Head       *Operation  `json:"head,omitempty" yaml:"head,omitempty"`
+	Patch      *Operation  `json:"patch,omitempty" yaml:"patch,omitempty"`
+	Parameters []Parameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 // PathItem describes the operations available on a single path.
@@ -53,6 +54,16 @@ func (p *PathItem) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &p.PathItemProps)
+}
+
+func (p *PathItem) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&p.Refable); err != nil {
+		return err
+	}
+	if err := p.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return value.Decode(&p.PathItemProps)
 }
 
 // MarshalJSON converts this items object to JSON

@@ -18,13 +18,14 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 // TagProps describe a tag entry in the top level tags section of a swagger spec
 type TagProps struct {
-	Description  string                 `json:"description,omitempty"`
-	Name         string                 `json:"name,omitempty"`
-	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
+	Description  string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	Name         string                 `json:"name,omitempty" yaml:"name,omitempty"`
+	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
 }
 
 // Tag allows adding meta data to a single tag that is used by the
@@ -56,4 +57,11 @@ func (t *Tag) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &t.VendorExtensible)
+}
+
+func (t *Tag) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&t.TagProps); err != nil {
+		return err
+	}
+	return t.VendorExtensible.UnmarshalYAML(value)
 }

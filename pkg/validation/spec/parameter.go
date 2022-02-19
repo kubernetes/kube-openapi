@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 // ParamProps describes the specific attributes of an operation parameter
@@ -26,12 +27,12 @@ import (
 // - Schema is defined when "in" == "body": see validate
 // - AllowEmptyValue is allowed where "in" == "query" || "formData"
 type ParamProps struct {
-	Description     string  `json:"description,omitempty"`
-	Name            string  `json:"name,omitempty"`
-	In              string  `json:"in,omitempty"`
-	Required        bool    `json:"required,omitempty"`
-	Schema          *Schema `json:"schema,omitempty"`
-	AllowEmptyValue bool    `json:"allowEmptyValue,omitempty"`
+	Description     string  `json:"description,omitempty" yaml:"description,omitempty"`
+	Name            string  `json:"name,omitempty" yaml:"name,omitempty"`
+	In              string  `json:"in,omitempty" yaml:"in,omitempty"`
+	Required        bool    `json:"required,omitempty" yaml:"required,omitempty"`
+	Schema          *Schema `json:"schema,omitempty" yaml:"schema,omitempty"`
+	AllowEmptyValue bool    `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
 }
 
 // Parameter a unique parameter is defined by a combination of a [name](#parameterName) and [location](#parameterIn).
@@ -83,6 +84,22 @@ func (p *Parameter) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &p.ParamProps)
+}
+
+func (p *Parameter) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&p.CommonValidations); err != nil {
+		return err
+	}
+	if err := value.Decode(&p.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&p.SimpleSchema); err != nil {
+		return err
+	}
+	if err := p.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return value.Decode(&p.ParamProps)
 }
 
 // MarshalJSON converts this items object to JSON

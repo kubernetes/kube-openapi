@@ -18,9 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strings"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // BooleanProperty creates a boolean property
@@ -138,6 +141,37 @@ func (r *SchemaURL) UnmarshalJSON(data []byte) error {
 	return r.fromMap(v)
 }
 
+func (r *SchemaURL) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node, not %v", value.Kind)
+	} else if len(value.Content)%2 != 0 {
+		return fmt.Errorf("expected mapping node to have even number subchildren, not %v", len(value.Content))
+	}
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		if keyStr == "$schema" {
+			var valueStr string
+			if err := value.Content[i+1].Decode(&valueStr); err != nil {
+				return err
+			}
+
+			u, err := url.Parse(valueStr)
+			if err != nil {
+				return err
+			}
+
+			*r = SchemaURL(u.String())
+		}
+	}
+
+	return nil
+}
+
 func (r *SchemaURL) fromMap(v map[string]interface{}) error {
 	if v == nil {
 		return nil
@@ -157,49 +191,49 @@ func (r *SchemaURL) fromMap(v map[string]interface{}) error {
 
 // SchemaProps describes a JSON schema (draft 4)
 type SchemaProps struct {
-	ID                   string            `json:"id,omitempty"`
-	Ref                  Ref               `json:"-"`
-	Schema               SchemaURL         `json:"-"`
-	Description          string            `json:"description,omitempty"`
-	Type                 StringOrArray     `json:"type,omitempty"`
-	Nullable             bool              `json:"nullable,omitempty"`
-	Format               string            `json:"format,omitempty"`
-	Title                string            `json:"title,omitempty"`
-	Default              interface{}       `json:"default,omitempty"`
-	Maximum              *float64          `json:"maximum,omitempty"`
-	ExclusiveMaximum     bool              `json:"exclusiveMaximum,omitempty"`
-	Minimum              *float64          `json:"minimum,omitempty"`
-	ExclusiveMinimum     bool              `json:"exclusiveMinimum,omitempty"`
-	MaxLength            *int64            `json:"maxLength,omitempty"`
-	MinLength            *int64            `json:"minLength,omitempty"`
-	Pattern              string            `json:"pattern,omitempty"`
-	MaxItems             *int64            `json:"maxItems,omitempty"`
-	MinItems             *int64            `json:"minItems,omitempty"`
-	UniqueItems          bool              `json:"uniqueItems,omitempty"`
-	MultipleOf           *float64          `json:"multipleOf,omitempty"`
-	Enum                 []interface{}     `json:"enum,omitempty"`
-	MaxProperties        *int64            `json:"maxProperties,omitempty"`
-	MinProperties        *int64            `json:"minProperties,omitempty"`
-	Required             []string          `json:"required,omitempty"`
-	Items                *SchemaOrArray    `json:"items,omitempty"`
-	AllOf                []Schema          `json:"allOf,omitempty"`
-	OneOf                []Schema          `json:"oneOf,omitempty"`
-	AnyOf                []Schema          `json:"anyOf,omitempty"`
-	Not                  *Schema           `json:"not,omitempty"`
-	Properties           map[string]Schema `json:"properties,omitempty"`
-	AdditionalProperties *SchemaOrBool     `json:"additionalProperties,omitempty"`
-	PatternProperties    map[string]Schema `json:"patternProperties,omitempty"`
-	Dependencies         Dependencies      `json:"dependencies,omitempty"`
-	AdditionalItems      *SchemaOrBool     `json:"additionalItems,omitempty"`
-	Definitions          Definitions       `json:"definitions,omitempty"`
+	ID                   string            `json:"id,omitempty" yaml:"id,omitempty"`
+	Ref                  Ref               `json:"-" yaml:"$ref,omitempty"`
+	Schema               SchemaURL         `json:"-" yaml:"$schema,omitempty"`
+	Description          string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Type                 StringOrArray     `json:"type,omitempty" yaml:"type,omitempty"`
+	Nullable             bool              `json:"nullable,omitempty" yaml:"nullable,omitempty"`
+	Format               string            `json:"format,omitempty" yaml:"format,omitempty"`
+	Title                string            `json:"title,omitempty" yaml:"title,omitempty"`
+	Default              interface{}       `json:"default,omitempty" yaml:"default,omitempty"`
+	Maximum              *float64          `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	ExclusiveMaximum     bool              `json:"exclusiveMaximum,omitempty" yaml:"exclusiveMaximum,omitempty"`
+	Minimum              *float64          `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	ExclusiveMinimum     bool              `json:"exclusiveMinimum,omitempty" yaml:"exclusiveMinimum,omitempty"`
+	MaxLength            *int64            `json:"maxLength,omitempty" yaml:"maxLength,omitempty"`
+	MinLength            *int64            `json:"minLength,omitempty" yaml:"minLength,omitempty"`
+	Pattern              string            `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	MaxItems             *int64            `json:"maxItems,omitempty" yaml:"maxItems,omitempty"`
+	MinItems             *int64            `json:"minItems,omitempty" yaml:"minItems,omitempty"`
+	UniqueItems          bool              `json:"uniqueItems,omitempty" yaml:"uniqueItems,omitempty"`
+	MultipleOf           *float64          `json:"multipleOf,omitempty" yaml:"multipleOf,omitempty"`
+	Enum                 []interface{}     `json:"enum,omitempty" yaml:"enum,omitempty"`
+	MaxProperties        *int64            `json:"maxProperties,omitempty" yaml:"maxProperties,omitempty"`
+	MinProperties        *int64            `json:"minProperties,omitempty" yaml:"minProperties,omitempty"`
+	Required             []string          `json:"required,omitempty" yaml:"required,omitempty"`
+	Items                *SchemaOrArray    `json:"items,omitempty" yaml:"items,omitempty"`
+	AllOf                []Schema          `json:"allOf,omitempty" yaml:"allOf,omitempty"`
+	OneOf                []Schema          `json:"oneOf,omitempty" yaml:"oneOf,omitempty"`
+	AnyOf                []Schema          `json:"anyOf,omitempty" yaml:"anyOf,omitempty"`
+	Not                  *Schema           `json:"not,omitempty" yaml:"not,omitempty"`
+	Properties           map[string]Schema `json:"properties,omitempty" yaml:"properties,omitempty"`
+	AdditionalProperties *SchemaOrBool     `json:"additionalProperties,omitempty" yaml:"additionalProperties,omitempty"`
+	PatternProperties    map[string]Schema `json:"patternProperties,omitempty" yaml:"patternProperties,omitempty"`
+	Dependencies         Dependencies      `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
+	AdditionalItems      *SchemaOrBool     `json:"additionalItems,omitempty" yaml:"additionalItems,omitempty"`
+	Definitions          Definitions       `json:"definitions,omitempty" yaml:"definitions,omitempty"`
 }
 
 // SwaggerSchemaProps are additional properties supported by swagger schemas, but not JSON-schema (draft 4)
 type SwaggerSchemaProps struct {
-	Discriminator string                 `json:"discriminator,omitempty"`
-	ReadOnly      bool                   `json:"readOnly,omitempty"`
-	ExternalDocs  *ExternalDocumentation `json:"externalDocs,omitempty"`
-	Example       interface{}            `json:"example,omitempty"`
+	Discriminator string                 `json:"discriminator,omitempty" yaml:"discriminator,omitempty"`
+	ReadOnly      bool                   `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
+	ExternalDocs  *ExternalDocumentation `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
+	Example       interface{}            `json:"example,omitempty" yaml:"example,omitempty"`
 }
 
 // Schema the schema object allows the definition of input and output data types.
@@ -213,7 +247,7 @@ type Schema struct {
 	VendorExtensible
 	SchemaProps
 	SwaggerSchemaProps
-	ExtraProps map[string]interface{} `json:"-"`
+	ExtraProps map[string]interface{} `json:"-" yaml:"-"`
 }
 
 // WithID sets the id for this schema, allows for chaining
@@ -508,6 +542,66 @@ func (s *Schema) UnmarshalJSON(data []byte) error {
 	}
 
 	*s = sch
+
+	return nil
+}
+
+func (s *Schema) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node, not %v", value.Kind)
+	} else if len(value.Content)%2 != 0 {
+		return fmt.Errorf("expected mapping node to have even number subchildren, not %v", len(value.Content))
+	}
+
+	if err := value.Decode(&s.SchemaProps); err != nil {
+		return err
+	}
+
+	if err := value.Decode(&s.SwaggerSchemaProps); err != nil {
+		return err
+	}
+
+	typ := reflect.TypeOf((*Schema)(nil)).Elem()
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		if keyStr == "$ref" {
+			// Handled
+			continue
+		} else if keyStr == "$schema" {
+			// Handled
+			continue
+		} else if _, ok := swag.DefaultJSONNameProvider.GetGoNameForType(typ, keyStr); ok {
+			// Ignore handled JSON keys
+			continue
+		} else if strings.HasPrefix(keyStr, "x-") || strings.HasPrefix(keyStr, "X-") {
+			if s.Extensions == nil {
+				s.Extensions = map[string]interface{}{}
+			}
+
+			var val interface{}
+			if err := value.Content[i+1].Decode(&val); err != nil {
+				return err
+			}
+
+			s.Extensions[strings.ToLower(keyStr)] = val
+		} else {
+			if s.ExtraProps == nil {
+				s.ExtraProps = map[string]interface{}{}
+			}
+
+			// Add to extra props
+			var val interface{}
+			if err := value.Content[i+1].Decode(&val); err != nil {
+				return err
+			}
+			s.ExtraProps[strings.ToLower(keyStr)] = val
+		}
+	}
 
 	return nil
 }

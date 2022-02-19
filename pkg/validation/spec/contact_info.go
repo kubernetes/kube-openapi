@@ -18,7 +18,7 @@ package spec
 //
 // For more information: http://goo.gl/8us55a#contactObject
 type ContactInfo struct {
-	Name  string `json:"name,omitempty"`
-	URL   string `json:"url,omitempty"`
-	Email string `json:"email,omitempty"`
+	Name  string `json:"name,omitempty" yaml:"name,omitempty"`
+	URL   string `json:"url,omitempty" yaml:"url,omitempty"`
+	Email string `json:"email,omitempty" yaml:"email,omitempty"`
 }

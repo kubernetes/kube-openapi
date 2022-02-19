@@ -16,10 +16,13 @@ package spec
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // Responses is a container for the expected responses of an operation.
@@ -46,6 +49,19 @@ func (r *Responses) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if err := json.Unmarshal(data, &r.VendorExtensible); err != nil {
+		return err
+	}
+	if reflect.DeepEqual(ResponsesProps{}, r.ResponsesProps) {
+		r.ResponsesProps = ResponsesProps{}
+	}
+	return nil
+}
+
+func (r *Responses) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&r.ResponsesProps); err != nil {
+		return err
+	}
+	if err := value.Decode(&r.VendorExtensible); err != nil {
 		return err
 	}
 	if reflect.DeepEqual(ResponsesProps{}, r.ResponsesProps) {
@@ -104,6 +120,40 @@ func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
 				r.StatusCodeResponses = map[int]Response{}
 			}
 			r.StatusCodeResponses[nk] = v
+		}
+	}
+	return nil
+}
+
+func (r *ResponsesProps) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node. Got %v", value.Kind)
+	} else if len(value.Content)%2 != 0 {
+		return fmt.Errorf("expected mapping node to have even number of subchildren. Got %v", len(value.Content))
+	}
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		val := value.Content[i+1]
+		if keyStr == "default" {
+			r.Default = &Response{}
+			if err := r.Default.UnmarshalYAML(val); err != nil {
+				return err
+			}
+		} else if nk, err := strconv.Atoi(keyStr); err == nil {
+			resp := Response{}
+			if r.StatusCodeResponses == nil {
+				r.StatusCodeResponses = map[int]Response{}
+			}
+			if err := resp.UnmarshalYAML(val); err != nil {
+				return err
+			}
+
+			r.StatusCodeResponses[nk] = resp
 		}
 	}
 	return nil

@@ -18,6 +18,6 @@ package spec
 //
 // For more information: http://goo.gl/8us55a#licenseObject
 type License struct {
-	Name string `json:"name,omitempty"`
-	URL  string `json:"url,omitempty"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
+	URL  string `json:"url,omitempty" yaml:"url,omitempty"`
 }

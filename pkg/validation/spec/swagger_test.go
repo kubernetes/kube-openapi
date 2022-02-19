@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 var spec = Swagger{
@@ -106,6 +107,65 @@ const specJSON = `{
 	"x-schemes": ["unix","amqp"]
 }`
 
+const specYAML = `
+id: http://localhost:3849/api-docs
+consumes:
+- application/json
+- application/x-yaml
+produces:
+- application/json
+schemes:
+- http
+- https
+swagger: '2.0'
+info:
+  contact:
+    name: wordnik api team
+    url: http://developer.wordnik.com
+  description: A sample API that uses a petstore as an example to demonstrate features
+    in the swagger-2.0 specification
+  license:
+    name: Creative Commons 4.0 International
+    url: http://creativecommons.org/licenses/by/4.0/
+  termsOfService: http://helloreverb.com/terms/
+  title: Swagger Sample API
+  version: 1.0.9-abcd
+  x-framework: go-swagger
+host: some.api.out.there
+basePath: "/"
+paths:
+  x-framework: go-swagger
+  "/":
+    "$ref": cats
+definitions:
+  Category:
+    type: string
+parameters:
+  categoryParam:
+    name: category
+    in: query
+    type: string
+responses:
+  EmptyAnswer:
+    description: no data to return for this operation
+securityDefinitions:
+  internalApiKey:
+    type: apiKey
+    in: header
+    name: api_key
+security:
+- internalApiKey: []
+tags:
+- name: pets
+externalDocs:
+  description: the name
+  url: the url
+x-some-extension: vendor
+x-schemes:
+- unix
+- amqp
+`
+
 func TestSwaggerSpec_Serialize(t *testing.T) {
 	expected := make(map[string]interface{})
 	_ = json.Unmarshal([]byte(specJSON), &expected)
@@ -122,6 +182,18 @@ func TestSwaggerSpec_Serialize(t *testing.T) {
 func TestSwaggerSpec_Deserialize(t *testing.T) {
 	var actual Swagger
 	err := json.Unmarshal([]byte(specJSON), &actual)
+	if assert.NoError(t, err) {
+		assert.EqualValues(t, actual, spec)
+	}
+}
+
+func TestSwaggerSpec_DeserializeYAML(t *testing.T) {
+	var actual Swagger
+	var nodes yaml.Node
+	err := yaml.Unmarshal([]byte(specYAML), &nodes)
+	assert.NoError(t, err)
+
+	err = nodes.Decode(&actual)
 	if assert.NoError(t, err) {
 		assert.EqualValues(t, actual, spec)
 	}

@@ -17,8 +17,11 @@ limitations under the License.
 package util
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 // [DEPRECATED] ToCanonicalName converts Golang package/type canonical name into REST friendly OpenAPI name.
@@ -107,4 +110,22 @@ func GetCanonicalTypeName(model interface{}) string {
 		path = strings.TrimPrefix(path, "vendor/")
 	}
 	return path + "." + t.Name()
+}
+
+// Provides a fast path for decoding YAML scalar node as a string
+// If the node's value can be simply returned directly, then it is. Otherwise,
+// the yaml.v3.Node.Decode slow path is taken
+func DecodeYAMLString(n *yaml.Node, s *string) error {
+	if n.Kind != yaml.ScalarNode {
+		return fmt.Errorf("expected scalarnode, not %v", n.Kind)
+	}
+
+	if (n.Tag == "!!str" || n.Tag == "tag:yaml.org,2002:!!string") ||
+		(n.Tag == "" || n.Tag == "!") && n.Style&(yaml.SingleQuotedStyle|yaml.DoubleQuotedStyle|yaml.LiteralStyle|yaml.FoldedStyle) != 0 {
+		*s = n.Value
+		return nil
+	}
+
+	// Use slow path if it is not a basic string
+	return n.Decode(&s)
 }

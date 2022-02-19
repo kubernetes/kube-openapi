@@ -18,14 +18,15 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 )
 
 // ResponseProps properties specific to a response
 type ResponseProps struct {
-	Description string                 `json:"description,omitempty"`
-	Schema      *Schema                `json:"schema,omitempty"`
-	Headers     map[string]Header      `json:"headers,omitempty"`
-	Examples    map[string]interface{} `json:"examples,omitempty"`
+	Description string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	Schema      *Schema                `json:"schema,omitempty" yaml:"schema,omitempty"`
+	Headers     map[string]Header      `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Examples    map[string]interface{} `json:"examples,omitempty" yaml:"examples,omitempty"`
 }
 
 // Response describes a single response from an API Operation.
@@ -46,6 +47,16 @@ func (r *Response) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &r.VendorExtensible)
+}
+
+func (r *Response) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&r.ResponseProps); err != nil {
+		return err
+	}
+	if err := value.Decode(&r.Refable); err != nil {
+		return err
+	}
+	return r.VendorExtensible.UnmarshalYAML(value)
 }
 
 // MarshalJSON converts this items object to JSON

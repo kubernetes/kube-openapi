@@ -19,6 +19,8 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
 )
 
 // Swagger this is the root document object for the API specification.
@@ -30,6 +32,8 @@ type Swagger struct {
 	VendorExtensible
 	SwaggerProps
 }
+
+var _ yaml.Unmarshaler = &Swagger{}
 
 // MarshalJSON marshals this swagger structure to json
 func (s Swagger) MarshalJSON() ([]byte, error) {
@@ -57,6 +61,17 @@ func (s *Swagger) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSON unmarshals a swagger spec from json
+func (s *Swagger) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&s.SwaggerProps); err != nil {
+		return err
+	}
+	if err := value.Decode(&s.VendorExtensible); err != nil {
+		return err
+	}
+	return nil
+}
+
 // SwaggerProps captures the top-level properties of an Api specification
 //
 // NOTE: validation rules
@@ -64,22 +79,22 @@ func (s *Swagger) UnmarshalJSON(data []byte) error {
 // - BasePath must start with a leading "/"
 // - Paths is required
 type SwaggerProps struct {
-	ID                  string                 `json:"id,omitempty"`
-	Consumes            []string               `json:"consumes,omitempty"`
-	Produces            []string               `json:"produces,omitempty"`
-	Schemes             []string               `json:"schemes,omitempty"`
-	Swagger             string                 `json:"swagger,omitempty"`
-	Info                *Info                  `json:"info,omitempty"`
-	Host                string                 `json:"host,omitempty"`
-	BasePath            string                 `json:"basePath,omitempty"`
-	Paths               *Paths                 `json:"paths"`
-	Definitions         Definitions            `json:"definitions,omitempty"`
-	Parameters          map[string]Parameter   `json:"parameters,omitempty"`
-	Responses           map[string]Response    `json:"responses,omitempty"`
-	SecurityDefinitions SecurityDefinitions    `json:"securityDefinitions,omitempty"`
-	Security            []map[string][]string  `json:"security,omitempty"`
-	Tags                []Tag                  `json:"tags,omitempty"`
-	ExternalDocs        *ExternalDocumentation `json:"externalDocs,omitempty"`
+	ID                  string                 `json:"id,omitempty" yaml:"id,omitempty"`
+	Consumes            []string               `json:"consumes,omitempty" yaml:"consumes,omitempty"`
+	Produces            []string               `json:"produces,omitempty" yaml:"produces,omitempty"`
+	Schemes             []string               `json:"schemes,omitempty" yaml:"schemes,omitempty"`
+	Swagger             string                 `json:"swagger,omitempty" yaml:"swagger,omitempty"`
+	Info                *Info                  `json:"info,omitempty" yaml:"info,omitempty"`
+	Host                string                 `json:"host,omitempty" yaml:"host,omitempty"`
+	BasePath            string                 `json:"basePath,omitempty" yaml:"basePath,omitempty"`
+	Paths               *Paths                 `json:"paths" yaml:"paths"`
+	Definitions         Definitions            `json:"definitions,omitempty" yaml:"definitions,omitempty"`
+	Parameters          map[string]Parameter   `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Responses           map[string]Response    `json:"responses,omitempty" yaml:"responses,omitempty"`
+	SecurityDefinitions SecurityDefinitions    `json:"securityDefinitions,omitempty" yaml:"securityDefinitions,omitempty"`
+	Security            []map[string][]string  `json:"security,omitempty" yaml:"security,omitempty"`
+	Tags                []Tag                  `json:"tags,omitempty" yaml:"tags,omitempty"`
+	ExternalDocs        *ExternalDocumentation `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
 }
 
 // Dependencies represent a dependencies property
@@ -123,6 +138,24 @@ func (s *SchemaOrBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (s *SchemaOrBool) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.ScalarNode {
+		if err := value.Decode(&s.Allows); err != nil {
+			return err
+		}
+	} else if value.Kind == yaml.MappingNode {
+		s.Schema = &Schema{}
+		if err := s.Schema.UnmarshalYAML(value); err != nil {
+			return err
+		}
+
+		// For consistency with MarshalJSON
+		s.Allows = true
+	}
+
+	return nil
+}
+
 // SchemaOrStringArray represents a schema or a string array
 type SchemaOrStringArray struct {
 	Schema   *Schema
@@ -163,6 +196,20 @@ func (s *SchemaOrStringArray) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (s *SchemaOrStringArray) UnmarhsalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.MappingNode {
+		s.Schema = &Schema{}
+		if err := s.Schema.UnmarshalYAML(value); err != nil {
+			return err
+		}
+	} else if value.Kind == yaml.SequenceNode {
+		if err := value.Decode(&s.Property); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Definitions contains the models explicitly defined in this spec
 // An object to hold data types that can be consumed and produced by operations.
 // These data types can be primitives, arrays or models.
@@ -189,6 +236,25 @@ func (s StringOrArray) Contains(value string) bool {
 		}
 	}
 	return false
+}
+
+func (s *StringOrArray) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.SequenceNode {
+		var parsed []string
+		if err := value.Decode(&s); err != nil {
+			return err
+		}
+		*s = StringOrArray(parsed)
+		return nil
+	}
+
+	var single string
+	if err := util.DecodeYAMLString(value, &single); err != nil {
+		return err
+	}
+
+	*s = StringOrArray([]string{single})
+	return nil
 }
 
 // UnmarshalJSON unmarshals this string or array object from a JSON array or JSON string
@@ -282,5 +348,19 @@ func (s *SchemaOrArray) UnmarshalJSON(data []byte) error {
 		}
 	}
 	*s = nw
+	return nil
+}
+
+func (s *SchemaOrArray) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind == yaml.MappingNode {
+		if err := value.Decode(&s.Schema); err != nil {
+			return err
+		}
+	}
+	if value.Kind == yaml.SequenceNode {
+		if err := value.Decode(&s.Schemas); err != nil {
+			return err
+		}
+	}
 	return nil
 }
