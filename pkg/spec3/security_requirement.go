@@ -19,8 +19,9 @@ package spec3
 import (
 	"encoding/json"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // SecurityRequirementProps describes the required security schemes to execute an operation, more at https://swagger.io/specification/#security-requirement-object
@@ -50,6 +51,16 @@ func (s *SecurityRequirement) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &s.VendorExtensible)
+}
+
+func (s *SecurityRequirement) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&s.SecurityRequirementProps); err != nil {
+		return err
+	}
+	if err := s.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
 }
 
 // SecurityRequirementProps describes the required security schemes to execute an operation, more at https://swagger.io/specification/#security-requirement-object

@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -63,32 +64,45 @@ func (p *Parameter) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (p *Parameter) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&p.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&p.ParameterProps); err != nil {
+		return err
+	}
+	if err := p.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // ParameterProps a struct that describes a single operation parameter, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#parameterObject
 type ParameterProps struct {
 	// Name holds the name of the parameter
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	// In holds the location of the parameter
-	In string `json:"in,omitempty"`
+	In string `json:"in,omitempty" yaml:"in,omitempty"`
 	// Description holds a brief description of the parameter
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Required determines whether this parameter is mandatory
-	Required bool `json:"required,omitempty"`
+	Required bool `json:"required,omitempty" yaml:"required,omitempty"`
 	// Deprecated declares this operation to be deprecated
-	Deprecated bool `json:"deprecated,omitempty"`
+	Deprecated bool `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 	// AllowEmptyValue sets the ability to pass empty-valued parameters
-	AllowEmptyValue bool `json:"allowEmptyValue,omitempty"`
+	AllowEmptyValue bool `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
 	// Style describes how the parameter value will be serialized depending on the type of the parameter value
-	Style string `json:"style,omitempty"`
+	Style string `json:"style,omitempty" yaml:"style,omitempty"`
 	// Explode when true, parameter values of type array or object generate separate parameters for each value of the array or key-value pair of the map
-	Explode bool `json:"explode,omitempty"`
+	Explode bool `json:"explode,omitempty" yaml:"explode,omitempty"`
 	// AllowReserved determines whether the parameter value SHOULD allow reserved characters, as defined by RFC3986
-	AllowReserved bool `json:"allowReserved,omitempty"`
+	AllowReserved bool `json:"allowReserved,omitempty" yaml:"allowReserved,omitempty"`
 	// Schema holds the schema defining the type used for the parameter
-	Schema *spec.Schema `json:"schema,omitempty"`
+	Schema *spec.Schema `json:"schema,omitempty" yaml:"schema,omitempty"`
 	// Content holds a map containing the representations for the parameter
-	Content map[string]*MediaType `json:"content,omitempty"`
+	Content map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
 	// Example of the parameter's potential value
-	Example interface{} `json:"example,omitempty"`
+	Example interface{} `json:"example,omitempty" yaml:"example,omitempty"`
 	// Examples of the parameter's potential value. Each example SHOULD contain a value in the correct format as specified in the parameter encoding
-	Examples map[string]*Example `json:"examples,omitempty"`
+	Examples map[string]*Example `json:"examples,omitempty" yaml:"examples,omitempty"`
 }

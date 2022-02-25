@@ -19,8 +19,9 @@ package spec3
 import (
 	"encoding/json"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // SecurityScheme defines reusable Security Scheme Object, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#securitySchemeObject
@@ -58,24 +59,37 @@ func (s *SecurityScheme) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &s.Refable)
 }
 
+func (s *SecurityScheme) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&s.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&s.SecuritySchemeProps); err != nil {
+		return err
+	}
+	if err := s.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // SecuritySchemeProps defines a security scheme that can be used by the operations
 type SecuritySchemeProps struct {
 	// Type of the security scheme
-	Type string `json:"type,omitempty"`
+	Type string `json:"type,omitempty" yaml:"type,omitempty"`
 	// Description holds a short description for security scheme
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Name holds the name of the header, query or cookie parameter to be used
-	Name string `json:"name,omitempty"`
+	Name string `json:"name,omitempty" yaml:"name,omitempty"`
 	// In holds the location of the API key
-	In string `json:"in,omitempty"`
+	In string `json:"in,omitempty" yaml:"in,omitempty"`
 	// Scheme holds the name of the HTTP Authorization scheme to be used in the Authorization header
-	Scheme string `json:"scheme,omitempty"`
+	Scheme string `json:"scheme,omitempty" yaml:"scheme,omitempty"`
 	// BearerFormat holds a hint to the client to identify how the bearer token is formatted
-	BearerFormat string `json:"bearerFormat,omitempty"`
+	BearerFormat string `json:"bearerFormat,omitempty" yaml:"bearerFormat,omitempty"`
 	// Flows contains configuration information for the flow types supported.
-	Flows map[string]*OAuthFlow `json:"flows,omitempty"`
+	Flows map[string]*OAuthFlow `json:"flows,omitempty" yaml:"flows,omitempty"`
 	// OpenIdConnectUrl holds an url to discover OAuth2 configuration values from
-	OpenIdConnectUrl string `json:"openIdConnectUrl,omitempty"`
+	OpenIdConnectUrl string `json:"openIdConnectUrl,omitempty" yaml:"openIdConnectUrl,omitempty"`
 }
 
 // OAuthFlow contains configuration information for the flow types supported.
@@ -105,14 +119,24 @@ func (o *OAuthFlow) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &o.VendorExtensible)
 }
 
+func (o *OAuthFlow) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&o.OAuthFlowProps); err != nil {
+		return err
+	}
+	if err := o.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // OAuthFlowProps holds configuration details for a supported OAuth Flow
 type OAuthFlowProps struct {
 	// AuthorizationUrl hold the authorization URL to be used for this flow
-	AuthorizationUrl string `json:"authorizationUrl,omitempty"`
+	AuthorizationUrl string `json:"authorizationUrl,omitempty" yaml:"authorizationUrl,omitempty"`
 	// TokenUrl holds the token URL to be used for this flow
-	TokenUrl string `json:"tokenUrl,omitempty"`
+	TokenUrl string `json:"tokenUrl,omitempty" yaml:"tokenUrl,omitempty"`
 	// RefreshUrl holds the URL to be used for obtaining refresh tokens
-	RefreshUrl string `json:"refreshUrl,omitempty"`
+	RefreshUrl string `json:"refreshUrl,omitempty" yaml:"refreshUrl,omitempty"`
 	// Scopes holds the available scopes for the OAuth2 security scheme
-	Scopes map[string]string `json:"scopes,omitempty"`
+	Scopes map[string]string `json:"scopes,omitempty" yaml:"scopes,omitempty"`
 }

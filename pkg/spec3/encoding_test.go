@@ -21,40 +21,52 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func TestEncodingJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.Encoding
-		expectedOutput string
-	}{
-		// scenario 1
-		{
-			name: "basic",
-			target: &spec3.Encoding{
-				EncodingProps: spec3.EncodingProps{
-					ContentType: "image/png",
-					Headers: map[string]*spec3.Header{
-						"X-Rate-Limit-Limit": &spec3.Header{
-							HeaderProps: spec3.HeaderProps{
-								Description: "The number of allowed requests in the current period",
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type: []string{"integer"},
-									},
+var encodingCases = []struct {
+	name           string
+	target         *spec3.Encoding
+	expectedOutput string
+	yaml           []byte
+}{
+	// scenario 1
+	{
+		name: "basic",
+		target: &spec3.Encoding{
+			EncodingProps: spec3.EncodingProps{
+				ContentType: "image/png",
+				Headers: map[string]*spec3.Header{
+					"X-Rate-Limit-Limit": &spec3.Header{
+						HeaderProps: spec3.HeaderProps{
+							Description: "The number of allowed requests in the current period",
+							Schema: &spec.Schema{
+								SchemaProps: spec.SchemaProps{
+									Type: []string{"integer"},
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedOutput: `{"contentType":"image/png","headers":{"X-Rate-Limit-Limit":{"description":"The number of allowed requests in the current period","schema":{"type":"integer"}}}}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"contentType":"image/png","headers":{"X-Rate-Limit-Limit":{"description":"The number of allowed requests in the current period","schema":{"type":"integer"}}}}`,
+		yaml: []byte(`
+contentType: image/png
+headers:
+  X-Rate-Limit-Limit:
+    description: The number of allowed requests in the current period
+    schema:
+      type: integer
+`),
+	},
+}
+
+func TestEncodingJSONSerialization(t *testing.T) {
+	for _, tc := range encodingCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -64,6 +76,22 @@ func TestEncodingJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestEncodingYAMLDeserialization(t *testing.T) {
+	for _, tc := range encodingCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.Encoding
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

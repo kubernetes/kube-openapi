@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -63,28 +64,41 @@ func (h *Header) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (h *Header) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&h.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&h.HeaderProps); err != nil {
+		return err
+	}
+	if err := h.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // HeaderProps a struct that describes a header object
 type HeaderProps struct {
 	// Description holds a brief description of the parameter
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Required determines whether this parameter is mandatory
-	Required bool `json:"required,omitempty"`
+	Required bool `json:"required,omitempty" yaml:"required,omitempty"`
 	// Deprecated declares this operation to be deprecated
-	Deprecated bool `json:"deprecated,omitempty"`
+	Deprecated bool `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 	// AllowEmptyValue sets the ability to pass empty-valued parameters
-	AllowEmptyValue bool `json:"allowEmptyValue,omitempty"`
+	AllowEmptyValue bool `json:"allowEmptyValue,omitempty" yaml:"allowEmptyValue,omitempty"`
 	// Style describes how the parameter value will be serialized depending on the type of the parameter value
-	Style string `json:"style,omitempty"`
+	Style string `json:"style,omitempty" yaml:"style,omitempty"`
 	// Explode when true, parameter values of type array or object generate separate parameters for each value of the array or key-value pair of the map
-	Explode bool `json:"explode,omitempty"`
+	Explode bool `json:"explode,omitempty" yaml:"explode,omitempty"`
 	// AllowReserved determines whether the parameter value SHOULD allow reserved characters, as defined by RFC3986
-	AllowReserved bool `json:"allowReserved,omitempty"`
+	AllowReserved bool `json:"allowReserved,omitempty" yaml:"allowReserved,omitempty"`
 	// Schema holds the schema defining the type used for the parameter
-	Schema *spec.Schema `json:"schema,omitempty"`
+	Schema *spec.Schema `json:"schema,omitempty" yaml:"schema,omitempty"`
 	// Content holds a map containing the representations for the parameter
-	Content map[string]*MediaType `json:"content,omitempty"`
+	Content map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
 	// Example of the header
-	Example interface{} `json:"example,omitempty"`
+	Example interface{} `json:"example,omitempty" yaml:"example,omitempty"`
 	// Examples of the header
-	Examples map[string]*Example `json:"examples,omitempty"`
+	Examples map[string]*Example `json:"examples,omitempty" yaml:"examples,omitempty"`
 }

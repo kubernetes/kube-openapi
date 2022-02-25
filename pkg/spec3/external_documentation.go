@@ -18,8 +18,10 @@ package spec3
 
 import (
 	"encoding/json"
-	"k8s.io/kube-openapi/pkg/validation/spec"
+
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 type ExternalDocumentation struct {
@@ -29,9 +31,9 @@ type ExternalDocumentation struct {
 
 type ExternalDocumentationProps struct {
 	// Description is a short description of the target documentation. CommonMark syntax MAY be used for rich text representation.
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// URL is the URL for the target documentation.
-	URL string `json:"url"`
+	URL string `json:"url" yaml:"url"`
 }
 
 // MarshalJSON is a custom marshal function that knows how to encode Responses as JSON
@@ -52,6 +54,16 @@ func (e *ExternalDocumentation) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if err := json.Unmarshal(data, &e.VendorExtensible); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *ExternalDocumentation) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&e.ExternalDocumentationProps); err != nil {
+		return err
+	}
+	if err := e.VendorExtensible.UnmarshalYAML(value); err != nil {
 		return err
 	}
 	return nil

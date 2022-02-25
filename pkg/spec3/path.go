@@ -18,10 +18,13 @@ package spec3
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // Paths describes the available paths and operations for the API, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#pathsObject
@@ -74,6 +77,44 @@ func (p *Paths) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (p *Paths) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return errors.New("invalid yaml node provided. Expected key-value map")
+	} else if len(value.Content)%2 != 0 {
+		return errors.New("invalid mapping node provided. Expected even number of children")
+	}
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		val := value.Content[i+1]
+
+		if strings.HasPrefix(keyStr, "x-") || strings.HasPrefix(keyStr, "X-") {
+			if p.Extensions == nil {
+				p.Extensions = make(map[string]interface{})
+			}
+			var d interface{}
+			if err := val.Decode(&d); err != nil {
+				return err
+			}
+			p.Extensions[keyStr] = d
+		} else if strings.HasPrefix(keyStr, "/") {
+			if p.Paths == nil {
+				p.Paths = make(map[string]*Path)
+			}
+			pi := &Path{}
+			if err := pi.UnmarshalYAML(val); err != nil {
+				return err
+			}
+			p.Paths[keyStr] = pi
+		}
+	}
+	return nil
+}
+
 // Path describes the operations available on a single path, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#pathItemObject
 //
 // Note that this struct is actually a thin wrapper around PathProps to make it referable and extensible
@@ -113,30 +154,43 @@ func (p *Path) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (p *Path) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&p.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&p.PathProps); err != nil {
+		return err
+	}
+	if err := p.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // PathProps describes the operations available on a single path, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#pathItemObject
 type PathProps struct {
 	// Summary holds a summary for all operations in this path
-	Summary string `json:"summary,omitempty"`
+	Summary string `json:"summary,omitempty" yaml:"summary,omitempty"`
 	// Description holds a description for all operations in this path
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Get defines GET operation
-	Get *Operation `json:"get,omitempty"`
+	Get *Operation `json:"get,omitempty" yaml:"get,omitempty"`
 	// Put defines PUT operation
-	Put *Operation `json:"put,omitempty"`
+	Put *Operation `json:"put,omitempty" yaml:"put,omitempty"`
 	// Post defines POST operation
-	Post *Operation `json:"post,omitempty"`
+	Post *Operation `json:"post,omitempty" yaml:"post,omitempty"`
 	// Delete defines DELETE operation
-	Delete *Operation `json:"delete,omitempty"`
+	Delete *Operation `json:"delete,omitempty" yaml:"delete,omitempty"`
 	// Options defines OPTIONS operation
-	Options *Operation `json:"options,omitempty"`
+	Options *Operation `json:"options,omitempty" yaml:"options,omitempty"`
 	// Head defines HEAD operation
-	Head *Operation `json:"head,omitempty"`
+	Head *Operation `json:"head,omitempty" yaml:"head,omitempty"`
 	// Patch defines PATCH operation
-	Patch *Operation `json:"patch,omitempty"`
+	Patch *Operation `json:"patch,omitempty" yaml:"patch,omitempty"`
 	// Trace defines TRACE operation
-	Trace *Operation `json:"trace,omitempty"`
+	Trace *Operation `json:"trace,omitempty" yaml:"trace,omitempty"`
 	// Servers is an alternative server array to service all operations in this path
-	Servers []*Server `json:"servers,omitempty"`
+	Servers []*Server `json:"servers,omitempty" yaml:"servers,omitempty"`
 	// Parameters a list of parameters that are applicable for this operation
-	Parameters []*Parameter `json:"parameters,omitempty"`
+	Parameters []*Parameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }

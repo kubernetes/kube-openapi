@@ -21,28 +21,36 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
 )
 
-func TestExternalDocumentationJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.ExternalDocumentation
-		expectedOutput string
-	}{
-		// scenario 1
-		{
-			name: "basic",
-			target: &spec3.ExternalDocumentation{
-				ExternalDocumentationProps: spec3.ExternalDocumentationProps{
-					Description: "Find more info here",
-					URL: "https://example.com",
-				},
+var externalDocsCases = []struct {
+	name           string
+	target         *spec3.ExternalDocumentation
+	expectedOutput string
+	yaml           []byte
+}{
+	// scenario 1
+	{
+		name: "basic",
+		target: &spec3.ExternalDocumentation{
+			ExternalDocumentationProps: spec3.ExternalDocumentationProps{
+				Description: "Find more info here",
+				URL:         "https://example.com",
 			},
-			expectedOutput: `{"description":"Find more info here","url":"https://example.com"}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"description":"Find more info here","url":"https://example.com"}`,
+		yaml: []byte(`
+description: Find more info here
+url: https://example.com
+`),
+	},
+}
+
+func TestExternalDocumentationJSONSerialization(t *testing.T) {
+	for _, tc := range externalDocsCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -52,6 +60,22 @@ func TestExternalDocumentationJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestExternalDocumentationYAMLDeserialization(t *testing.T) {
+	for _, tc := range externalDocsCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.ExternalDocumentation
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

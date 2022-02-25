@@ -21,27 +21,37 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
 )
 
-func TestExampleJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.Example
-		expectedOutput string
-	}{
-		{
-			name: "basic",
-			target: &spec3.Example{
-				ExampleProps: spec3.ExampleProps{
-					Summary: "An example",
-					Value: map[string]string{"foo": "bar"},
-				},
+var exampleCases = []struct {
+	name           string
+	target         *spec3.Example
+	expectedOutput string
+	yaml           []byte
+}{
+	{
+		name: "basic",
+		target: &spec3.Example{
+			ExampleProps: spec3.ExampleProps{
+				Summary: "An example",
+				Value:   map[string]interface{}{"foo": "bar"},
 			},
-			expectedOutput: `{"summary":"An example","value":{"foo":"bar"}}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"summary":"An example","value":{"foo":"bar"}}`,
+		yaml: []byte(`
+summary: An example
+value:
+  foo: bar
+`,
+		),
+	},
+}
+
+func TestExampleJSONSerialization(t *testing.T) {
+	for _, tc := range exampleCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -51,6 +61,22 @@ func TestExampleJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestExampleYAMLDeserialization(t *testing.T) {
+	for _, tc := range exampleCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.Example
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

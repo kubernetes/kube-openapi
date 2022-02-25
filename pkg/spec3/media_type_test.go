@@ -21,31 +21,39 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/kube-openapi/pkg/validation/spec"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func TestMediaTypeJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.MediaType
-		expectedOutput string
-	}{
-		{
-			name: "basic",
-			target: &spec3.MediaType{
-				MediaTypeProps: spec3.MediaTypeProps{
-					Schema: &spec.Schema{
-						SchemaProps: spec.SchemaProps{
-							Ref: spec.MustCreateRef("#/components/schemas/Pet"),
-						},
+var mediaTypeCases = []struct {
+	name           string
+	target         *spec3.MediaType
+	expectedOutput string
+	yaml           []byte
+}{
+	{
+		name: "basic",
+		target: &spec3.MediaType{
+			MediaTypeProps: spec3.MediaTypeProps{
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Ref: spec.MustCreateRef("#/components/schemas/Pet"),
 					},
 				},
 			},
-			expectedOutput: `{"schema":{"$ref":"#/components/schemas/Pet"}}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"schema":{"$ref":"#/components/schemas/Pet"}}`,
+		yaml: []byte(`
+schema:
+  "$ref": "#/components/schemas/Pet"
+`),
+	},
+}
+
+func TestMediaTypeJSONSerialization(t *testing.T) {
+	for _, tc := range mediaTypeCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -55,6 +63,22 @@ func TestMediaTypeJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestMediaTypeYAMLDeserialization(t *testing.T) {
+	for _, tc := range mediaTypeCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.MediaType
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

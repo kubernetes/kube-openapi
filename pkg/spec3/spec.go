@@ -23,15 +23,15 @@ import (
 // OpenAPI is an object that describes an API and conforms to the OpenAPI Specification.
 type OpenAPI struct {
 	// Version represents the semantic version number of the OpenAPI Specification that this document uses
-	Version string `json:"openapi"`
+	Version string `json:"openapi" yaml:"openapi"`
 	// Info provides metadata about the API
-	Info *spec.Info `json:"info"`
+	Info *spec.Info `json:"info" yaml:"info"`
 	// Paths holds the available target and operations for the API
-	Paths *Paths `json:"paths,omitempty"`
+	Paths *Paths `json:"paths,omitempty" yaml:"paths,omitempty"`
 	// Servers is an array of Server objects which provide connectivity information to a target server
-	Servers []*Server `json:"servers,omitempty"`
+	Servers []*Server `json:"servers,omitempty" yaml:"servers,omitempty"`
 	// Components hold various schemas for the specification
-	Components *Components `json:"components,omitempty"`
+	Components *Components `json:"components,omitempty" yaml:"components,omitempty"`
 	// ExternalDocs holds additional external documentation
-	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
+	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
 }

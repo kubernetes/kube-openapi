@@ -21,28 +21,36 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
 )
 
-func TestServerJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.Server
-		expectedOutput string
-	}{
-		// scenario 1
-		{
-			name: "basic",
-			target: &spec3.Server{
-				ServerProps: spec3.ServerProps{
-					URL: "https://development.gigantic-server.com/v1",
-					Description: "Development server",
-				},
+var serverCases = []struct {
+	name           string
+	target         *spec3.Server
+	expectedOutput string
+	yaml           []byte
+}{
+	// scenario 1
+	{
+		name: "basic",
+		target: &spec3.Server{
+			ServerProps: spec3.ServerProps{
+				URL:         "https://development.gigantic-server.com/v1",
+				Description: "Development server",
 			},
-			expectedOutput: `{"description":"Development server","url":"https://development.gigantic-server.com/v1"}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"description":"Development server","url":"https://development.gigantic-server.com/v1"}`,
+		yaml: []byte(`---
+description: Development server
+url: https://development.gigantic-server.com/v1
+`),
+	},
+}
+
+func TestServerJSONSerialization(t *testing.T) {
+	for _, tc := range serverCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -52,6 +60,22 @@ func TestServerJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestServerYAMLDeserialization(t *testing.T) {
+	for _, tc := range serverCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.Server
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

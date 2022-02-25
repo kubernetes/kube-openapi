@@ -21,55 +21,76 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/kube-openapi/pkg/validation/spec"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func TestParameterJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.Parameter
-		expectedOutput string
-	}{
-		{
-			name: "header parameter",
-			target: &spec3.Parameter{
-				ParameterProps: spec3.ParameterProps{
-					Name: "token",
-					In: "header",
-					Description: "token to be passed as a header",
-					Required: true,
-					Schema: &spec.Schema{
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"integer"},
-							Format: "int64",
-						},
-					},
-					Style: "simple",
-				},
-			},
-			expectedOutput: `{"name":"token","in":"header","description":"token to be passed as a header","required":true,"style":"simple","schema":{"type":"integer","format":"int64"}}`,
-		},
-		{
-			name: "path parameter",
-			target: &spec3.Parameter{
-				ParameterProps: spec3.ParameterProps{
-					Name: "username",
-					In: "path",
-					Description: "username to fetch",
-					Required: true,
-					Schema: &spec.Schema{
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"string"},
-						},
+var parameterCases = []struct {
+	name           string
+	target         *spec3.Parameter
+	expectedOutput string
+	yaml           []byte
+}{
+	{
+		name: "header parameter",
+		target: &spec3.Parameter{
+			ParameterProps: spec3.ParameterProps{
+				Name:        "token",
+				In:          "header",
+				Description: "token to be passed as a header",
+				Required:    true,
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type:   []string{"integer"},
+						Format: "int64",
 					},
 				},
+				Style: "simple",
 			},
-			expectedOutput: `{"name":"username","in":"path","description":"username to fetch","required":true,"schema":{"type":"string"}}`,
 		},
+		expectedOutput: `{"name":"token","in":"header","description":"token to be passed as a header","required":true,"style":"simple","schema":{"type":"integer","format":"int64"}}`,
+		yaml: []byte(`
+name: token
+in: header
+description: token to be passed as a header
+required: true
+style: simple
+schema:
+  type: integer
+  format: int64
+`),
+	},
+	{
+		name: "path parameter",
+		target: &spec3.Parameter{
+			ParameterProps: spec3.ParameterProps{
+				Name:        "username",
+				In:          "path",
+				Description: "username to fetch",
+				Required:    true,
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type: []string{"string"},
+					},
+				},
+			},
+		},
+		expectedOutput: `{"name":"username","in":"path","description":"username to fetch","required":true,"schema":{"type":"string"}}`,
+		yaml: []byte(`
+name: username
+in: path
+description: username to fetch
+required: true
+schema:
+  type: string
+`),
+	},
+}
 
-	}
-	for _, tc := range cases {
+func TestParameterJSONSerialization(t *testing.T) {
+	for _, tc := range parameterCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -79,6 +100,22 @@ func TestParameterJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestParameterYAMLDeserialization(t *testing.T) {
+	for _, tc := range parameterCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.Parameter
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

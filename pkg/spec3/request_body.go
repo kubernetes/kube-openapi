@@ -19,8 +19,9 @@ package spec3
 import (
 	"encoding/json"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // RequestBody describes a single request body, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#requestBodyObject
@@ -62,12 +63,25 @@ func (r *RequestBody) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (r *RequestBody) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&r.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&r.RequestBodyProps); err != nil {
+		return err
+	}
+	if err := r.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // RequestBodyProps describes a single request body, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#requestBodyObject
 type RequestBodyProps struct {
 	// Description holds a brief description of the request body
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Content is the content of the request body. The key is a media type or media type range and the value describes it
-	Content map[string]*MediaType `json:"content,omitempty"`
+	Content map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
 	// Required determines if the request body is required in the request
-	Required bool `json:"required,omitempty"`
+	Required bool `json:"required,omitempty" yaml:"required,omitempty"`
 }

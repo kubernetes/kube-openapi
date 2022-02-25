@@ -19,8 +19,9 @@ package spec3
 import (
 	"encoding/json"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // Operation describes a single API operation on a path, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#operationObject
@@ -52,28 +53,38 @@ func (o *Operation) UnmarshalJSON(data []byte) error {
 	return json.Unmarshal(data, &o.VendorExtensible)
 }
 
+func (o *Operation) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&o.OperationProps); err != nil {
+		return err
+	}
+	if err := o.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // OperationProps describes a single API operation on a path, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#operationObject
 type OperationProps struct {
 	// Tags holds a list of tags for API documentation control
-	Tags []string `json:"tags,omitempty"`
+	Tags []string `json:"tags,omitempty" yaml:"tags,omitempty"`
 	// Summary holds a short summary of what the operation does
-	Summary string `json:"summary,omitempty"`
+	Summary string `json:"summary,omitempty" yaml:"summary,omitempty"`
 	// Description holds a verbose explanation of the operation behavior
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// ExternalDocs holds additional external documentation for this operation
-	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
+	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty" yaml:"externalDocs,omitempty"`
 	// OperationId holds a unique string used to identify the operation
-	OperationId string `json:"operationId,omitempty"`
+	OperationId string `json:"operationId,omitempty" yaml:"operationId,omitempty"`
 	// Parameters a list of parameters that are applicable for this operation
-	Parameters []*Parameter `json:"parameters,omitempty"`
+	Parameters []*Parameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	// RequestBody holds the request body applicable for this operation
-	RequestBody *RequestBody `json:"requestBody,omitempty"`
+	RequestBody *RequestBody `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
 	// Responses holds the list of possible responses as they are returned from executing this operation
-	Responses *Responses `json:"responses,omitempty"`
+	Responses *Responses `json:"responses,omitempty" yaml:"responses,omitempty"`
 	// Deprecated declares this operation to be deprecated
-	Deprecated bool `json:"deprecated,omitempty"`
+	Deprecated bool `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 	// SecurityRequirement holds a declaration of which security mechanisms can be used for this operation
-	SecurityRequirement []*SecurityRequirement `json:"security,omitempty"`
+	SecurityRequirement []*SecurityRequirement `json:"security,omitempty" yaml:"security,omitempty"`
 	// Servers contains an alternative server array to service this operation
-	Servers []*Server `json:"servers,omitempty"`
+	Servers []*Server `json:"servers,omitempty" yaml:"servers,omitempty"`
 }

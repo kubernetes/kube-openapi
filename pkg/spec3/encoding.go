@@ -18,7 +18,9 @@ package spec3
 
 import (
 	"encoding/json"
+
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -50,15 +52,25 @@ func (e *Encoding) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (e *Encoding) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&e.EncodingProps); err != nil {
+		return err
+	}
+	if err := e.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 type EncodingProps struct {
 	// Content Type for encoding a specific property
-	ContentType string `json:"contentType,omitempty"`
+	ContentType string `json:"contentType,omitempty" yaml:"contentType,omitempty"`
 	// A map allowing additional information to be provided as headers
-	Headers map[string]*Header `json:"headers,omitempty"`
+	Headers map[string]*Header `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// Describes how a specific property value will be serialized depending on its type
-	Style string `json:"style,omitempty"`
+	Style string `json:"style,omitempty" yaml:"style,omitempty"`
 	// When this is true, property values of type array or object generate separate parameters for each value of the array, or key-value-pair of the map. For other types of properties this property has no effect
-	Explode string `json:"explode,omitempty"`
+	Explode string `json:"explode,omitempty" yaml:"explode,omitempty"`
 	// AllowReserved determines whether the parameter value SHOULD allow reserved characters, as defined by RFC3986
-	AllowReserved bool `json:"allowReserved,omitempty"`
+	AllowReserved bool `json:"allowReserved,omitempty" yaml:"allowReserved,omitempty"`
 }

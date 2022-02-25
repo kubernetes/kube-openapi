@@ -25,21 +25,21 @@ import "k8s.io/kube-openapi/pkg/validation/spec"
 // more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#componentsObject
 type Components struct {
 	// Schemas holds reusable Schema Objects
-	Schemas map[string]*spec.Schema `json:"schemas,omitempty"`
+	Schemas map[string]*spec.Schema `json:"schemas,omitempty" yaml:"schemas,omitempty"`
 	// SecuritySchemes holds reusable Security Scheme Objects, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#securitySchemeObject
-	SecuritySchemes SecuritySchemes `json:"securitySchemes,omitempty"`
+	SecuritySchemes SecuritySchemes `json:"securitySchemes,omitempty" yaml:"securitySchemes,omitempty"`
 	// Responses holds reusable Responses Objects
-	Responses map[string]*Response `json:"responses,omitempty"`
+	Responses map[string]*Response `json:"responses,omitempty" yaml:"responses,omitempty"`
 	// Parameters holds reusable Parameters Objects
-	Parameters map[string]*Parameter `json:"parameters,omitempty"`
+	Parameters map[string]*Parameter `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	// Example holds reusable Example objects
-	Examples map[string]*Example `json:"examples,omitempty"`
+	Examples map[string]*Example `json:"examples,omitempty" yaml:"examples,omitempty"`
 	// RequestBodies holds reusable Request Body objects
-	RequestBodies map[string]*RequestBody `json:"requestBodies,omitempty"`
+	RequestBodies map[string]*RequestBody `json:"requestBodies,omitempty" yaml:"requestBodies,omitempty"`
 	// Links is a map of operations links that can be followed from the response
-	Links map[string]*Link `json:"links,omitempty"`
+	Links map[string]*Link `json:"links,omitempty" yaml:"links,omitempty"`
 	// Headers holds a maps of a headers name to its definition
-	Headers map[string]*Header `json:"headers,omitempty"`
+	Headers map[string]*Header `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// all fields are defined at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#componentsObject
 }
 

@@ -20,75 +20,100 @@ import (
 	"encoding/json"
 	"testing"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 
 	"k8s.io/kube-openapi/pkg/spec3"
 )
 
-func TestSecuritySchemaJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.SecurityScheme
-		expectedOutput string
-	}{
-		// scenario 1
-		{
-			name: "scenario1: basic authentication",
-			target: &spec3.SecurityScheme{
-				SecuritySchemeProps: spec3.SecuritySchemeProps{
-					Type:   "http",
-					Scheme: "basic",
-				},
+var securitySchemeCases = []struct {
+	name           string
+	target         *spec3.SecurityScheme
+	expectedOutput string
+	yaml           []byte
+}{
+	// scenario 1
+	{
+		name: "scenario1: basic authentication",
+		target: &spec3.SecurityScheme{
+			SecuritySchemeProps: spec3.SecuritySchemeProps{
+				Type:   "http",
+				Scheme: "basic",
 			},
-			expectedOutput: `{"type":"http","scheme":"basic"}`,
 		},
+		expectedOutput: `{"type":"http","scheme":"basic"}`,
+		yaml: []byte(`
+type: http
+scheme: basic
+`),
+	},
 
-		// scenario 2
-		{
-			name: "scenario2: JWT Bearer",
-			target: &spec3.SecurityScheme{
-				SecuritySchemeProps: spec3.SecuritySchemeProps{
-					Type:         "http",
-					Scheme:       "basic",
-					BearerFormat: "JWT",
-				},
+	// scenario 2
+	{
+		name: "scenario2: JWT Bearer",
+		target: &spec3.SecurityScheme{
+			SecuritySchemeProps: spec3.SecuritySchemeProps{
+				Type:         "http",
+				Scheme:       "basic",
+				BearerFormat: "JWT",
 			},
-			expectedOutput: `{"type":"http","scheme":"basic","bearerFormat":"JWT"}`,
 		},
+		expectedOutput: `{"type":"http","scheme":"basic","bearerFormat":"JWT"}`,
+		yaml: []byte(`
+type: http
+scheme: basic
+bearerFormat: JWT
+`),
+	},
 
-		// scenario 3
-		{
-			name: "scenario3: implicit OAuth2",
-			target: &spec3.SecurityScheme{
-				SecuritySchemeProps: spec3.SecuritySchemeProps{
-					Type: "oauth2",
-					Flows: map[string]*spec3.OAuthFlow{
-						"implicit": &spec3.OAuthFlow{
-							OAuthFlowProps: spec3.OAuthFlowProps{
-								AuthorizationUrl: "https://example.com/api/oauth/dialog",
-								Scopes: map[string]string{
-									"write:pets": "modify pets in your account",
-									"read:pets":  "read your pets",
-								},
+	// scenario 3
+	{
+		name: "scenario3: implicit OAuth2",
+		target: &spec3.SecurityScheme{
+			SecuritySchemeProps: spec3.SecuritySchemeProps{
+				Type: "oauth2",
+				Flows: map[string]*spec3.OAuthFlow{
+					"implicit": &spec3.OAuthFlow{
+						OAuthFlowProps: spec3.OAuthFlowProps{
+							AuthorizationUrl: "https://example.com/api/oauth/dialog",
+							Scopes: map[string]string{
+								"write:pets": "modify pets in your account",
+								"read:pets":  "read your pets",
 							},
 						},
 					},
 				},
 			},
-			expectedOutput: `{"type":"oauth2","flows":{"implicit":{"authorizationUrl":"https://example.com/api/oauth/dialog","scopes":{"read:pets":"read your pets","write:pets":"modify pets in your account"}}}}`,
 		},
+		expectedOutput: `{"type":"oauth2","flows":{"implicit":{"authorizationUrl":"https://example.com/api/oauth/dialog","scopes":{"read:pets":"read your pets","write:pets":"modify pets in your account"}}}}`,
+		yaml: []byte(`
+type: oauth2
+flows:
+  implicit:
+    authorizationUrl: https://example.com/api/oauth/dialog
+    scopes:
+      read:pets: read your pets
+      write:pets: modify pets in your account
+`),
+	},
 
-		// scenario 4
-		{
-			name: "scenario4: reference Object",
-			target: &spec3.SecurityScheme{
-				Refable: spec.Refable{Ref: spec.MustCreateRef("k8s.io/api/foo/v1beta1b.bar")},
-			},
-			expectedOutput: `{"$ref":"k8s.io/api/foo/v1beta1b.bar"}`,
+	// scenario 4
+	{
+		name: "scenario4: reference Object",
+		target: &spec3.SecurityScheme{
+			Refable: spec.Refable{Ref: spec.MustCreateRef("k8s.io/api/foo/v1beta1b.bar")},
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"$ref":"k8s.io/api/foo/v1beta1b.bar"}`,
+		yaml: []byte(`
+"$ref": k8s.io/api/foo/v1beta1b.bar
+`),
+	},
+}
+
+func TestSecuritySchemaJSONSerialization(t *testing.T) {
+	for _, tc := range securitySchemeCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -98,6 +123,22 @@ func TestSecuritySchemaJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestSecuritySchemeYAMLDeserialization(t *testing.T) {
+	for _, tc := range securitySchemeCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.SecurityScheme
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

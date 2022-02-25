@@ -19,8 +19,9 @@ package spec3
 import (
 	"encoding/json"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // Example https://swagger.io/specification/#example-object
@@ -61,13 +62,26 @@ func (e *Example) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (e *Example) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&e.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&e.ExampleProps); err != nil {
+		return err
+	}
+	if err := e.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 type ExampleProps struct {
 	// Summary holds a short description of the example
-	Summary string `json:"summary,omitempty"`
+	Summary string `json:"summary,omitempty" yaml:"summary,omitempty"`
 	// Description holds a long description of the example
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Embedded literal example.
-	Value interface{} `json:"value,omitempty"`
+	Value interface{} `json:"value,omitempty" yaml:"value,omitempty"`
 	// A URL that points to the literal example. This provides the capability to reference examples that cannot easily be included in JSON or YAML documents.
-	ExternalValue string `json:"externalValue,omitempty"`
+	ExternalValue string `json:"externalValue,omitempty" yaml:"externalValue,omitempty"`
 }

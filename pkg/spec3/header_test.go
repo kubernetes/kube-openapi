@@ -21,33 +21,42 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func TestHeaderJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.Header
-		expectedOutput string
-	}{
-		// scenario 1
-		{
-			name: "basic",
-			target: &spec3.Header{
-				HeaderProps: spec3.HeaderProps{
-					Description: "The number of allowed requests in the current period",
-					Schema: &spec.Schema{
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"integer"},
-						},
+var headerCases = []struct {
+	name           string
+	target         *spec3.Header
+	expectedOutput string
+	yaml           []byte
+}{
+	// scenario 1
+	{
+		name: "basic",
+		target: &spec3.Header{
+			HeaderProps: spec3.HeaderProps{
+				Description: "The number of allowed requests in the current period",
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type: []string{"integer"},
 					},
 				},
 			},
-			expectedOutput: `{"description":"The number of allowed requests in the current period","schema":{"type":"integer"}}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"description":"The number of allowed requests in the current period","schema":{"type":"integer"}}`,
+		yaml: []byte(`
+description: The number of allowed requests in the current period
+schema:
+  type: integer
+`),
+	},
+}
+
+func TestHeaderJSONSerialization(t *testing.T) {
+	for _, tc := range headerCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -57,6 +66,22 @@ func TestHeaderJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestHeaderYAMLDeserialization(t *testing.T) {
+	for _, tc := range headerCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.Header
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

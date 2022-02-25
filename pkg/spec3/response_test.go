@@ -21,38 +21,48 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/kube-openapi/pkg/validation/spec"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func TestResponseJSONSerialization(t *testing.T) {
-	cases := []struct {
-		name           string
-		target         *spec3.Response
-		expectedOutput string
-	}{
-		// scenario 1
-		{
-			name: "basic",
-			target: &spec3.Response{
-				ResponseProps: spec3.ResponseProps{
-					Content: map[string]*spec3.MediaType{
-						"text/plain": &spec3.MediaType{
-							MediaTypeProps: spec3.MediaTypeProps{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type: []string{"string"},
-									},
+var responseCases = []struct {
+	name           string
+	target         *spec3.Response
+	expectedOutput string
+	yaml           []byte
+}{
+	// scenario 1
+	{
+		name: "basic",
+		target: &spec3.Response{
+			ResponseProps: spec3.ResponseProps{
+				Content: map[string]*spec3.MediaType{
+					"text/plain": &spec3.MediaType{
+						MediaTypeProps: spec3.MediaTypeProps{
+							Schema: &spec.Schema{
+								SchemaProps: spec.SchemaProps{
+									Type: []string{"string"},
 								},
 							},
 						},
 					},
 				},
 			},
-			expectedOutput: `{"content":{"text/plain":{"schema":{"type":"string"}}}}`,
 		},
-	}
-	for _, tc := range cases {
+		expectedOutput: `{"content":{"text/plain":{"schema":{"type":"string"}}}}`,
+		yaml: []byte(`
+content:
+  text/plain:
+    schema:
+      type: string
+`),
+	},
+}
+
+func TestResponseJSONSerialization(t *testing.T) {
+	for _, tc := range responseCases {
 		t.Run(tc.name, func(t *testing.T) {
 			rawTarget, err := json.Marshal(tc.target)
 			if err != nil {
@@ -62,6 +72,22 @@ func TestResponseJSONSerialization(t *testing.T) {
 			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
+		})
+	}
+}
+
+func TestResponseYAMLDeserialization(t *testing.T) {
+	for _, tc := range responseCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// var nodes yaml.Node
+			var actual spec3.Response
+
+			err := yaml.Unmarshal(tc.yaml, &actual)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			require.EqualValues(t, tc.target, &actual, "round trip")
 		})
 	}
 }

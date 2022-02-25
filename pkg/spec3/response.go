@@ -18,10 +18,13 @@ package spec3
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
+	"k8s.io/kube-openapi/pkg/util"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 // Responses holds the list of possible responses as they are returned from executing this operation
@@ -56,12 +59,22 @@ func (r *Responses) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (r *Responses) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&r.ResponsesProps); err != nil {
+		return err
+	}
+	if err := r.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // ResponsesProps holds the list of possible responses as they are returned from executing this operation
 type ResponsesProps struct {
 	// Default holds the documentation of responses other than the ones declared for specific HTTP response codes. Use this field to cover undeclared responses
-	Default *Response `json:"-"`
+	Default *Response `json:"-" yaml:"-"`
 	// StatusCodeResponses holds a map of any HTTP status code to the response definition
-	StatusCodeResponses map[int]*Response `json:"-"`
+	StatusCodeResponses map[int]*Response `json:"-" yaml:"-"`
 }
 
 // MarshalJSON is a custom marshal function that knows how to encode ResponsesProps as JSON
@@ -92,6 +105,40 @@ func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
 				r.StatusCodeResponses = map[int]*Response{}
 			}
 			r.StatusCodeResponses[nk] = v
+		}
+	}
+	return nil
+}
+
+func (r *ResponsesProps) UnmarshalYAML(value *yaml.Node) error {
+	if value.Kind != yaml.MappingNode {
+		return fmt.Errorf("expected mapping node. Got %v", value.Kind)
+	} else if len(value.Content)%2 != 0 {
+		return fmt.Errorf("expected mapping node to have even number of subchildren. Got %v", len(value.Content))
+	}
+
+	for i := 0; i < len(value.Content); i += 2 {
+		var keyStr string
+		if err := util.DecodeYAMLString(value.Content[i], &keyStr); err != nil {
+			return err
+		}
+
+		val := value.Content[i+1]
+		if keyStr == "default" {
+			r.Default = &Response{}
+			if err := r.Default.UnmarshalYAML(val); err != nil {
+				return err
+			}
+		} else if nk, err := strconv.Atoi(keyStr); err == nil {
+			resp := &Response{}
+			if r.StatusCodeResponses == nil {
+				r.StatusCodeResponses = map[int]*Response{}
+			}
+			if err := resp.UnmarshalYAML(val); err != nil {
+				return err
+			}
+
+			r.StatusCodeResponses[nk] = resp
 		}
 	}
 	return nil
@@ -137,18 +184,30 @@ func (r *Response) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (r *Response) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&r.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&r.ResponseProps); err != nil {
+		return err
+	}
+	if err := r.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // ResponseProps describes a single response from an API Operation, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#responseObject
 type ResponseProps struct {
 	// Description holds a short description of the response
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// Headers holds a maps of a headers name to its definition
-	Headers map[string]*Header `json:"headers,omitempty"`
+	Headers map[string]*Header `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// Content holds a map containing descriptions of potential response payloads
-	Content map[string]*MediaType `json:"content,omitempty"`
+	Content map[string]*MediaType `json:"content,omitempty" yaml:"content,omitempty"`
 	// Links is a map of operations links that can be followed from the response
-	Links map[string]*Link `json:"links,omitempty"`
+	Links map[string]*Link `json:"links,omitempty" yaml:"links,omitempty"`
 }
-
 
 // Link represents a possible design-time link for a response, more at https://swagger.io/specification/#link-object
 type Link struct {
@@ -188,16 +247,29 @@ func (r *Link) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (r *Link) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&r.Refable); err != nil {
+		return err
+	}
+	if err := value.Decode(&r.LinkProps); err != nil {
+		return err
+	}
+	if err := r.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // LinkProps describes a single response from an API Operation, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#responseObject
 type LinkProps struct {
 	// OperationId is the name of an existing, resolvable OAS operation
-	OperationId string `json:"operationId,omitempty"`
+	OperationId string `json:"operationId,omitempty" yaml:"operationId,omitempty"`
 	// Parameters is a map representing parameters to pass to an operation as specified with operationId or identified via operationRef
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	// Description holds a description of the link
-	Description string `json:"description,omitempty"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
 	// RequestBody is a literal value or expresion to use as a request body when calling the target operation
-	RequestBody interface{} `json:"requestBody,omitempty"`
+	RequestBody interface{} `json:"requestBody,omitempty" yaml:"requestBody,omitempty"`
 	// Server holds a server object used by the target operation
-	Server *Server `json:"server,omitempty"`
+	Server *Server `json:"server,omitempty" yaml:"server,omitempty"`
 }

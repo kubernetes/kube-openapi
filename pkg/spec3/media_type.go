@@ -18,7 +18,9 @@ package spec3
 
 import (
 	"encoding/json"
+
 	"github.com/go-openapi/swag"
+	"gopkg.in/yaml.v3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -53,14 +55,24 @@ func (m *MediaType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (m *MediaType) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&m.MediaTypeProps); err != nil {
+		return err
+	}
+	if err := m.VendorExtensible.UnmarshalYAML(value); err != nil {
+		return err
+	}
+	return nil
+}
+
 // MediaTypeProps a struct that allows you to specify content format, more at https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#mediaTypeObject
 type MediaTypeProps struct {
 	// Schema holds the schema defining the type used for the media type
-	Schema    *spec.Schema `json:"schema,omitempty"`
+	Schema *spec.Schema `json:"schema,omitempty" yaml:"schema,omitempty"`
 	// Example of the media type
-	Example interface{} `json:"example,omitempty"`
+	Example interface{} `json:"example,omitempty" yaml:"example,omitempty"`
 	// Examples of the media type. Each example object should match the media type and specific schema if present
-	Examples map[string]*Example `json:"examples,omitempty"`
+	Examples map[string]*Example `json:"examples,omitempty" yaml:"examples,omitempty"`
 	// A map between a property name and its encoding information. The key, being the property name, MUST exist in the schema as a property. The encoding object SHALL only apply to requestBody objects when the media type is multipart or application/x-www-form-urlencoded
-	Encoding map[string]*Encoding `json:"encoding,omitempty"`
+	Encoding map[string]*Encoding `json:"encoding,omitempty" yaml:"encoding,omitempty"`
 }
