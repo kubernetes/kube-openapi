@@ -32,7 +32,7 @@ func TestCache(t *testing.T) {
 			return expectedBytes, nil
 		},
 	}
-	bytes, _, _ := cacheObj.Get()
+	bytes, _ := cacheObj.Get()
 	if string(bytes) != string(expectedBytes) {
 		t.Fatalf("got value of %q from cache (expected %q)", bytes, expectedBytes)
 	}
@@ -48,7 +48,7 @@ func TestCacheError(t *testing.T) {
 			return nil, errors.New("cache error")
 		},
 	}
-	_, _, err := cacheObj.Get()
+	_, err := cacheObj.Get()
 	if err == nil {
 		t.Fatalf("expected non-nil err from cache.Get()")
 	}
@@ -61,7 +61,7 @@ func TestCacheRefresh(t *testing.T) {
 	})
 	// make multiple calls to Get() to ensure errors are preserved across subsequent calls
 	for i := 0; i < 4; i++ {
-		value, _, err := cacheObj.Get()
+		value, err := cacheObj.Get()
 		if value != nil {
 			t.Fatalf("expected nil bytes (got %s)", value)
 		}
@@ -75,21 +75,17 @@ func TestCacheRefresh(t *testing.T) {
 		return lastGoodVal, nil
 	})
 	// call Get() once, so lastGoodVal is cached
-	_, lastGoodEtag, _ := cacheObj.Get()
+	cacheObj.Get()
 	for i := 0; i < 4; i++ {
 		cacheObj = cacheObj.New(func() ([]byte, error) {
 			return nil, errors.New("check that c.bytes is preserved across New() calls")
 		})
-		value, newEtag, err := cacheObj.Get()
+		value, err := cacheObj.Get()
 		if err == nil {
 			t.Fatalf("expected non-nil err from cache.Get()")
 		}
 		if string(value) != string(lastGoodVal) {
 			t.Fatalf("expected previous value for cache to be returned (got %s, expected %s)", value, lastGoodVal)
-		}
-		// check that etags carry over between calls to cache.New()
-		if lastGoodEtag != newEtag {
-			t.Fatalf("expected etags to match (got %s, expected %s", newEtag, lastGoodEtag)
 		}
 	}
 	// check that if we successfully renew the cache the old last known value is flushed
@@ -97,7 +93,7 @@ func TestCacheRefresh(t *testing.T) {
 	cacheObj = cacheObj.New(func() ([]byte, error) {
 		return newVal, nil
 	})
-	value, _, err := cacheObj.Get()
+	value, err := cacheObj.Get()
 	if err != nil {
 		t.Fatalf("expected nil err from cache.Get()")
 	}
