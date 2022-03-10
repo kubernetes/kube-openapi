@@ -16,9 +16,12 @@ package spec
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func float64Ptr(f float64) *float64 {
@@ -80,11 +83,39 @@ const headerJSON = `{
   "default": "8"
 }`
 
+// cmp.Diff panics when reflecting unexported fields under jsonreference.Ref
+// a custom comparator is required
+var swaggerDiffOptions = []cmp.Option{cmp.Comparer(func (a Ref, b Ref) bool {
+	return a.String() == b.String()
+})}
+
 func TestIntegrationHeader(t *testing.T) {
 	var actual Header
 	if assert.NoError(t, json.Unmarshal([]byte(headerJSON), &actual)) {
-		assert.EqualValues(t, actual, header)
+		if !reflect.DeepEqual(header, actual) {
+			t.Fatal(cmp.Diff(header, actual, swaggerDiffOptions...))
+		}
 	}
 
 	assertParsesJSON(t, headerJSON, header)
+}
+
+// Makes sure that a Header unmarshaled from known good JSON, and one unmarshaled
+// from generated JSON are equivalent.
+func TestHeaderSerialization(t *testing.T) {
+	generatedJSON, err := json.Marshal(header)
+	require.NoError(t, err)
+
+
+	generatedJSONActual := Header{}
+	require.NoError(t, json.Unmarshal(generatedJSON, &generatedJSONActual))
+	if !reflect.DeepEqual(header, generatedJSONActual) {
+		t.Fatal(cmp.Diff(header, generatedJSONActual, swaggerDiffOptions...))
+	}
+
+	goodJSONActual := Header{}
+	require.NoError(t, json.Unmarshal([]byte(headerJSON), &goodJSONActual))
+	if !reflect.DeepEqual(header, goodJSONActual) {
+		t.Fatal(cmp.Diff(header, goodJSONActual, swaggerDiffOptions...))
+	}
 }
