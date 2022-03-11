@@ -568,7 +568,7 @@ import "time"
 // Nested is used as embedded struct field
 type Nested struct {
   // A simple string
-  time.Duration 
+  time.Duration
 }
 
 // Blah demonstrate a struct with embedded struct field.
@@ -1590,6 +1590,7 @@ const EnumB EnumType = "b"
 type Blah struct {
   // Value is the value.
 	Value EnumType
+	NoCommentEnum EnumType
 }`)
 	if callErr != nil {
 		t.Fatal(callErr)
@@ -1613,8 +1614,16 @@ Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"}},
 },
+"NoCommentEnum": {
+SchemaProps: spec.SchemaProps{`+"\n"+
+		"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
+Default: "",
+Type: []string{"string"},
+Format: "",
+Enum: []interface{}{"a", "b"}},
 },
-Required: []string{"Value"},
+},
+Required: []string{"Value","NoCommentEnum"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
