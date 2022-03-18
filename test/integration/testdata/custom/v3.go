@@ -77,3 +77,17 @@ func (_ Bah) OpenAPISchemaType() []string {
 func (_ Bah) OpenAPISchemaFormat() string {
 	return "test-format"
 }
+
+// FooV3OneOf has an OpenAPIV3OneOfTypes method
+// +k8s:openapi-gen=true
+type FooV3OneOf struct{}
+
+func (FooV3OneOf) OpenAPIV3OneOfTypes() []string {
+	return []string{"number", "string"}
+}
+func (FooV3OneOf) OpenAPISchemaType() []string {
+	return []string{"string"}
+}
+func (FooV3OneOf) OpenAPISchemaFormat() string {
+	return "string"
+}
