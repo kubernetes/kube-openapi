@@ -17,11 +17,15 @@ limitations under the License.
 package testing
 
 import (
+	"io/fs"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	openapi_v2 "github.com/google/gnostic/openapiv2"
+	openapi_v3 "github.com/google/gnostic/openapiv3"
+	"k8s.io/kube-openapi/pkg/handler3"
 )
 
 // Fake opens and returns a openapi swagger from a file Path. It will
@@ -50,6 +54,35 @@ func (f *Fake) OpenAPISchema() (*openapi_v2.Document, error) {
 		f.document, f.err = openapi_v2.ParseDocument(spec)
 	})
 	return f.document, f.err
+}
+
+func (f *Fake) OpenAPIV3Discovery() (*handler3.OpenAPIV3Discovery, error) {
+	// Read directory to determine groups
+	res := &handler3.OpenAPIV3Discovery{}
+	filepath.WalkDir(f.Path, func(path string, d fs.DirEntry, err error) error {
+		if filepath.Ext(path) != "json" {
+			return nil
+		}
+
+		res.Paths[path] = handler3.OpenAPIV3DiscoveryGroupVersion{
+			URL: "/openapi/v3/" + path,
+		}
+		return nil
+	})
+
+	return res, nil
+}
+
+func (f *Fake) OpenAPIV3Schema(groupVersion string) (*openapi_v3.Document, error) {
+	_, err := os.Stat(f.Path)
+	if err != nil {
+		return nil, err
+	}
+	spec, err := ioutil.ReadFile(filepath.Join(f.Path, groupVersion+".json"))
+	if err != nil {
+		return nil, err
+	}
+	return openapi_v3.ParseDocument(spec)
 }
 
 type Empty struct{}
