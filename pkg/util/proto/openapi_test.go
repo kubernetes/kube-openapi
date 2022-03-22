@@ -28,7 +28,7 @@ import (
 
 var fakeSchema = testing.Fake{Path: filepath.Join("testdata", "swagger.json")}
 var fakeSchemaNext = testing.Fake{Path: filepath.Join("testdata", "swagger_next.json")}
-var fakeSchemaV300 = testing.Fake{Path: filepath.Join("testdata", "openapi_v3_0_0")}
+var fakeSchemaV300 = testing.FakeV3{Path: filepath.Join("testdata", "openapi_v3_0_0")}
 
 var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func() {
 	var models proto.Models
