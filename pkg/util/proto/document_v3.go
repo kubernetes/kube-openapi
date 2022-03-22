@@ -32,12 +32,7 @@ func NewOpenAPIV3Data(doc *openapi_v3.Document) (Models, error) {
 		models: map[string]Schema{},
 	}
 
-	components := doc.GetComponents()
-	if components == nil {
-		return &definitions, nil
-	}
-
-	schemas := components.GetSchemas()
+	schemas := doc.GetComponents().GetSchemas()
 	if schemas == nil {
 		return &definitions, nil
 	}

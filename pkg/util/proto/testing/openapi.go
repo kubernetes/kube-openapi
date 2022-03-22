@@ -17,7 +17,6 @@ limitations under the License.
 package testing
 
 import (
-	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,7 +24,6 @@ import (
 
 	openapi_v2 "github.com/google/gnostic/openapiv2"
 	openapi_v3 "github.com/google/gnostic/openapiv3"
-	"k8s.io/kube-openapi/pkg/handler3"
 )
 
 // Fake opens and returns a openapi swagger from a file Path. It will
@@ -36,6 +34,10 @@ type Fake struct {
 	once     sync.Once
 	document *openapi_v2.Document
 	err      error
+
+	v3DocumentsLock sync.Mutex
+	v3Documents     map[string]*openapi_v3.Document
+	v3Errors        map[string]error
 }
 
 // OpenAPISchema returns the openapi document and a potential error.
@@ -56,24 +58,16 @@ func (f *Fake) OpenAPISchema() (*openapi_v2.Document, error) {
 	return f.document, f.err
 }
 
-func (f *Fake) OpenAPIV3Discovery() (*handler3.OpenAPIV3Discovery, error) {
-	// Read directory to determine groups
-	res := &handler3.OpenAPIV3Discovery{}
-	filepath.WalkDir(f.Path, func(path string, d fs.DirEntry, err error) error {
-		if filepath.Ext(path) != "json" {
-			return nil
-		}
-
-		res.Paths[path] = handler3.OpenAPIV3DiscoveryGroupVersion{
-			URL: "/openapi/v3/" + path,
-		}
-		return nil
-	})
-
-	return res, nil
-}
-
 func (f *Fake) OpenAPIV3Schema(groupVersion string) (*openapi_v3.Document, error) {
+	f.v3DocumentsLock.Lock()
+	defer f.v3DocumentsLock.Unlock()
+
+	if existing, ok := f.v3Documents[groupVersion]; ok {
+		return existing, nil
+	} else if existingError, ok := f.v3Errors[groupVersion]; ok {
+		return nil, existingError
+	}
+
 	_, err := os.Stat(f.Path)
 	if err != nil {
 		return nil, err
@@ -82,7 +76,23 @@ func (f *Fake) OpenAPIV3Schema(groupVersion string) (*openapi_v3.Document, error
 	if err != nil {
 		return nil, err
 	}
-	return openapi_v3.ParseDocument(spec)
+
+	if f.v3Documents == nil {
+		f.v3Documents = make(map[string]*openapi_v3.Document)
+	}
+
+	if f.v3Errors == nil {
+		f.v3Errors = make(map[string]error)
+	}
+
+	result, err := openapi_v3.ParseDocument(spec)
+	if err != nil {
+		f.v3Errors[groupVersion] = err
+		return nil, err
+	}
+
+	f.v3Documents[groupVersion] = result
+	return result, nil
 }
 
 type Empty struct{}

@@ -267,7 +267,7 @@ var _ = Describe("Path", func() {
 
 var _ = Describe("Reading apps/v1/Deployment from v3.0.0 openAPIData", func() {
 	var deployment *proto.Kind
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		var models proto.Models
 		s, schemaErr := fakeSchemaV300.OpenAPIV3Schema("apps/v1")
 		models, modelsErr := proto.NewOpenAPIV3Data(s)
@@ -314,7 +314,7 @@ var _ = Describe("Reading apps/v1/Deployment from v3.0.0 openAPIData", func() {
 
 	Describe("status", func() {
 		var status *proto.Kind
-		BeforeSuite(func() {
+		BeforeEach(func() {
 			Expect(deployment.Fields).To(HaveKey("status"))
 			key := deployment.Fields["status"].(proto.Reference)
 			Expect(key).ToNot(BeNil())
@@ -346,7 +346,7 @@ var _ = Describe("Reading apps/v1/Deployment from v3.0.0 openAPIData", func() {
 
 	Describe("spec subschema", func() {
 		var spec *proto.Kind
-		BeforeSuite(func() {
+		BeforeEach(func() {
 			Expect(deployment.Fields).To(HaveKey("spec"))
 			key, _ := deployment.Fields["spec"].(proto.Reference)
 			Expect(key).ToNot(BeNil())
