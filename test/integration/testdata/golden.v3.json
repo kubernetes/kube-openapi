@@ -18,6 +18,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -35,6 +38,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -52,6 +58,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -69,6 +78,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -86,6 +98,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -103,6 +118,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -120,6 +138,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -138,6 +159,9 @@
         }
        }
       },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
       "500": {
        "description": "Internal Service Error",
        "content": {
@@ -155,6 +179,9 @@
     "get": {
      "operationId": "get-dummytype.Bar",
      "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
       "500": {
        "description": "Internal Service Error",
        "content": {
@@ -172,6 +199,9 @@
     "get": {
      "operationId": "get-dummytype.Baz",
      "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
       "500": {
        "description": "Internal Service Error",
        "content": {
@@ -189,6 +219,9 @@
     "get": {
      "operationId": "get-dummytype.Foo",
      "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
       "500": {
        "description": "Internal Service Error",
        "content": {
@@ -206,6 +239,9 @@
     "get": {
      "operationId": "get-dummytype.Waldo",
      "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
       "500": {
        "description": "Internal Service Error",
        "content": {
@@ -232,6 +268,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -249,6 +288,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -266,6 +308,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -283,6 +328,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -300,6 +348,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -317,6 +368,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -334,6 +388,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -351,6 +408,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -368,6 +428,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -385,6 +448,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -402,6 +468,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -419,6 +488,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -436,6 +508,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -453,6 +528,9 @@
          }
         }
        }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
       }
      }
     }
@@ -919,6 +997,11 @@
        }
       }
      ]
+    }
+   },
+   "responses": {
+    "NotFound": {
+     "description": "Entity not found."
     }
    }
   }
