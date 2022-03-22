@@ -461,17 +461,10 @@
   "components": {
    "schemas": {
     "custom.Bac": {
-     "type": "object",
-     "x-kubernetes-v2-schema": {
-      "type": "string"
-     }
+     "type": "object"
     },
     "custom.Bah": {
-     "type": "object",
-     "x-kubernetes-v2-schema": {
-      "type": "test-type",
-      "format": "test-format"
-     }
+     "type": "object"
     },
     "custom.Bak": {
      "type": "integer"

@@ -25,6 +25,7 @@ import (
 
 	"github.com/emicklei/go-restful"
 	"github.com/stretchr/testify/assert"
+
 	openapi "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -90,10 +91,13 @@ func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 		},
 	}
 	schema.Extensions = spec.Extensions{"x-test": "test"}
-	return &openapi.OpenAPIDefinition{
+	def := openapi.EmbedOpenAPIDefinitionIntoV2Extension(openapi.OpenAPIDefinition{
 		Schema:       schema,
 		Dependencies: []string{},
-	}
+	}, openapi.OpenAPIDefinition{
+		// this empty embedded v2 definition should not appear in the result
+	})
+	return &def
 }
 
 func (_ TestOutput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
