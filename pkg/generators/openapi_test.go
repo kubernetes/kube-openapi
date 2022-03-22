@@ -1165,6 +1165,50 @@ Format:foo.Blah{}.OpenAPISchemaFormat(),
 `, funcBuffer.String())
 }
 
+func TestV3OneOfTypes(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// Blah is a custom type
+type Blah struct {
+}
+
+func (_ Blah) OpenAPISchemaType() []string { return []string{"string"} }
+func (_ Blah) OpenAPISchemaFormat() string { return "date-time" }
+func (_ Blah) OpenAPIV3OneOfTypes() []string { return []string{"string", "number"} }
+
+`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.EmbedOpenAPIDefinitionIntoV2Extension(common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a custom type",
+OneOf:common.GenerateOpenAPIV3OneOfSchema(foo.Blah{}.OpenAPIV3OneOfTypes()),
+Format:foo.Blah{}.OpenAPISchemaFormat(),
+},
+},
+},common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a custom type",
+Type:foo.Blah{}.OpenAPISchemaType(),
+Format:foo.Blah{}.OpenAPISchemaFormat(),
+},
+},
+})
+}
+
+`, funcBuffer.String())
+}
+
 func TestPointer(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
 package foo
