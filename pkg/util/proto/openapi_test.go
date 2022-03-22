@@ -28,6 +28,7 @@ import (
 
 var fakeSchema = testing.Fake{Path: filepath.Join("testdata", "swagger.json")}
 var fakeSchemaNext = testing.Fake{Path: filepath.Join("testdata", "swagger_next.json")}
+var fakeSchemaV300 = testing.FakeV3{Path: filepath.Join("testdata", "openapi_v3_0_0")}
 
 var _ = Describe("Reading apps/v1beta1/Deployment from v1.8 openAPIData", func() {
 	var models proto.Models
@@ -261,5 +262,109 @@ var _ = Describe("Path", func() {
 		field := array.FieldPath("subKey")
 
 		Expect(field.Get()).To(Equal([]string{"key", "[12]", ".subKey"}))
+	})
+})
+
+var _ = Describe("Reading apps/v1/Deployment from v3.0.0 openAPIData", func() {
+	var deployment *proto.Kind
+	BeforeEach(func() {
+		var models proto.Models
+		s, schemaErr := fakeSchemaV300.OpenAPIV3Schema("apps/v1")
+		models, modelsErr := proto.NewOpenAPIV3Data(s)
+
+		Expect(schemaErr).To(BeNil())
+		Expect(modelsErr).To(BeNil())
+
+		model := "io.k8s.api.apps.v1.Deployment"
+		schema := models.LookupModel(model)
+		Expect(schema).ToNot(BeNil())
+
+		deployment = schema.(*proto.Kind)
+		Expect(deployment).ToNot(BeNil())
+	})
+
+	It("should have a path", func() {
+		Expect(deployment.GetPath().Get()).To(Equal([]string{"io.k8s.api.apps.v1.Deployment"}))
+	})
+
+	It("should have a kind key of type string", func() {
+		Expect(deployment.Fields).To(HaveKey("kind"))
+		key := deployment.Fields["kind"].(*proto.Primitive)
+		Expect(key).ToNot(BeNil())
+		Expect(key.Type).To(Equal("string"))
+		Expect(key.GetPath().Get()).To(Equal([]string{"io.k8s.api.apps.v1.Deployment", ".kind"}))
+	})
+
+	It("should have a apiVersion key of type string", func() {
+		Expect(deployment.Fields).To(HaveKey("apiVersion"))
+		key := deployment.Fields["apiVersion"].(*proto.Primitive)
+		Expect(key).ToNot(BeNil())
+		Expect(key.Type).To(Equal("string"))
+		Expect(key.GetPath().Get()).To(Equal([]string{"io.k8s.api.apps.v1.Deployment", ".apiVersion"}))
+	})
+
+	It("should have a metadata key of type Reference", func() {
+		Expect(deployment.Fields).To(HaveKey("metadata"))
+		key := deployment.Fields["metadata"].(proto.Reference)
+		Expect(key).ToNot(BeNil())
+		Expect(key.Reference()).To(Equal("io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"))
+		subSchema := key.SubSchema().(*proto.Kind)
+		Expect(subSchema).ToNot(BeNil())
+	})
+
+	Describe("status", func() {
+		var status *proto.Kind
+		BeforeEach(func() {
+			Expect(deployment.Fields).To(HaveKey("status"))
+			key := deployment.Fields["status"].(proto.Reference)
+			Expect(key).ToNot(BeNil())
+			Expect(key.Reference()).To(Equal("io.k8s.api.apps.v1.DeploymentStatus"))
+			status = key.SubSchema().(*proto.Kind)
+			Expect(status).ToNot(BeNil())
+		})
+
+		It("should have a valid DeploymentStatus", func() {
+			By("having availableReplicas key")
+			Expect(status.Fields).To(HaveKey("availableReplicas"))
+			replicas := status.Fields["availableReplicas"].(*proto.Primitive)
+			Expect(replicas).ToNot(BeNil())
+			Expect(replicas.Type).To(Equal("integer"))
+
+			By("having conditions key")
+			Expect(status.Fields).To(HaveKey("conditions"))
+			conditions := status.Fields["conditions"].(*proto.Array)
+			Expect(conditions).ToNot(BeNil())
+			Expect(conditions.GetName()).To(Equal(`Array of Reference to "io.k8s.api.apps.v1.DeploymentCondition"`))
+			Expect(conditions.GetExtensions()).To(Equal(map[string]interface{}{
+				"x-kubernetes-patch-merge-key": "type",
+				"x-kubernetes-patch-strategy":  "merge",
+			}))
+			condition := conditions.SubType.(proto.Reference)
+			Expect(condition.Reference()).To(Equal("io.k8s.api.apps.v1.DeploymentCondition"))
+		})
+	})
+
+	Describe("spec subschema", func() {
+		var spec *proto.Kind
+		BeforeEach(func() {
+			Expect(deployment.Fields).To(HaveKey("spec"))
+			key, _ := deployment.Fields["spec"].(proto.Reference)
+			Expect(key).ToNot(BeNil())
+			Expect(key.Reference()).To(Equal("io.k8s.api.apps.v1.DeploymentSpec"))
+			spec = key.SubSchema().(*proto.Kind)
+			Expect(spec).ToNot(BeNil())
+		})
+
+		It("should have a spec with no gvk", func() {
+			_, found := spec.GetExtensions()["x-kubernetes-group-version-kind"]
+			Expect(found).To(BeFalse())
+		})
+
+		It("should have a spec with a PodTemplateSpec sub-field", func() {
+			Expect(spec.Fields).To(HaveKey("template"))
+			key := spec.Fields["template"].(proto.Reference)
+			Expect(key).ToNot(BeNil())
+			Expect(key.Reference()).To(Equal("io.k8s.api.core.v1.PodTemplateSpec"))
+		})
 	})
 })
