@@ -55,13 +55,14 @@ const (
 // OpenAPIV3Discovery is the format of the Discovery document for OpenAPI V3
 // It maps Discovery paths to their corresponding URLs with a hash parameter included
 type OpenAPIV3Discovery struct {
-	Paths map[string]OpenAPIV3DiscoveryGroupVersion
+	Paths map[string]OpenAPIV3DiscoveryGroupVersion `json:"paths"`
 }
 
 // OpenAPIV3DiscoveryGroupVersion includes information about a group version and URL
 // for accessing the OpenAPI. The URL includes a hash parameter to support client side caching
 type OpenAPIV3DiscoveryGroupVersion struct {
-	URL string
+	// Path is an absolute path of an OpenAPI V3 document in the form of /openapi/v3/apis/apps/v1?hash=014fbff9a07c
+	ServerRelativeURL string `json:"serverRelativeURL"`
 }
 
 // OpenAPIService is the service responsible for serving OpenAPI spec. It has
@@ -96,7 +97,7 @@ func computeETag(data []byte) string {
 	return fmt.Sprintf("%X", sha512.Sum512(data))
 }
 
-func constructURL(gvString, etag string) string {
+func constructServerRelativeURL(gvString, etag string) string {
 	u := url.URL{Path: path.Join("/openapi/v3", gvString)}
 	query := url.Values{}
 	query.Set("hash", etag)
@@ -129,7 +130,7 @@ func (o *OpenAPIService) getGroupBytes() ([]byte, error) {
 			return nil, err
 		}
 		discovery.Paths[gvString] = OpenAPIV3DiscoveryGroupVersion{
-			URL: constructURL(gvString, string(etagBytes)),
+			ServerRelativeURL: constructServerRelativeURL(gvString, string(etagBytes)),
 		}
 	}
 	j, err := json.Marshal(discovery)
@@ -233,7 +234,7 @@ func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Reque
 
 			if hash := r.URL.Query().Get("hash"); hash != "" {
 				if hash != etag {
-					u := constructURL(group, etag)
+					u := constructServerRelativeURL(group, etag)
 					http.Redirect(w, r, u, 301)
 					return
 				}

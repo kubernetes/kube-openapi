@@ -47,7 +47,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	compactOpenAPI := buffer.Bytes()
 	var hash = computeETag(compactOpenAPI)
 
-	var returnedGroupVersionListJSON = []byte(`{"Paths":{"apis/apps/v1":{"URL":"/openapi/v3/apis/apps/v1?hash=` + hash + `"}}}`)
+	var returnedGroupVersionListJSON = []byte(`{"paths":{"apis/apps/v1":{"serverRelativeURL":"/openapi/v3/apis/apps/v1?hash=` + hash + `"}}}`)
 
 	json.Unmarshal(compactOpenAPI, &s)
 
