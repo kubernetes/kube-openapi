@@ -156,7 +156,7 @@ func PropertyNotAllowed(name, in, key string) *Validation {
 }
 
 // TooFewProperties an error for an object with too few properties
-func TooFewProperties(name, in string, minProperties int64) *Validation {
+func TooFewProperties(name, in string, minProperties, size int64) *Validation {
 	msg := fmt.Sprintf(tooFewProperties, name, in, minProperties)
 	if in == "" {
 		msg = fmt.Sprintf(tooFewPropertiesNoIn, name, minProperties)
@@ -165,14 +165,14 @@ func TooFewProperties(name, in string, minProperties int64) *Validation {
 		code:    TooFewPropertiesCode,
 		Name:    name,
 		In:      in,
-		Value:   minProperties,
+		Value:   size,
 		Valid:   minProperties,
 		message: msg,
 	}
 }
 
 // TooManyProperties an error for an object with too many properties
-func TooManyProperties(name, in string, maxProperties int64) *Validation {
+func TooManyProperties(name, in string, maxProperties, size int64) *Validation {
 	msg := fmt.Sprintf(tooManyProperties, name, in, maxProperties)
 	if in == "" {
 		msg = fmt.Sprintf(tooManyPropertiesNoIn, name, maxProperties)
@@ -181,7 +181,7 @@ func TooManyProperties(name, in string, maxProperties int64) *Validation {
 		code:    TooManyPropertiesCode,
 		Name:    name,
 		In:      in,
-		Value:   maxProperties,
+		Value:   size,
 		Valid:   maxProperties,
 		message: msg,
 	}

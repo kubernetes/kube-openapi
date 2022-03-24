@@ -363,27 +363,27 @@ func TestSchemaErrors(t *testing.T) {
 	//unallowedPropertyNoIn     = "%s.%s is a forbidden property"
 	assert.Equal(t, "path.key is a forbidden property", err.Error())
 
-	//func TooManyProperties(name, in string, n int64) *Validation {
-	err = TooManyProperties("path", "body", 10)
+	//func TooManyProperties(name, in string, n， size int64) *Validation {
+	err = TooManyProperties("path", "body", 10, 20)
 	assert.Error(t, err)
 	assert.EqualValues(t, TooManyPropertiesCode, err.Code())
 	//tooManyProperties         = "%s in %s should have at most %d properties"
 	assert.Equal(t, "path in body should have at most 10 properties", err.Error())
 
-	err = TooManyProperties("path", "", 10)
+	err = TooManyProperties("path", "", 10, 20)
 	assert.Error(t, err)
 	assert.EqualValues(t, TooManyPropertiesCode, err.Code())
 	//tooManyPropertiesNoIn     = "%s should have at most %d properties"
 	assert.Equal(t, "path should have at most 10 properties", err.Error())
 
-	err = TooFewProperties("path", "body", 10)
+	err = TooFewProperties("path", "body", 10, 1)
 	// func TooFewProperties(name, in string, n int64) *Validation {
 	assert.Error(t, err)
 	assert.EqualValues(t, TooFewPropertiesCode, err.Code())
 	//tooFewProperties          = "%s in %s should have at least %d properties"
 	assert.Equal(t, "path in body should have at least 10 properties", err.Error())
 
-	err = TooFewProperties("path", "", 10)
+	err = TooFewProperties("path", "", 10, 1)
 	// func TooFewProperties(name, in string, n int64) *Validation {
 	assert.Error(t, err)
 	assert.EqualValues(t, TooFewPropertiesCode, err.Code())
