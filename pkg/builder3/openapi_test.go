@@ -89,6 +89,28 @@ func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 				},
 			},
 		},
+		"reference-extension": {
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: map[string]interface{}{"extension": "value"},
+			},
+			SchemaProps: spec.SchemaProps{
+				Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+			},
+		},
+		"reference-nullable": {
+			SchemaProps: spec.SchemaProps{
+				Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+				Nullable: true,
+			},
+		},
+		"reference-default": {
+			SchemaProps: spec.SchemaProps{
+				Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+				Default: map[string]interface{}{},
+			},
+		},
+
+
 	}
 	schema.Extensions = spec.Extensions{"x-test": "test"}
 	def := openapi.EmbedOpenAPIDefinitionIntoV2Extension(openapi.OpenAPIDefinition{
@@ -336,6 +358,38 @@ func getTestInputDefinition() *spec.Schema {
 								},
 							},
 						},
+					},
+				},
+				"reference-extension": {
+					VendorExtensible: spec.VendorExtensible{
+						Extensions: map[string]interface{}{"extension": "value"},
+					},
+					SchemaProps: spec.SchemaProps{
+						AllOf: []spec.Schema{{
+							SchemaProps: spec.SchemaProps{
+								Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+							},
+						}},
+					},
+				},
+				"reference-nullable": {
+					SchemaProps: spec.SchemaProps{
+						Nullable: true,
+						AllOf: []spec.Schema{{
+							SchemaProps: spec.SchemaProps{
+								Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+							},
+						}},
+					},
+				},
+				"reference-default": {
+					SchemaProps: spec.SchemaProps{
+						AllOf: []spec.Schema{{
+							SchemaProps: spec.SchemaProps{
+								Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+							},
+						}},
+						Default: map[string]interface{}{},
 					},
 				},
 			},
