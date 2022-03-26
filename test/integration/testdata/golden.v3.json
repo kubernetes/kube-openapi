@@ -514,14 +514,22 @@
       },
       "OtherSub": {
        "default": {},
-       "$ref": "#/components/schemas/defaults.SubStruct"
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/defaults.SubStruct"
+        }
+       ]
       },
       "Sub": {
        "default": {
         "i": 5,
         "s": "foo"
        },
-       "$ref": "#/components/schemas/defaults.SubStruct"
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/defaults.SubStruct"
+        }
+       ]
       }
      }
     },
@@ -688,7 +696,11 @@
        "type": "array",
        "items": {
         "default": {},
-        "$ref": "#/components/schemas/listtype.Item"
+        "allOf": [
+         {
+          "$ref": "#/components/schemas/listtype.Item"
+         }
+        ]
        },
        "x-kubernetes-list-map-keys": [
         "port"
@@ -754,8 +766,12 @@
      "properties": {
       "Field": {
        "default": {},
-       "x-kubernetes-map-type": "atomic",
-       "$ref": "#/components/schemas/structtype.ContainedStruct"
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/structtype.ContainedStruct"
+        }
+       ],
+       "x-kubernetes-map-type": "atomic"
       },
       "OtherField": {
        "type": "integer",
@@ -790,8 +806,12 @@
      "properties": {
       "Field": {
        "default": {},
-       "x-kubernetes-map-type": "granular",
-       "$ref": "#/components/schemas/structtype.ContainedStruct"
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/structtype.ContainedStruct"
+        }
+       ],
+       "x-kubernetes-map-type": "granular"
       },
       "OtherField": {
        "type": "integer",
