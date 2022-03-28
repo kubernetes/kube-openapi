@@ -53,7 +53,7 @@ func main() {
 	config := testutil.CreateOpenAPIBuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
 	// Build the Paths using a simple WebService for the final spec
-	swagger, serr := builderv2.BuildOpenAPISpec(testutil.CreateWebServices(), config)
+	swagger, serr := builderv2.BuildOpenAPISpec(testutil.CreateWebServices(true), config)
 	if serr != nil {
 		log.Fatalf("ERROR: %s", serr.Error())
 	}

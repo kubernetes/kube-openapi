@@ -53,7 +53,7 @@ func CreateOpenAPIBuilderConfig() *common.Config {
 
 // CreateWebServices hard-codes a simple WebService which only defines a GET and POST paths
 // for testing.
-func CreateWebServices() []*restful.WebService {
+func CreateWebServices(includeV2SchemaAnnotation bool) []*restful.WebService {
 	w := new(restful.WebService)
 	addRoutes(w, buildRouteForType(w, "dummytype", "Foo")...)
 	addRoutes(w, buildRouteForType(w, "dummytype", "Bar")...)
@@ -66,8 +66,10 @@ func CreateWebServices() []*restful.WebService {
 	addRoutes(w, buildRouteForType(w, "uniontype", "InlinedUnion")...)
 	addRoutes(w, buildRouteForType(w, "custom", "Bal")...)
 	addRoutes(w, buildRouteForType(w, "custom", "Bak")...)
-	addRoutes(w, buildRouteForType(w, "custom", "Bac")...)
-	addRoutes(w, buildRouteForType(w, "custom", "Bah")...)
+	if includeV2SchemaAnnotation {
+		addRoutes(w, buildRouteForType(w, "custom", "Bac")...)
+		addRoutes(w, buildRouteForType(w, "custom", "Bah")...)
+	}
 	addRoutes(w, buildRouteForType(w, "maptype", "GranularMap")...)
 	addRoutes(w, buildRouteForType(w, "maptype", "AtomicMap")...)
 	addRoutes(w, buildRouteForType(w, "structtype", "GranularStruct")...)

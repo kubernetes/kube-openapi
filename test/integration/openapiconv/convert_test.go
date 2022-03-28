@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,32 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package openapiconv
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
-	"os"
+	"reflect"
+	"testing"
 
-	"github.com/getkin/kin-openapi/openapi3"
+	builderv2 "k8s.io/kube-openapi/pkg/builder"
 	builderv3 "k8s.io/kube-openapi/pkg/builder3"
+	"k8s.io/kube-openapi/pkg/openapiconv"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/test/integration/pkg/generated"
 	"k8s.io/kube-openapi/test/integration/testutil"
 )
 
-// TODO: Change this to output the generated swagger to stdout.
-const defaultSwaggerFile = "generated.v3.json"
-
-func main() {
-	// Get the name of the generated swagger file from the args
-	// if it exists; otherwise use the default file name.
-	swaggerFilename := defaultSwaggerFile
-	if len(os.Args) > 1 {
-		swaggerFilename = os.Args[1]
-	}
-
+func TestConvertGolden(t *testing.T) {
 	// Generate the definition names from the map keys returned
 	// from GetOpenAPIDefinitions. Anonymous function returning empty
 	// Ref is not used.
@@ -54,33 +45,30 @@ func main() {
 	config := testutil.CreateOpenAPIBuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
 	// Build the Paths using a simple WebService for the final spec
-	swagger, serr := builderv3.BuildOpenAPISpec(testutil.CreateWebServices(true), config)
+	openapiv2, serr := builderv2.BuildOpenAPISpec(testutil.CreateWebServices(false), config)
 	if serr != nil {
 		log.Fatalf("ERROR: %s", serr.Error())
 	}
 
-	// Marshal the swagger spec into JSON, then write it out.
-	specBytes, err := json.MarshalIndent(swagger, " ", " ")
+	openAPIV2JSONBeforeConversion, err := json.Marshal(openapiv2)
 	if err != nil {
-		log.Fatalf("json marshal error: %s", err.Error())
+		t.Fatal(err)
+	}
+	openapiv3, serr := builderv3.BuildOpenAPISpec(testutil.CreateWebServices(false), config)
+	if serr != nil {
+		log.Fatalf("ERROR: %s", serr.Error())
 	}
 
-	loader := openapi3.NewLoader()
-	specForValidator, err := loader.LoadFromData(specBytes)
-
+	convertedOpenAPIV3 := openapiconv.ConvertV2ToV3(openapiv2)
 	if err != nil {
-		log.Fatalf("OpenAPI v3 ref resolve error: %s", err.Error())
+		t.Fatal(err)
+	}
+	openAPIV2JSONAfterConversion, err := json.Marshal(openapiv2)
+	if !reflect.DeepEqual(openAPIV2JSONBeforeConversion, openAPIV2JSONAfterConversion) {
+		t.Errorf("Expected OpenAPI V2 to be untouched before and after conversion")
 	}
 
-	err = specForValidator.Validate(loader.Context)
-
-	if err != nil {
-		log.Fatalf("OpenAPI v3 validation error: %s", err.Error())
+	if !reflect.DeepEqual(openapiv3, convertedOpenAPIV3) {
+		t.Errorf("Expected converted OpenAPI to be equal, %v, %v", openapiv3, convertedOpenAPIV3)
 	}
-
-	err = ioutil.WriteFile(swaggerFilename, specBytes, 0644)
-	if err != nil {
-		log.Fatalf("stdout write error: %s", err.Error())
-	}
-
 }
