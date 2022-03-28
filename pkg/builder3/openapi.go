@@ -24,10 +24,10 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 
+	builderutil "k8s.io/kube-openapi/pkg/builder3/util"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/spec3"
-	builderutil "k8s.io/kube-openapi/pkg/builder3/util"
 	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -226,10 +226,14 @@ func newOpenAPI(config *common.Config) openAPI {
 		}
 	}
 
-	o.definitions = o.config.GetDefinitions(func(name string) spec.Ref {
-		defName, _ := o.config.GetDefinitionName(name)
-		return spec.MustCreateRef("#/components/schemas/" + common.EscapeJsonPointer(defName))
-	})
+	if o.config.Definitions != nil {
+		o.definitions = o.config.Definitions
+	} else {
+		o.definitions = o.config.GetDefinitions(func(name string) spec.Ref {
+			defName, _ := o.config.GetDefinitionName(name)
+			return spec.MustCreateRef("#/components/schemas/" + common.EscapeJsonPointer(defName))
+		})
+	}
 
 	return o
 }

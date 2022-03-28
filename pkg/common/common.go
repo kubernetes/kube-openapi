@@ -94,6 +94,10 @@ type Config struct {
 	// or any of the models will result in spec generation failure.
 	GetDefinitions GetOpenAPIDefinitions
 
+	// Provides the definition for all models used by routes. One of GetDefinitions or Definitions must be defined to generate a spec.
+	// This takes precedent over the GetDefinitions function
+	Definitions map[string]OpenAPIDefinition
+
 	// GetOperationIDAndTags returns operation id and tags for a restful route. It is an optional function to customize operation IDs.
 	//
 	// Deprecated: GetOperationIDAndTagsFromRoute should be used instead. This cannot be specified if using the new Route
@@ -141,7 +145,12 @@ type OpenAPIV3Config struct {
 
 	// OpenAPIDefinitions should provide definition for all models used by routes. Failure to provide this map
 	// or any of the models will result in spec generation failure.
+	// One of GetDefinitions or Definitions must be defined to generate a spec.
 	GetDefinitions GetOpenAPIDefinitions
+
+	// Provides the definition for all models used by routes. One of GetDefinitions or Definitions must be defined to generate a spec.
+	// This takes precedent over the GetDefinitions function
+	Definitions map[string]OpenAPIDefinition
 
 	// GetOperationIDAndTags returns operation id and tags for a restful route. It is an optional function to customize operation IDs.
 	//
@@ -176,12 +185,13 @@ func ConvertConfigToV3(config *Config) *OpenAPIV3Config {
 		GetOperationIDAndTags:          config.GetOperationIDAndTags,
 		GetOperationIDAndTagsFromRoute: config.GetOperationIDAndTagsFromRoute,
 		GetDefinitionName:              config.GetDefinitionName,
+		Definitions:                    config.Definitions,
 		SecuritySchemes:                make(spec3.SecuritySchemes),
 		DefaultSecurity:                config.DefaultSecurity,
 		DefaultResponse:                openapiconv.ConvertResponse(config.DefaultResponse, []string{"application/json"}),
 
-		CommonResponses:                make(map[int]*spec3.Response),
-		ResponseDefinitions:            make(map[string]*spec3.Response),
+		CommonResponses:     make(map[int]*spec3.Response),
+		ResponseDefinitions: make(map[string]*spec3.Response),
 	}
 
 	if config.SecurityDefinitions != nil {
