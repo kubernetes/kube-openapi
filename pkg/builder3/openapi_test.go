@@ -211,9 +211,6 @@ func getConfig(fullMethods bool) (*openapi.Config, *restful.Container) {
 		},
 		GetDefinitionName: func(name string) (string, spec.Extensions) {
 			friendlyName := name[strings.LastIndex(name, "/")+1:]
-			if strings.HasPrefix(friendlyName, "go_default_test") {
-				friendlyName = "builder" + friendlyName[len("go_default_test"):]
-			}
 			return friendlyName, spec.Extensions{"x-test2": "test2"}
 		},
 	}, container

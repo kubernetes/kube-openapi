@@ -215,18 +215,10 @@ func getConfig(fullMethods bool) (*openapi.Config, *restful.Container) {
 				"k8s.io/kube-openapi/pkg/builder.TestInput":             *TestInput{}.OpenAPIDefinition(),
 				"k8s.io/kube-openapi/pkg/builder.TestOutput":            *TestOutput{}.OpenAPIDefinition(),
 				"k8s.io/kube-openapi/pkg/builder.TestExtensionV2Schema": *TestExtensionV2Schema{}.OpenAPIDefinition(),
-				// Bazel changes the package name, this is ok for testing, but we need to fix it if it happened
-				// in the main code.
-				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestInput":             *TestInput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestOutput":            *TestOutput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder/go_default_test.TestExtensionV2Schema": *TestExtensionV2Schema{}.OpenAPIDefinition(),
 			}
 		},
 		GetDefinitionName: func(name string) (string, spec.Extensions) {
 			friendlyName := name[strings.LastIndex(name, "/")+1:]
-			if strings.HasPrefix(friendlyName, "go_default_test") {
-				friendlyName = "builder" + friendlyName[len("go_default_test"):]
-			}
 			return friendlyName, spec.Extensions{"x-test2": "test2"}
 		},
 	}, container
