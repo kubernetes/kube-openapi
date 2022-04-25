@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/go-openapi/jsonreference"
-	"github.com/google/gnostic/compiler"
-	openapi_v2 "github.com/google/gnostic/openapiv2"
+	"github.com/google/gnostic-models/compiler"
+	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
