@@ -23,7 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
@@ -53,90 +53,89 @@ const (
 	timeoutSeconds = 10.0
 )
 
+var (
+	workingDirectory string
+	tempDir          string
+	terr             error
+	openAPIGenPath   string
+)
+
+func generatedFile(filename string) string { return filepath.Join(tempDir, filename) }
+func testdataFile(filename string) string  { return filepath.Join(testdataDir, filename) }
+
 func TestGenerators(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Integration Test Suite")
 }
 
-var _ = Describe("Open API Definitions Generation", func() {
+var _ = BeforeSuite(func() {
+	// Explicitly manage working directory
+	abs, err := filepath.Abs("")
+	Expect(err).ShouldNot(HaveOccurred())
+	workingDirectory = abs
 
-	var (
-		workingDirectory string
-		tempDir          string
-		terr             error
-		openAPIGenPath   string
+	// Create a temporary directory for generated swagger files.
+	tempDir, terr = ioutil.TempDir("./", "openapi")
+	Expect(terr).ShouldNot(HaveOccurred())
+
+	// Build the OpenAPI code generator.
+	By("building openapi-gen")
+	binaryPath, berr := gexec.Build("../../cmd/openapi-gen/openapi-gen.go")
+	Expect(berr).ShouldNot(HaveOccurred())
+	openAPIGenPath = binaryPath
+
+	// Run the OpenAPI code generator, creating OpenAPIDefinition code
+	// to be compiled into builder.
+	By("processing go idl with openapi-gen")
+	gr := generatedFile(generatedReportFileName)
+	command := exec.Command(openAPIGenPath,
+		"-i", inputDir,
+		"-o", outputBase,
+		"-p", outputPackage,
+		"-O", outputBaseFileName,
+		"-r", gr,
+		"-h", headerFilePath,
 	)
+	command.Dir = workingDirectory
+	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
 
-	testdataFile := func(filename string) string { return filepath.Join(testdataDir, filename) }
-	generatedFile := func(filename string) string { return filepath.Join(tempDir, filename) }
+	By("writing swagger v2.0")
+	// Create the OpenAPI swagger builder.
+	binaryPath, berr = gexec.Build("./builder/main.go")
+	Expect(berr).ShouldNot(HaveOccurred())
 
-	BeforeSuite(func() {
-		// Explicitly manage working directory
-		abs, err := filepath.Abs("")
-		Expect(err).ShouldNot(HaveOccurred())
-		workingDirectory = abs
+	// Execute the builder, generating an OpenAPI swagger file with definitions.
+	gs := generatedFile(generatedSwaggerFileName)
+	By("writing swagger to " + gs)
+	command = exec.Command(binaryPath, gs)
+	command.Dir = workingDirectory
+	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
 
-		// Create a temporary directory for generated swagger files.
-		tempDir, terr = ioutil.TempDir("./", "openapi")
-		Expect(terr).ShouldNot(HaveOccurred())
+	By("writing OpenAPI v3.0")
+	// Create the OpenAPI swagger builder.
+	binaryPath, berr = gexec.Build("./builder3/main.go")
+	Expect(berr).ShouldNot(HaveOccurred())
 
-		// Build the OpenAPI code generator.
-		By("building openapi-gen")
-		binaryPath, berr := gexec.Build("../../cmd/openapi-gen/openapi-gen.go")
-		Expect(berr).ShouldNot(HaveOccurred())
-		openAPIGenPath = binaryPath
+	// Execute the builder, generating an OpenAPI swagger file with definitions.
+	gov3 := generatedFile(generatedOpenAPIv3FileName)
+	By("writing swagger to " + gov3)
+	command = exec.Command(binaryPath, gov3)
+	command.Dir = workingDirectory
+	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+})
 
-		// Run the OpenAPI code generator, creating OpenAPIDefinition code
-		// to be compiled into builder.
-		By("processing go idl with openapi-gen")
-		gr := generatedFile(generatedReportFileName)
-		command := exec.Command(openAPIGenPath,
-			"-i", inputDir,
-			"-o", outputBase,
-			"-p", outputPackage,
-			"-O", outputBaseFileName,
-			"-r", gr,
-			"-h", headerFilePath,
-		)
-		command.Dir = workingDirectory
-		session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-		Expect(err).ShouldNot(HaveOccurred())
-		Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+var _ = AfterSuite(func() {
+	os.RemoveAll(tempDir)
+	gexec.CleanupBuildArtifacts()
+})
 
-		By("writing swagger v2.0")
-		// Create the OpenAPI swagger builder.
-		binaryPath, berr = gexec.Build("./builder/main.go")
-		Expect(berr).ShouldNot(HaveOccurred())
-
-		// Execute the builder, generating an OpenAPI swagger file with definitions.
-		gs := generatedFile(generatedSwaggerFileName)
-		By("writing swagger to " + gs)
-		command = exec.Command(binaryPath, gs)
-		command.Dir = workingDirectory
-		session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-		Expect(err).ShouldNot(HaveOccurred())
-		Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
-
-		By("writing OpenAPI v3.0")
-		// Create the OpenAPI swagger builder.
-		binaryPath, berr = gexec.Build("./builder3/main.go")
-		Expect(berr).ShouldNot(HaveOccurred())
-
-		// Execute the builder, generating an OpenAPI swagger file with definitions.
-		gov3 := generatedFile(generatedOpenAPIv3FileName)
-		By("writing swagger to " + gov3)
-		command = exec.Command(binaryPath, gov3)
-		command.Dir = workingDirectory
-		session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
-		Expect(err).ShouldNot(HaveOccurred())
-		Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
-	})
-
-	AfterSuite(func() {
-		os.RemoveAll(tempDir)
-		gexec.CleanupBuildArtifacts()
-	})
-
+var _ = Describe("Open API Definitions Generation", func() {
 	Describe("openapi-gen --verify", func() {
 		It("Verifies that the existing files are correct", func() {
 			command := exec.Command(openAPIGenPath,
