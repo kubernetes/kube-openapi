@@ -6,7 +6,7 @@ require (
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/davecgh/go-spew v1.1.1
-	github.com/emicklei/go-restful/v3 v3.7.5-0.20220308211933-7c971ca4d0fd
+	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/getkin/kin-openapi v0.76.0
 	github.com/go-openapi/jsonreference v0.19.3
 	github.com/go-openapi/swag v0.19.5
