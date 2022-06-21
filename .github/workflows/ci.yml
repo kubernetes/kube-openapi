@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.16', '1.x' ]
+        go: [ '1.18', '1.x' ]
         gostable: [true]
         include:
         - go: '1.x'
@@ -20,7 +20,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        path: src/k8s.io/kube-openapi/        
+        path: src/k8s.io/kube-openapi/
 
     - name: Set up Go
       uses: actions/setup-go@v2
