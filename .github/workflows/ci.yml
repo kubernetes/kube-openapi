@@ -37,3 +37,8 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
         GOPATH=${GITHUB_WORKSPACE} go test ./cmd/... ./pkg/... ./test/...
+  required:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "Required jobs success!"
