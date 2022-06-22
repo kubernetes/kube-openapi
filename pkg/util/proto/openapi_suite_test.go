@@ -18,32 +18,12 @@ package proto_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/ginkgo/v2/config"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 
-	"fmt"
 	"testing"
 )
 
 func TestOpenapi(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecsWithDefaultAndCustomReporters(t, "Openapi Suite", []Reporter{newlineReporter{}})
+	RunSpecs(t, "Openapi Suite")
 }
-
-// Print a newline after the default newlineReporter due to issue
-// https://github.com/jstemmer/go-junit-report/issues/31
-type newlineReporter struct{}
-
-func (newlineReporter) SuiteWillBegin(config GinkgoConfigType, summary *types.SuiteSummary) {}
-
-func (newlineReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {}
-
-func (newlineReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {}
-
-func (newlineReporter) SpecWillRun(specSummary *types.SpecSummary) {}
-
-func (newlineReporter) SpecDidComplete(specSummary *types.SpecSummary) {}
-
-// SuiteDidEnd Prints a newline between "35 Passed | 0 Failed | 0 Pending | 0 Skipped" and "--- PASS:"
-func (newlineReporter) SuiteDidEnd(summary *types.SuiteSummary) { fmt.Printf("\n") }
