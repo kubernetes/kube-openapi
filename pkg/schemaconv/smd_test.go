@@ -97,3 +97,68 @@ func testToSchema(t *testing.T, openAPIPath, expectedNewSchemaPath string) {
 		t.Log("You can then use `git diff` to see the changes.")
 	}
 }
+
+func TestFieldLevelAnnotation(t *testing.T) {
+	openAPIPath := filepath.Join("testdata", "field-level-annotation.json")
+	fakeSchema := prototesting.Fake{Path: openAPIPath}
+	s, err := fakeSchema.OpenAPISchema()
+	if err != nil {
+		t.Fatalf("failed to get schema for %s: %v", openAPIPath, err)
+	}
+	models, err := proto.NewOpenAPIData(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ns, err := ToSchema(models)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_ = ns
+
+	// Test to make sure that MapElementRelationship is populated correctly
+	// after being converted from proto type
+	endpointAddress, ok := ns.FindNamedType("io.k8s.api.core.v1.EndpointAddress")
+	if !ok {
+		t.Fatalf("expected to find EndpointAddress")
+	}
+
+	targetRef, ok := endpointAddress.FindField("targetRef")
+	if !ok {
+		t.Fatalf("expected to find EndpointAddress field 'targetRef'")
+	}
+
+	if targetRef.Type.ElementRelationship == nil {
+		t.Fatalf("expected targetRef MapElementRelationship to be atomic")
+	}
+
+	// Test to make sure that schema.Resolve overrides the ElementRelationship
+	// when asked to resolve a reference
+	resolved, ok := ns.Resolve(targetRef.Type)
+	if !ok {
+		t.Fatalf("failed to resolve targetRef type")
+	}
+
+	if resolved.Map == nil {
+		t.Fatalf("expected to resolve to a Map")
+	}
+
+	if resolved.Map.ElementRelationship != *targetRef.Type.ElementRelationship {
+		t.Fatalf("resolved element relationship not converted")
+	}
+
+	// Make sure our test is actually testing something by ensuring the original
+	// relationship is different from what we are changing it to.
+	targetRefWithoutRelationship := targetRef
+	targetRefWithoutRelationship.Type.ElementRelationship = nil
+
+	originalResolved, ok := ns.Resolve(targetRefWithoutRelationship.Type)
+	if !ok {
+		t.Fatalf("failed to resolve targetRef type")
+	}
+
+	if originalResolved.Map.ElementRelationship == *targetRef.Type.ElementRelationship {
+		t.Fatalf("expected original element relationship to differ from field-level override for test")
+	}
+}
