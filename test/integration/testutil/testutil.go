@@ -73,6 +73,7 @@ func CreateWebServices(includeV2SchemaAnnotation bool) []*restful.WebService {
 	addRoutes(w, buildRouteForType(w, "maptype", "GranularMap")...)
 	addRoutes(w, buildRouteForType(w, "maptype", "AtomicMap")...)
 	addRoutes(w, buildRouteForType(w, "structtype", "GranularStruct")...)
+	addRoutes(w, buildRouteForType(w, "structtype", "FieldLevelOverrideStruct")...)
 	addRoutes(w, buildRouteForType(w, "structtype", "AtomicStruct")...)
 	addRoutes(w, buildRouteForType(w, "structtype", "DeclaredAtomicStruct")...)
 	addRoutes(w, buildRouteForType(w, "defaults", "Defaulted")...)

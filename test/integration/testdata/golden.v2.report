@@ -29,6 +29,8 @@ API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/ma
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,AtomicStruct,Field
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,AtomicStruct,OtherField
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,DeclaredAtomicStruct,Field
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,FieldLevelOverrideStruct,Field
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,FieldLevelOverrideStruct,OtherField
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,GranularStruct,Field
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,GranularStruct,OtherField
 API rule violation: omitempty_match_case,k8s.io/kube-openapi/test/integration/testdata/listtype,Item,C
