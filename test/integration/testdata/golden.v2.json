@@ -495,6 +495,28 @@
      }
     }
    },
+   "/test/structtype/fieldleveloverridestruct": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-structtype.FieldLevelOverrideStruct",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/structtype.FieldLevelOverrideStruct"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
    "/test/structtype/granularstruct": {
     "get": {
      "produces": [
@@ -906,6 +928,25 @@
      }
     },
     "x-kubernetes-map-type": "atomic"
+   },
+   "structtype.FieldLevelOverrideStruct": {
+    "type": "object",
+    "required": [
+     "Field",
+     "OtherField"
+    ],
+    "properties": {
+     "Field": {
+      "default": {},
+      "x-kubernetes-map-type": "atomic",
+      "$ref": "#/definitions/structtype.DeclaredAtomicStruct"
+     },
+     "OtherField": {
+      "type": "integer",
+      "format": "int32",
+      "default": 0
+     }
+    }
    },
    "structtype.GranularStruct": {
     "type": "object",
