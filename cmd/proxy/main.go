@@ -8,7 +8,6 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/spf13/cobra"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/handler"
 	"k8s.io/kube-openapi/pkg/handler3"
@@ -16,7 +15,7 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func serve_v2(swagger spec.Swagger, h common.PathHandler) error {
+func ServeV2(swagger spec.Swagger, h common.PathHandler) error {
 	o, err := handler.NewOpenAPIService(&swagger)
 	if err != nil {
 		return fmt.Errorf("failed to create OpenAPI v2 service: %v", err)
@@ -28,7 +27,7 @@ func serve_v2(swagger spec.Swagger, h common.PathHandler) error {
 	return nil
 }
 
-func serve_v3(v3 map[XKubernetesGroupVersion]spec3.OpenAPI, h common.PathHandler) error {
+func ServeV3(v3 map[XKubernetesGroupVersion]spec3.OpenAPI, h common.PathHandler) error {
 	o, err := handler3.NewOpenAPIService(nil)
 	if err != nil {
 		return fmt.Errorf("failed to create OpenAPI v3 service: %v", err)
@@ -43,7 +42,7 @@ func serve_v3(v3 map[XKubernetesGroupVersion]spec3.OpenAPI, h common.PathHandler
 	return nil
 }
 
-func parse_v2(swagger_json []byte) (*spec.Swagger, error) {
+func ParseV2(swagger_json []byte) (*spec.Swagger, error) {
 	swagger := spec.Swagger{}
 	if err := json.Unmarshal(swagger_json, &swagger); err != nil {
 		return nil, fmt.Errorf("failed to parse json: %v", err)
@@ -74,7 +73,7 @@ var resourcePathRe = regexp.MustCompile(`^/api(s/(?P<group>[^/]+))?/(?P<version>
 var groupIndexRe = resourcePathRe.SubexpIndex("group")
 var versionIndexRe = resourcePathRe.SubexpIndex("version")
 
-func parse_v3(openapi_json []byte) (XKubernetesGroupVersion, spec3.OpenAPI, error) {
+func ParseV3(openapi_json []byte) (XKubernetesGroupVersion, spec3.OpenAPI, error) {
 	openapi := spec3.OpenAPI{}
 	if err := json.Unmarshal(openapi_json, &openapi); err != nil {
 		return XKubernetesGroupVersion{}, spec3.OpenAPI{}, fmt.Errorf("failed to parse json: %v", err)
@@ -102,11 +101,13 @@ func parse_v3(openapi_json []byte) (XKubernetesGroupVersion, spec3.OpenAPI, erro
 	return *gv, openapi, nil
 }
 
-func is_v2(content []byte) (bool, error) {
+func IsV2(content []byte) (bool, error) {
 	t := map[string]interface{}{}
 	if err := json.Unmarshal(content, &t); err != nil {
 		return false, fmt.Errorf("invalid json: %v", err)
 	}
+	// TODO: This probably needs a tighter check, possibly using
+	// https://github.com/kubernetes/kube-openapi/blob/3a31a646d5158c26e77bebb8285a6f3194cda7e2/test/integration/builder3/main.go#L68-L75
 	if version, ok := t["openapi"]; ok {
 		if version == "3.0.0" {
 			return false, nil
@@ -122,56 +123,53 @@ func is_v2(content []byte) (bool, error) {
 	return false, errors.New(`invalid openapi/swagger, no version included`)
 }
 
-func main() {
-	cmd := &cobra.Command{
-		Use:     "kube-openapi-proxy",
-		Short:   "Creates a web-server to load, proxy and/or serve OpenAPI definitions",
-		Version: "0.0.1",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			mux := http.NewServeMux()
+func ParseAndServe(mux common.PathHandler, args ...string) error {
+	var swagger_v2 *spec.Swagger
+	openapi_v3 := map[XKubernetesGroupVersion]spec3.OpenAPI{}
 
-			var swagger_v2 *spec.Swagger
-			openapi_v3 := map[XKubernetesGroupVersion]spec3.OpenAPI{}
-
-			for _, arg := range args {
-				content, err := os.ReadFile(arg)
-				if err != nil {
-					return fmt.Errorf("failed to load file: %v", err)
-				}
-				if v2, err := is_v2(content); err != nil {
-					return fmt.Errorf("failed to detect openapi version (%v): %v", arg, err)
-				} else if v2 {
-					if swagger_v2 != nil {
-						return fmt.Errorf("second OpenAPI v2 detected (only one supported): %v", arg)
-					}
-					var err error
-					swagger_v2, err = parse_v2(content)
-					if err != nil {
-						return fmt.Errorf("failed to parse OpenAPI v2 (%v): %v", arg, err)
-					}
-				} else {
-					groupVersion, openapi, err := parse_v3(content)
-					if err != nil {
-						return fmt.Errorf("failed to parse OpenAPI v3 (%v): %v", arg, err)
-					}
-					if _, ok := openapi_v3[groupVersion]; ok {
-						return fmt.Errorf("second OpenAPI v3 detected for %v (only one supported): %v", groupVersion, arg)
-					}
-					openapi_v3[groupVersion] = openapi
-				}
-			}
-
+	for _, arg := range args {
+		content, err := os.ReadFile(arg)
+		if err != nil {
+			return fmt.Errorf("failed to load file: %v", err)
+		}
+		if v2, err := IsV2(content); err != nil {
+			return fmt.Errorf("failed to detect openapi version (%v): %v", arg, err)
+		} else if v2 {
 			if swagger_v2 != nil {
-				serve_v2(*swagger_v2, mux)
+				return fmt.Errorf("second OpenAPI v2 detected (only one supported): %v", arg)
 			}
-			serve_v3(openapi_v3, mux)
-
-			fmt.Println("Listening on :8080")
-			return http.ListenAndServe(":8080", mux)
-		},
+			var err error
+			swagger_v2, err = ParseV2(content)
+			if err != nil {
+				return fmt.Errorf("failed to parse OpenAPI v2 (%v): %v", arg, err)
+			}
+		} else {
+			groupVersion, openapi, err := ParseV3(content)
+			if err != nil {
+				return fmt.Errorf("failed to parse OpenAPI v3 (%v): %v", arg, err)
+			}
+			if _, ok := openapi_v3[groupVersion]; ok {
+				return fmt.Errorf("second OpenAPI v3 detected for %v (only one supported): %v", groupVersion, arg)
+			}
+			openapi_v3[groupVersion] = openapi
+		}
 	}
-	if err := cmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failure: %s\n", err)
+
+	if swagger_v2 != nil {
+		ServeV2(*swagger_v2, mux)
+	}
+	ServeV3(openapi_v3, mux)
+	return nil
+}
+
+func main() {
+	mux := http.NewServeMux()
+
+	if err := ParseAndServe(mux, os.Args[1:]...); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to process arguments: %v", err)
 		os.Exit(1)
 	}
+
+	fmt.Println("Listening on :8080")
+	panic(http.ListenAndServe(":8080", mux))
 }
