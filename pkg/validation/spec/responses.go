@@ -109,8 +109,7 @@ func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
 				r.StatusCodeResponses = map[int]Response{}
 			}
 			value := Response{}
-			err := json.Unmarshal(v, &value)
-			if err != nil {
+			if err := json.Unmarshal(v, &value); err != nil {
 				return err
 			}
 			r.StatusCodeResponses[nk] = value
