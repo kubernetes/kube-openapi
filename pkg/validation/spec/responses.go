@@ -96,7 +96,9 @@ func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
 	}
 	if v, ok := res["default"]; ok {
 		value := Response{}
-		json.Unmarshal(v, &value)
+		if err := json.Unmarshal(v, &value); err != nil {
+			return err
+		}
 		r.Default = &value
 		delete(res, "default")
 	}
