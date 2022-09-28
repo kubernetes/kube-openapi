@@ -148,6 +148,7 @@ func TestResponsesRoundtrip(t *testing.T) {
 
 			var decoded Responses
 			err = json.Unmarshal(jsonText, &decoded)
+			require.NoError(t, err)
 
 			if !reflect.DeepEqual(&test.Responses, &decoded) {
 				t.Fatal(cmp.Diff(&test.Responses, &decoded, cmpopts.IgnoreUnexported(jsonreference.Ref{})))
