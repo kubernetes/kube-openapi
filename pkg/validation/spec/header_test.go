@@ -85,7 +85,7 @@ const headerJSON = `{
 
 // cmp.Diff panics when reflecting unexported fields under jsonreference.Ref
 // a custom comparator is required
-var swaggerDiffOptions = []cmp.Option{cmp.Comparer(func (a Ref, b Ref) bool {
+var swaggerDiffOptions = []cmp.Option{cmp.Comparer(func(a Ref, b Ref) bool {
 	return a.String() == b.String()
 })}
 
@@ -105,7 +105,6 @@ func TestIntegrationHeader(t *testing.T) {
 func TestHeaderSerialization(t *testing.T) {
 	generatedJSON, err := json.Marshal(header)
 	require.NoError(t, err)
-
 
 	generatedJSONActual := Header{}
 	require.NoError(t, json.Unmarshal(generatedJSON, &generatedJSONActual))

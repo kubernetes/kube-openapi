@@ -219,8 +219,8 @@ func (k *Ref) FromGnostic(g string) error {
 // Caveats:
 //
 // - gnostic v2 documents treats zero as unspecified for numerical fields of
-//CommonValidations fields such as Maximum, Minimum, MaximumItems, etc.
-//There will always be data loss if one of the values of these fields is set to zero.
+// CommonValidations fields such as Maximum, Minimum, MaximumItems, etc.
+// There will always be data loss if one of the values of these fields is set to zero.
 //
 // Returns:
 //
