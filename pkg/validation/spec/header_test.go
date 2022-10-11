@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 func float64Ptr(f float64) *float64 {
@@ -116,5 +117,45 @@ func TestHeaderSerialization(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(headerJSON), &goodJSONActual))
 	if !reflect.DeepEqual(header, goodJSONActual) {
 		t.Fatal(cmp.Diff(header, goodJSONActual, swaggerDiffOptions...))
+	}
+}
+
+func TestHeaderRoundTrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			JSON: `{
+				"pattern": "x-^",
+				"type": "string",
+				"x-framework": "swagger-go",
+				"description": "the description of this header"
+			  }`,
+			Object: &Header{
+				CommonValidations{
+					Pattern: "x-^",
+				},
+				SimpleSchema{
+					Type: "string",
+				},
+				VendorExtensible{Extensions{
+					"x-framework": "swagger-go",
+				}},
+				HeaderProps{
+					Description: "the description of this header",
+				},
+			},
+		}, {
+			Name:   "BasicCase",
+			JSON:   headerJSON,
+			Object: &header,
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Header{}))
+		})
 	}
 }

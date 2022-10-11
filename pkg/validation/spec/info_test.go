@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 const infoJSON = `{
@@ -66,5 +68,37 @@ func TestIntegrationInfo_Deserialize(t *testing.T) {
 	err := json.Unmarshal([]byte(infoJSON), &actual)
 	if assert.NoError(t, err) {
 		assert.EqualValues(t, info, actual)
+	}
+}
+
+func TestInfoRoundTrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			JSON: `{
+				"x-framework": "swagger-go",
+				"description": "the description of this object"
+			  }`,
+			Object: &Info{
+				VendorExtensible{Extensions{
+					"x-framework": "swagger-go",
+				}},
+				InfoProps{
+					Description: "the description of this object",
+				},
+			},
+		}, {
+			Name:   "BasicCase",
+			JSON:   infoJSON,
+			Object: &info,
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Info{}))
+		})
 	}
 }

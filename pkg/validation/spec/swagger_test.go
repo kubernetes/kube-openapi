@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/kube-openapi/pkg/internal"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 var spec = Swagger{
@@ -131,6 +132,34 @@ func TestSwaggerSpec_Deserialize(t *testing.T) {
 	err := json.Unmarshal([]byte(specJSON), &actual)
 	if assert.NoError(t, err) {
 		assert.EqualValues(t, actual, spec)
+	}
+}
+
+func TestSwaggerRoundtrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			Object: &Swagger{
+				VendorExtensible{Extensions{
+					"x-framework": "go-swagger",
+				}},
+				SwaggerProps{
+					Swagger: "2.0.0",
+				},
+			},
+		}, {
+			Name:   "BasicCase",
+			JSON:   specJSON,
+			Object: &spec,
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Swagger{}))
+		})
 	}
 }
 
