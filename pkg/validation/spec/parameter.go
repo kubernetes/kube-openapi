@@ -18,6 +18,8 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/internal"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 )
 
 // ParamProps describes the specific attributes of an operation parameter
@@ -75,6 +77,10 @@ type Parameter struct {
 
 // UnmarshalJSON hydrates this items instance with the data from JSON
 func (p *Parameter) UnmarshalJSON(data []byte) error {
+	if internal.UseOptimizedJSONUnmarshaling {
+		return jsonv2.Unmarshal(data, p)
+	}
+
 	if err := json.Unmarshal(data, &p.CommonValidations); err != nil {
 		return err
 	}
@@ -88,6 +94,30 @@ func (p *Parameter) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	return json.Unmarshal(data, &p.ParamProps)
+}
+
+func (p *Parameter) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Decoder) error {
+	var x struct {
+		CommonValidations
+		SimpleSchema
+		Extensions
+		ParamProps
+	}
+	if err := opts.UnmarshalNext(dec, &x); err != nil {
+		return err
+	}
+	if err := p.Refable.Ref.fromMap(x.Extensions); err != nil {
+		return err
+	}
+	x.Extensions.sanitize()
+	if len(x.Extensions) == 0 {
+		x.Extensions = nil
+	}
+	p.CommonValidations = x.CommonValidations
+	p.SimpleSchema = x.SimpleSchema
+	p.VendorExtensible.Extensions = x.Extensions
+	p.ParamProps = x.ParamProps
+	return nil
 }
 
 // MarshalJSON converts this items object to JSON
