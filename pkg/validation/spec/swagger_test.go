@@ -16,9 +16,16 @@ package spec
 
 import (
 	"encoding/json"
+	"io"
+	"os"
+	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"k8s.io/kube-openapi/pkg/internal"
 )
 
 var spec = Swagger{
@@ -125,4 +132,99 @@ func TestSwaggerSpec_Deserialize(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.EqualValues(t, actual, spec)
 	}
+}
+
+func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
+	fuzzer := fuzz.
+		NewWithSeed(1646791953).
+		NilChance(0.01).
+		MaxDepth(10).
+		NumElements(1, 2)
+
+	fuzzer.Funcs(
+		SwaggerFuzzFuncs...,
+	)
+
+	expected := Swagger{}
+	fuzzer.Fuzz(&expected)
+
+	// Serialize into JSON
+	jsonBytes, err := json.Marshal(expected)
+	require.NoError(t, err)
+
+	t.Log("Specimen", string(jsonBytes))
+
+	actual := Swagger{}
+	internal.UseOptimizedJSONUnmarshaling = true
+	err = json.Unmarshal(jsonBytes, &actual)
+	require.NoError(t, err)
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatal(cmp.Diff(expected, actual, SwaggerDiffOptions...))
+	}
+
+	control := Swagger{}
+	internal.UseOptimizedJSONUnmarshaling = false
+	err = json.Unmarshal(jsonBytes, &control)
+	require.NoError(t, err)
+
+	if !reflect.DeepEqual(control, actual) {
+		t.Fatal(cmp.Diff(control, actual, SwaggerDiffOptions...))
+	}
+
+	newJsonBytes, err := json.Marshal(actual)
+	require.NoError(t, err)
+	if !reflect.DeepEqual(jsonBytes, newJsonBytes) {
+		t.Fatal(cmp.Diff(string(jsonBytes), string(newJsonBytes), SwaggerDiffOptions...))
+	}
+}
+
+func BenchmarkSwaggerSpec_ExperimentalUnmarshal(b *testing.B) {
+	// Download kube-openapi swagger json
+	swagFile, err := os.Open("../../schemaconv/testdata/swagger.json")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer swagFile.Close()
+
+	originalJSON, err := io.ReadAll(swagFile)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	// Parse into kube-openapi types
+	b.Run("jsonv1", func(b2 *testing.B) {
+		internal.UseOptimizedJSONUnmarshaling = false
+		for i := 0; i < b2.N; i++ {
+			var result *Swagger
+			if err := json.Unmarshal(originalJSON, &result); err != nil {
+				b2.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("jsonv2 via jsonv1", func(b2 *testing.B) {
+		internal.UseOptimizedJSONUnmarshaling = true
+		for i := 0; i < b2.N; i++ {
+			var result *Swagger
+			if err := json.Unmarshal(originalJSON, &result); err != nil {
+				b2.Fatal(err)
+			}
+		}
+	})
+
+	// Our UnmarshalJSON implementation which defers to jsonv2 causes the
+	// text to be parsed/validated twice. This costs a significant amount of time.
+	b.Run("jsonv2", func(b2 *testing.B) {
+		internal.UseOptimizedJSONUnmarshaling = true
+		for i := 0; i < b2.N; i++ {
+			var result Swagger
+			if err := result.UnmarshalJSON(originalJSON); err != nil {
+				b2.Fatal(err)
+			}
+		}
+	})
+
 }

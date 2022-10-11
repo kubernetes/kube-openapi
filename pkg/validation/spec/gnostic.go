@@ -1263,6 +1263,8 @@ func (k *Schema) FromGnostic(g *openapi_v2.Schema) (ok bool, err error) {
 			k.AdditionalProperties.Allows = g.AdditionalProperties.GetBoolean()
 		} else {
 			k.AdditionalProperties.Schema = &Schema{}
+			k.AdditionalProperties.Allows = true
+
 			if nok, err := k.AdditionalProperties.Schema.FromGnostic(g.AdditionalProperties.GetSchema()); err != nil {
 				return false, err
 			} else if !nok {
