@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 var parameter = Parameter{
@@ -96,4 +98,46 @@ func TestIntegrationParameter(t *testing.T) {
 	}
 
 	assertParsesJSON(t, parameterJSON, parameter)
+}
+
+func TestParameterRoundtrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			JSON: `{
+				"$ref": "/components/ref/to/something.foo",
+				"maxLength": 100,
+				"type": "string",
+				"x-framework": "swagger-go",
+				"description": "a really cool description"
+			  }`,
+			Object: &Parameter{
+				Refable{MustCreateRef("/components/ref/to/something.foo")},
+				CommonValidations{
+					MaxLength: int64Ptr(100),
+				},
+				SimpleSchema{
+					Type: "string",
+				},
+				VendorExtensible{Extensions{
+					"x-framework": "swagger-go",
+				}},
+				ParamProps{
+					Description: "a really cool description",
+				},
+			},
+		}, {
+			Name:   "BasicCase",
+			JSON:   parameterJSON,
+			Object: &parameter,
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Parameter{}))
+		})
+	}
 }

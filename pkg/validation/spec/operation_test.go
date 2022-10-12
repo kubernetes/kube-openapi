@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 var operation = Operation{
@@ -82,4 +84,36 @@ func TestIntegrationOperation(t *testing.T) {
 	}
 
 	assertParsesJSON(t, operationJSON, operation)
+}
+
+func TestOperationRoundtrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			JSON: `{
+				"description": "a cool description",
+				"x-framework": "swagger-go"
+			  }`,
+			Object: &Operation{
+				VendorExtensible{Extensions{
+					"x-framework": "swagger-go",
+				}},
+				OperationProps{
+					Description: "a cool description",
+				},
+			},
+		}, {
+			Name:   "BasicCase",
+			JSON:   operationJSON,
+			Object: &operation,
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Operation{}))
+		})
+	}
 }

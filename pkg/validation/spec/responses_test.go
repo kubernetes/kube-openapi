@@ -17,26 +17,40 @@
 package spec
 
 import (
-	"encoding/json"
-	"reflect"
 	"testing"
 
-	"github.com/go-openapi/jsonreference"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 func TestResponsesRoundtrip(t *testing.T) {
-	type testCase struct {
-		Name string
-		Responses
-	}
-
-	var cases []testCase = []testCase{
+	cases := []jsontesting.RoundTripTestCase{
 		{
-			"Decode Ref Object",
-			Responses{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			JSON: `{
+				"default": {
+					"$ref": "/components/some/ref.foo"
+				},
+				"x-framework": "swagger-go"
+			  }`,
+			Object: &Responses{
+				VendorExtensible: VendorExtensible{
+					Extensions: Extensions{
+						"x-framework": "swagger-go",
+					},
+				},
+				ResponsesProps: ResponsesProps{
+					Default: &Response{
+						Refable: Refable{Ref: MustCreateRef("/components/some/ref.foo")},
+					},
+				},
+			},
+		},
+		{
+			Name: "Decode Ref Object",
+			Object: &Responses{
 				VendorExtensible: VendorExtensible{Extensions: map[string]interface{}{
 					"x-<vBŤç,ʡËdSS暙ɑɮ":     "鄲兴ȑʦ衈覻鋕嚮峡jw逓:鮕虫F迢.",
 					"x-h":                  "",
@@ -56,8 +70,8 @@ func TestResponsesRoundtrip(t *testing.T) {
 			},
 		},
 		{
-			"Default Full Object",
-			Responses{
+			Name: "Default Full Object",
+			Object: &Responses{
 				VendorExtensible: VendorExtensible{Extensions: map[string]interface{}{
 					"x-<vBŤç,ʡËdSS暙ɑɮ":     "鄲兴ȑʦ衈覻鋕嚮峡jw逓:鮕虫F迢.",
 					"x-h":                  "",
@@ -138,43 +152,17 @@ func TestResponsesRoundtrip(t *testing.T) {
 				},
 			},
 		},
-	}
-
-	for _, test := range cases {
-		t.Run(test.Name, func(t *testing.T) {
-
-			jsonText, err := json.Marshal(&test.Responses)
-			require.NoError(t, err)
-
-			var decoded Responses
-			err = json.Unmarshal(jsonText, &decoded)
-			require.NoError(t, err)
-
-			if !reflect.DeepEqual(&test.Responses, &decoded) {
-				t.Fatal(cmp.Diff(&test.Responses, &decoded, cmpopts.IgnoreUnexported(jsonreference.Ref{})))
-			}
-		})
-	}
-}
-
-func TestResponsesDecodeErrors(t *testing.T) {
-	type testCase struct {
-		Name     string
-		JSONText string
-	}
-
-	var cases []testCase = []testCase{
 		{
-			"FailDecodeDefault",
-			`{"x-extension":"an extension","default":"wrong type object"}`,
+			// Show we cannot decode a string into something expecting object
+			Name:                   "FailDecodeDefault",
+			JSON:                   `{"x-extension":"an extension","default":"wrong type object"}`,
+			ExpectedUnmarshalError: "unmarshal JSON string into Go value of type struct",
 		},
 	}
 
-	for _, v := range cases {
-		t.Run(v.Name, func(t *testing.T) {
-			deserialized := Responses{}
-			err := json.Unmarshal([]byte(v.JSONText), &deserialized)
-			require.Error(t, err, "expefcted an error")
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Responses{}))
 		})
 	}
 }

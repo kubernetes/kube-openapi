@@ -50,7 +50,7 @@ func assertParsesJSON(t testing.TB, actual string, expected interface{}) bool {
 	parsed := reflect.New(derefTypeOf(expected))
 	err := json.Unmarshal([]byte(actual), parsed.Interface())
 	if err != nil {
-		return assert.Fail(t, "unable to unmarshal from json (%s): %s", err, actual)
+		return assert.Fail(t, "Failed to unmarshal JSON", "unable to unmarshal from json (%v): %s", err, actual)
 	}
 	act := parsed.Interface()
 	if !isPointed(expected) {

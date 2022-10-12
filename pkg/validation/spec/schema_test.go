@@ -19,6 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 )
 
 var schema = Schema{
@@ -193,6 +195,43 @@ func TestSchema(t *testing.T) {
 		assert.Equal(t, exp2["name"], ex2["name"])
 	}
 
+}
+
+func TestSchemaRoundtrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			// Show at least one field from each embededd struct sitll allows
+			// roundtrips successfully
+			Name: "UnmarshalEmbedded",
+			Object: &Schema{
+				VendorExtensible{Extensions: Extensions{
+					"x-framework": "go-swagger",
+				}},
+				SchemaProps{
+					Description: "this is a description",
+				},
+				SwaggerSchemaProps{
+					Example: "this is an example",
+				},
+				map[string]interface{}{
+					"unknown/prop": "test prop",
+				},
+			},
+		},
+		// Can't add this case due to map[string]interface{} unmarshaling
+		// numbers unconditionally into float. But schema uses ints
+		// {
+		// 	Name:   "BasicCase",
+		// 	JSON:   schemaJSON,
+		// 	Object: &schema,
+		// },
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&Schema{}))
+		})
+	}
 }
 
 func BenchmarkSchemaUnmarshal(b *testing.B) {
