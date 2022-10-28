@@ -26,6 +26,7 @@ import (
 	"github.com/emicklei/go-restful/v3"
 	"github.com/stretchr/testify/assert"
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -467,15 +468,17 @@ func TestBuildOpenAPISpec(t *testing.T) {
 	if !assert.NoError(err) {
 		return
 	}
-	expected_json, err := json.Marshal(expected)
+	expected_json, err := expected.MarshalJSON()
 	if !assert.NoError(err) {
 		return
 	}
-	actual_json, err := json.Marshal(swagger)
+	actual_json, err := swagger.MarshalJSON()
 	if !assert.NoError(err) {
 		return
 	}
-	assert.Equal(string(expected_json), string(actual_json))
+	if err := jsontesting.JsonCompare(expected_json, actual_json); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestBuildOpenAPIDefinitionsForResource(t *testing.T) {
@@ -495,7 +498,9 @@ func TestBuildOpenAPIDefinitionsForResource(t *testing.T) {
 	if !assert.NoError(err) {
 		return
 	}
-	assert.Equal(string(expected_json), string(actual_json))
+	if err := jsontesting.JsonCompare(expected_json, actual_json); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestBuildOpenAPIDefinitionsForResourceWithExtensionV2Schema(t *testing.T) {

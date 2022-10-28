@@ -31,6 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	. "k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -43,7 +44,7 @@ func gnosticCommonTest(t testing.TB, fuzzer *fuzz.Fuzzer) {
 	fuzzer.Fuzz(&expected)
 
 	// Convert to gnostic via JSON to compare
-	jsonBytes, err := json.Marshal(expected)
+	jsonBytes, err := expected.MarshalJSON()
 	require.NoError(t, err)
 
 	t.Log("Specimen", string(jsonBytes))
@@ -59,10 +60,10 @@ func gnosticCommonTest(t testing.TB, fuzzer *fuzz.Fuzzer) {
 		t.Fatal(cmp.Diff(expected, actual, SwaggerDiffOptions...))
 	}
 
-	newJsonBytes, err := json.Marshal(actual)
+	newJsonBytes, err := actual.MarshalJSON()
 	require.NoError(t, err)
-	if !reflect.DeepEqual(jsonBytes, newJsonBytes) {
-		t.Fatal(cmp.Diff(string(jsonBytes), string(newJsonBytes), SwaggerDiffOptions...))
+	if err := jsontesting.JsonCompare(jsonBytes, newJsonBytes); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -518,19 +519,19 @@ func TestCommonDataLoss(t *testing.T) {
 
 			// Make sure that they were exactly the same, except for the data loss
 			//	by checking JSON encodes the some
-			badConvertedJSON, err := json.Marshal(badConverted)
+			badConvertedJSON, err := badConverted.MarshalJSON()
 			if err != nil {
 				t.Error(err)
 				return
 			}
 
-			fixedConvertedJSON, err := json.Marshal(fixedConverted)
+			fixedConvertedJSON, err := fixedConverted.MarshalJSON()
 			if err != nil {
 				t.Error(err)
 				return
 			}
 
-			fixedDirectJSON, err := json.Marshal(fixedDirect)
+			fixedDirectJSON, err := fixedDirect.MarshalJSON()
 			if err != nil {
 				t.Error(err)
 				return
@@ -580,13 +581,13 @@ func TestBadStatusCode(t *testing.T) {
 
 	// Make sure that they were exactly the same, except for the data loss
 	//	by checking JSON encodes the some
-	badConvertedJSON, err := json.Marshal(badConverted)
+	badConvertedJSON, err := badConverted.MarshalJSON()
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	droppedConvertedJSON, err := json.Marshal(droppedConverted)
+	droppedConvertedJSON, err := droppedConverted.MarshalJSON()
 	if err != nil {
 		t.Error(err)
 		return

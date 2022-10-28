@@ -22,8 +22,24 @@ import (
 	"reflect"
 	"strings"
 
+	kjson "sigs.k8s.io/json"
+
+	"github.com/go-openapi/jsonreference"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
+
+func JsonCompare(got, want []byte) error {
+	if d := cmp.Diff(got, want, cmp.Transformer("JSONBytes", func(in []byte) (out interface{}) {
+		if strictErrors, err := kjson.UnmarshalStrict(in, &out); strictErrors != nil || err != nil {
+			return in
+		}
+		return out
+	})); d != "" {
+		return fmt.Errorf("JSON mismatch (-got +want):\n%s", d)
+	}
+	return nil
+}
 
 type RoundTripTestCase struct {
 	Name   string
@@ -39,7 +55,12 @@ type RoundTripTestCase struct {
 	ExpectedUnmarshalError string
 }
 
-func (t RoundTripTestCase) RoundTripTest(example json.Unmarshaler) error {
+type MarshalerUnmarshaler interface {
+	json.Unmarshaler
+	json.Marshaler
+}
+
+func (t RoundTripTestCase) RoundTripTest(example MarshalerUnmarshaler) error {
 	var jsonBytes []byte
 	var err error
 
@@ -79,12 +100,17 @@ func (t RoundTripTestCase) RoundTripTest(example json.Unmarshaler) error {
 	}
 
 	if t.Object != nil && !reflect.DeepEqual(t.Object, example) {
-		return fmt.Errorf("test case expected to unmarshal to specific value: %v", cmp.Diff(t.Object, example))
+		return fmt.Errorf("test case expected to unmarshal to specific value: %v", cmp.Diff(t.Object, example, cmpopts.IgnoreUnexported(jsonreference.Ref{})))
 	}
 
-	reEncoded, err := json.MarshalIndent(example, "", "    ")
+	reEncoded, err := json.Marshal(example)
 	if err != nil {
 		return fmt.Errorf("failed to marshal decoded value: %w", err)
+	}
+
+	reEncodedV2, err := example.MarshalJSON()
+	if err != nil {
+		return fmt.Errorf("failed to marshal decoded value with v2: %w", err)
 	}
 
 	// Check expected marshal error if it has not yet been checked
@@ -107,6 +133,10 @@ func (t RoundTripTestCase) RoundTripTest(example json.Unmarshaler) error {
 
 	if !reflect.DeepEqual(expected, actual) {
 		return fmt.Errorf("expected equal values: %v", cmp.Diff(expected, actual))
+	}
+
+	if err := JsonCompare(reEncoded, reEncodedV2); err != nil {
+		return err
 	}
 
 	return nil

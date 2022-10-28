@@ -26,7 +26,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
 	}
 
-	returnedJSON, err := json.Marshal(s)
+	returnedJSON, err := s.MarshalJSON()
 	if err != nil {
 		t.Errorf("Unexpected error in preparing returnedJSON: %v", err)
 	}

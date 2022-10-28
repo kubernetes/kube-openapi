@@ -16,6 +16,7 @@ package spec
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"reflect"
@@ -117,7 +118,7 @@ const specJSON = `{
 func TestSwaggerSpec_Serialize(t *testing.T) {
 	expected := make(map[string]interface{})
 	_ = json.Unmarshal([]byte(specJSON), &expected)
-	b, err := json.MarshalIndent(spec, "", "  ")
+	b, err := spec.MarshalJSON()
 	if assert.NoError(t, err) {
 		var actual map[string]interface{}
 		err := json.Unmarshal(b, &actual)
@@ -163,6 +164,71 @@ func TestSwaggerRoundtrip(t *testing.T) {
 	}
 }
 
+func TestSwaggerSpec_Marshalv2Fuzzed(t *testing.T) {
+	fuzzer := fuzz.
+		NewWithSeed(1646791953).
+		NilChance(0.075).
+		MaxDepth(13).
+		NumElements(1, 2)
+
+	fuzzer.Funcs(
+		SwaggerFuzzFuncs...,
+	)
+
+	for i := 0; i < 100; i++ {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			swagger := Swagger{}
+			fuzzer.Fuzz(&swagger)
+
+			internal.UseOptimizedJSONMarshaling = false
+			want, err := json.Marshal(swagger)
+			if err != nil {
+				t.Errorf("failed to marshal swagger: %v", err)
+			}
+			internal.UseOptimizedJSONMarshaling = true
+			got, err := swagger.MarshalJSON()
+			if err != nil {
+				t.Errorf("failed to marshal next swagger: %v", err)
+			}
+			if err := jsontesting.JsonCompare(want, got); err != nil {
+				t.Errorf("fuzzed marshal doesn't match: %v", err)
+			}
+		})
+	}
+}
+
+func TestSwaggerSpec_Marshalv2FuzzedIsStable(t *testing.T) {
+	swagFile, err := os.Open("../../schemaconv/testdata/swagger.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer swagFile.Close()
+
+	js, err := io.ReadAll(swagFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	swagger := Swagger{}
+	assert.NoError(t, json.Unmarshal(js, &swagger))
+
+	for i := 0; i < 5; i++ {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			want, err := swagger.MarshalJSON()
+			if err != nil {
+				t.Errorf("failed to marshal swagger: %v", err)
+			}
+			got, err := swagger.MarshalJSON()
+			if err != nil {
+				t.Errorf("failed to marshal swagger again: %v", err)
+			}
+			if err := cmp.Diff(want, got); err != "" {
+				t.Fatalf("expected both marshal to be identical/stable: %v", err)
+			}
+		})
+	}
+}
+
 func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 	fuzzer := fuzz.
 		NewWithSeed(1646791953).
@@ -185,6 +251,17 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 
 	actual := Swagger{}
 	internal.UseOptimizedJSONUnmarshaling = true
+
+	// Serialize into JSON again
+	jsonBytesV2, err := expected.MarshalJSON()
+	require.NoError(t, err)
+
+	t.Log("Specimen V2", string(jsonBytes))
+
+	if err := jsontesting.JsonCompare(jsonBytes, jsonBytesV2); err != nil {
+		t.Fatal(err)
+	}
+
 	err = json.Unmarshal(jsonBytes, &actual)
 	require.NoError(t, err)
 
@@ -203,8 +280,8 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 
 	newJsonBytes, err := json.Marshal(actual)
 	require.NoError(t, err)
-	if !reflect.DeepEqual(jsonBytes, newJsonBytes) {
-		t.Fatal(cmp.Diff(string(jsonBytes), string(newJsonBytes), SwaggerDiffOptions...))
+	if err := jsontesting.JsonCompare(jsonBytes, newJsonBytes); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -255,5 +332,56 @@ func BenchmarkSwaggerSpec_ExperimentalUnmarshal(b *testing.B) {
 			}
 		}
 	})
+}
 
+func BenchmarkSwaggerSpec_ExperimentalMarshal(b *testing.B) {
+	// Load kube-openapi swagger json
+	swagFile, err := os.Open("../../schemaconv/testdata/swagger.json")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer swagFile.Close()
+
+	originalJSON, err := io.ReadAll(swagFile)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	var swagger *Swagger
+	if err := json.Unmarshal(originalJSON, &swagger); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	// Serialize kube-openapi types
+	b.Run("jsonv1", func(b2 *testing.B) {
+		b2.ReportAllocs()
+		internal.UseOptimizedJSONMarshaling = false
+		for i := 0; i < b2.N; i++ {
+			if _, err = json.Marshal(swagger); err != nil {
+				b2.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("jsonv2 via jsonv1", func(b2 *testing.B) {
+		b2.ReportAllocs()
+		internal.UseOptimizedJSONMarshaling = true
+		for i := 0; i < b2.N; i++ {
+			if _, err := json.Marshal(swagger); err != nil {
+				b2.Fatal(err)
+			}
+		}
+	})
+
+	b.Run("jsonv2", func(b2 *testing.B) {
+		b2.ReportAllocs()
+		internal.UseOptimizedJSONUnmarshaling = true
+		for i := 0; i < b2.N; i++ {
+			if _, err = swagger.MarshalJSON(); err != nil {
+				b2.Fatal(err)
+			}
+		}
+	})
 }

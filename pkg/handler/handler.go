@@ -19,7 +19,6 @@ package handler
 import (
 	"bytes"
 	"crypto/sha512"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -100,7 +99,7 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	o.rwMutex.Lock()
 	defer o.rwMutex.Unlock()
 	o.jsonCache = o.jsonCache.New(func() ([]byte, error) {
-		return json.Marshal(openapiSpec)
+		return openapiSpec.MarshalJSON()
 	})
 	o.protoCache = o.protoCache.New(func() ([]byte, error) {
 		json, err := o.jsonCache.Get()

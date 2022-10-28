@@ -28,6 +28,7 @@ import (
 	"time"
 
 	fuzz "github.com/google/gofuzz"
+	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -220,7 +221,7 @@ func TestReplaceReferences(t *testing.T) {
 			}
 
 			// find refs
-			bs, err := json.Marshal(s)
+			bs, err := s.MarshalJSON()
 			if err != nil {
 				t.Fatalf("failed to marshal swagger: %v", err)
 			}
@@ -244,7 +245,7 @@ func TestReplaceReferences(t *testing.T) {
 				}
 			}
 
-			origString, err := json.Marshal(s)
+			origString, err := s.MarshalJSON()
 			if err != nil {
 				t.Fatalf("failed to marshal swagger: %v", err)
 			}
@@ -364,8 +365,8 @@ func TestReplaceSchema(t *testing.T) {
 			if err != nil {
 				t.Fatalf("cannot marshal mutated schema: %v", err)
 			}
-			if mutatedWithString != string(newBytes) {
-				t.Fatalf("mutation result mismatches, got %q but expected %q, diff: %s\n", mutatedWithString, newBytes, stringDiff(mutatedWithString, string(newBytes)))
+			if err := jsontesting.JsonCompare(newBytes, []byte(mutatedWithString)); err != nil {
+				t.Error(err)
 			}
 			if !strings.Contains(origJSON, `"enum":[`) {
 				t.Logf("did not contain enum, skipping enum checks")
@@ -390,13 +391,13 @@ func TestReplaceSchema(t *testing.T) {
 }
 
 func cloneSwagger(orig *spec.Swagger) (*spec.Swagger, error) {
-	bs, err := json.Marshal(orig)
+	bs, err := orig.MarshalJSON()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error marshaling: %v", err)
 	}
 	s := &spec.Swagger{}
 	if err := json.Unmarshal(bs, s); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error unmarshaling: %v", err)
 	}
 	return s, nil
 }

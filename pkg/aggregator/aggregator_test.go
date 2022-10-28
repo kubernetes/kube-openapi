@@ -35,7 +35,7 @@ type DebugSpec struct {
 }
 
 func (d DebugSpec) String() string {
-	bytes, err := json.MarshalIndent(d.Swagger, "", " ")
+	bytes, err := d.Swagger.MarshalJSON()
 	if err != nil {
 		return fmt.Sprintf("DebugSpec.String failed: %s", err)
 	}
@@ -1762,7 +1762,7 @@ func BenchmarkMergeSpecsIgnorePathConflictsWithKubeSpec(b *testing.B) {
 			}
 		}
 
-		specBytes, _ := json.Marshal(sp)
+		specBytes, _ := sp.MarshalJSON()
 		handler.ToProtoBinary(specBytes)
 
 		b.StopTimer()
@@ -2003,7 +2003,7 @@ func TestCloneSpec(t *testing.T) {
 }
 
 func cloneSpec(source *spec.Swagger) (*spec.Swagger, error) {
-	bytes, err := json.Marshal(source)
+	bytes, err := source.MarshalJSON()
 	if err != nil {
 		return nil, err
 	}
