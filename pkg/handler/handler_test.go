@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	json "github.com/json-iterator/go"
+	utiljson "k8s.io/apimachinery/pkg/util/json"
 	yaml "gopkg.in/yaml.v2"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -29,12 +29,12 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
 	}
 
-	returnedJSON, err := json.Marshal(s)
+	returnedJSON, err := utiljson.Marshal(s)
 	if err != nil {
 		t.Errorf("Unexpected error in preparing returnedJSON: %v", err)
 	}
 	var decodedJSON map[string]interface{}
-	if err := json.Unmarshal(returnedJSON, &decodedJSON); err != nil {
+	if err := utiljson.Unmarshal(returnedJSON, &decodedJSON); err != nil {
 		t.Fatal(err)
 	}
 	returnedPb, err := ToProtoBinary(returnedJSON)

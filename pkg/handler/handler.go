@@ -30,9 +30,9 @@ import (
 	"github.com/emicklei/go-restful"
 	"github.com/golang/protobuf/proto"
 	openapi_v2 "github.com/googleapis/gnostic/openapiv2"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/munnerz/goautoneg"
 	"gopkg.in/yaml.v2"
+	utiljson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -102,7 +102,7 @@ func (o *OpenAPIService) getSwaggerPbGzBytes() ([]byte, string, time.Time) {
 }
 
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
-	specBytes, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(openapiSpec)
+	specBytes, err := utiljson.ConfigCompatibleWithStandardLibrary.Marshal(openapiSpec)
 	if err != nil {
 		return err
 	}
