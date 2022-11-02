@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	utiljson "k8s.io/apimachinery/pkg/util/json"
 	yaml "gopkg.in/yaml.v2"
+	utiljson "k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
