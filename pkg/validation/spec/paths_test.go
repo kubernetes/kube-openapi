@@ -33,15 +33,19 @@ var paths = Paths{
 }
 
 const pathsJSON = `{"x-framework":"go-swagger","/":{"$ref":"cats"}}`
+const pathsJSONInvalidKey = `{"x-framework":"go-swagger","not-path-nor-extension":"invalid","/":{"$ref":"cats"}}`
 
 func TestIntegrationPaths(t *testing.T) {
 	var actual Paths
 	if assert.NoError(t, json.Unmarshal([]byte(pathsJSON), &actual)) {
 		assert.EqualValues(t, actual, paths)
 	}
+	if assert.NoError(t, json.Unmarshal([]byte(pathsJSONInvalidKey), &actual)) {
+		assert.EqualValues(t, actual, paths)
+	}
 
 	assertParsesJSON(t, pathsJSON, paths)
-
+	assertParsesJSON(t, pathsJSONInvalidKey, paths)
 }
 
 func TestPathsRoundtrip(t *testing.T) {
