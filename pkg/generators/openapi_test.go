@@ -1635,6 +1635,8 @@ type Blah struct {
   // Value is the value.
 	Value EnumType
 	NoCommentEnum EnumType
+  // +optional
+	OptionalEnum *EnumType
 }`)
 	if callErr != nil {
 		t.Fatal(callErr)
@@ -1662,6 +1664,13 @@ Enum: []interface{}{"a", "b"}},
 SchemaProps: spec.SchemaProps{`+"\n"+
 		"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
 Default: "",
+Type: []string{"string"},
+Format: "",
+Enum: []interface{}{"a", "b"}},
+},
+"OptionalEnum": {
+SchemaProps: spec.SchemaProps{`+"\n"+
+		"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
 Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"}},
