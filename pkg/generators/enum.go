@@ -55,6 +55,10 @@ func newEnumContext(c *generator.Context) *enumContext {
 // If the given type is a known enum type, returns the enumType, true
 // Otherwise, returns nil, false
 func (ec *enumContext) EnumType(t *types.Type) (enum *enumType, isEnum bool) {
+	// if t is a pointer, use its underlying type instead
+	if t.Kind == types.Pointer {
+		t = t.Elem
+	}
 	enum, ok := ec.enumTypes[t.Name]
 	return enum, ok
 }
