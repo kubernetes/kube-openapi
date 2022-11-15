@@ -24,7 +24,6 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	builderv3 "k8s.io/kube-openapi/pkg/builder3"
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/test/integration/pkg/generated"
 	"k8s.io/kube-openapi/test/integration/testutil"
 )
@@ -38,16 +37,6 @@ func main() {
 	swaggerFilename := defaultSwaggerFile
 	if len(os.Args) > 1 {
 		swaggerFilename = os.Args[1]
-	}
-
-	// Generate the definition names from the map keys returned
-	// from GetOpenAPIDefinitions. Anonymous function returning empty
-	// Ref is not used.
-	var defNames []string
-	for name, _ := range generated.GetOpenAPIDefinitions(func(name string) spec.Ref {
-		return spec.Ref{}
-	}) {
-		defNames = append(defNames, name)
 	}
 
 	// Create a minimal builder config, then call the builder with the definition names.
