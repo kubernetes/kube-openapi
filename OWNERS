@@ -7,10 +7,12 @@ reviewers:
 - roycaihw
 - sttts
 - jpbetz
+- jefftree
 approvers:
 - lavalamp
 - sttts
 - apelisse
 - jpbetz
+- jefftree
 emeritus_approvers:
 - mbohlool
