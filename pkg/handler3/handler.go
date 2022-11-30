@@ -177,6 +177,8 @@ func ToV3ProtoBinary(json []byte) ([]byte, error) {
 
 func (o *OpenAPIService) HandleDiscovery(w http.ResponseWriter, r *http.Request) {
 	data, _ := o.getGroupBytes()
+	w.Header().Set("Etag", strconv.Quote(computeETag(data)))
+	w.Header().Set("Content-Type", "application/json")
 	http.ServeContent(w, r, "/openapi/v3", time.Now(), bytes.NewReader(data))
 }
 
