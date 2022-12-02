@@ -18,7 +18,6 @@ package handler
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
@@ -144,14 +143,6 @@ func ToProtoBinary(json []byte) ([]byte, error) {
 		return nil, err
 	}
 	return proto.Marshal(document)
-}
-
-func toGzip(data []byte) []byte {
-	var buf bytes.Buffer
-	zw := gzip.NewWriter(&buf)
-	zw.Write(data)
-	zw.Close()
-	return buf.Bytes()
 }
 
 // RegisterOpenAPIVersionedService registers a handler to provide access to provided swagger spec.
