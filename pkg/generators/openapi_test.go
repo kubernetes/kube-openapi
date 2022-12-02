@@ -1094,6 +1094,7 @@ type Blah struct {
 
 func (_ Blah) OpenAPISchemaType() []string { return []string{"string"} }
 func (_ Blah) OpenAPISchemaFormat() string { return "date-time" }
+func (_ Blah) OpenAPINullable() bool { return true }
 `)
 	if callErr != nil {
 		t.Fatal(callErr)
@@ -1110,6 +1111,7 @@ SchemaProps: spec.SchemaProps{
 Description: "Blah is a custom type",
 Type:foo.Blah{}.OpenAPISchemaType(),
 Format:foo.Blah{}.OpenAPISchemaFormat(),
+Nullable:foo.Blah{}.OpenAPINullable(),
 },
 },
 }
@@ -1134,6 +1136,7 @@ func (_ Blah) OpenAPIV3Definition() openapi.OpenAPIDefinition {
 			SchemaProps: spec.SchemaProps{
 				Type:   []string{"string"},
 				Format: "date-time",
+				Nullable: true,
 			},
 		},
 	}
@@ -1141,6 +1144,7 @@ func (_ Blah) OpenAPIV3Definition() openapi.OpenAPIDefinition {
 
 func (_ Blah) OpenAPISchemaType() []string { return []string{"string"} }
 func (_ Blah) OpenAPISchemaFormat() string { return "date-time" }
+func (_ Blah) OpenAPINullable() bool { return true }
 `)
 	if callErr != nil {
 		t.Fatal(callErr)
@@ -1157,6 +1161,7 @@ SchemaProps: spec.SchemaProps{
 Description: "Blah is a custom type",
 Type:foo.Blah{}.OpenAPISchemaType(),
 Format:foo.Blah{}.OpenAPISchemaFormat(),
+Nullable:foo.Blah{}.OpenAPINullable(),
 },
 },
 })

@@ -289,6 +289,16 @@ func hasOpenAPIV3OneOfMethod(t *types.Type) bool {
 	return false
 }
 
+func hasOpenAPINullableMethod(t *types.Type) bool {
+	for mn, mt := range t.Methods {
+		if mn != "OpenAPINullable" {
+			continue
+		}
+		return methodReturnsValue(mt, "", "bool")
+	}
+	return false
+}
+
 // typeShortName returns short package name (e.g. the name x appears in package x definition) dot type name.
 func typeShortName(t *types.Type) string {
 	return filepath.Base(t.Name.Package) + "." + t.Name.Name
@@ -360,6 +370,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		hasV2DefinitionTypeAndFormat := hasOpenAPIDefinitionMethods(t)
 		hasV3OneOfTypes := hasOpenAPIV3OneOfMethod(t)
 		hasV3Definition := hasOpenAPIV3DefinitionMethod(t)
+		hasNullable := hasOpenAPINullableMethod(t)
 
 		if hasV2Definition || (hasV3Definition && !hasV2DefinitionTypeAndFormat) {
 			// already invoked directly
@@ -375,8 +386,11 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				"SchemaProps: spec.SchemaProps{\n", args)
 			g.generateDescription(t.CommentLines)
 			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
-				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n"+
-				"},\n"+
+				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
+			if hasNullable {
+				g.Do("Nullable:$.type|raw${}.OpenAPINullable(),\n", args)
+			}
+			g.Do("},\n"+
 				"},\n"+
 				"})\n}\n\n", args)
 			return nil
@@ -387,8 +401,11 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				"SchemaProps: spec.SchemaProps{\n", args)
 			g.generateDescription(t.CommentLines)
 			g.Do("OneOf:common.GenerateOpenAPIV3OneOfSchema($.type|raw${}.OpenAPIV3OneOfTypes()),\n"+
-				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n"+
-				"},\n"+
+				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
+			if hasNullable {
+				g.Do("Nullable:$.type|raw${}.OpenAPINullable(),\n", args)
+			}
+			g.Do("},\n"+
 				"},\n"+
 				"},", args)
 			// generate v2 def.
@@ -397,8 +414,11 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				"SchemaProps: spec.SchemaProps{\n", args)
 			g.generateDescription(t.CommentLines)
 			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
-				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n"+
-				"},\n"+
+				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
+			if hasNullable {
+				g.Do("Nullable:$.type|raw${}.OpenAPINullable(),\n", args)
+			}
+			g.Do("},\n"+
 				"},\n"+
 				"})\n}\n\n", args)
 			return nil
@@ -408,8 +428,11 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				"SchemaProps: spec.SchemaProps{\n", args)
 			g.generateDescription(t.CommentLines)
 			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
-				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n"+
-				"},\n"+
+				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
+			if hasNullable {
+				g.Do("Nullable:$.type|raw${}.OpenAPINullable(),\n", args)
+			}
+			g.Do("},\n"+
 				"},\n"+
 				"}\n}\n\n", args)
 			return nil
@@ -420,7 +443,9 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		g.Do("return $.OpenAPIDefinition|raw${\nSchema: spec.Schema{\nSchemaProps: spec.SchemaProps{\n", args)
 		g.generateDescription(t.CommentLines)
 		g.Do("Type: []string{\"object\"},\n", nil)
-
+		if hasNullable {
+			g.Do("Nullable:$.type|raw${}.OpenAPINullable(),\n", args)
+		}
 		// write members into a temporary buffer, in order to postpone writing out the Properties field. We only do
 		// that if it is not empty.
 		propertiesBuf := bytes.Buffer{}
