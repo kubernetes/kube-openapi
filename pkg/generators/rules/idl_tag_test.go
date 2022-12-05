@@ -26,7 +26,7 @@ func TestListTypeMissing(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Containers",
 						Type: &types.Type{
 							Kind: types.Slice,
@@ -41,7 +41,7 @@ func TestListTypeMissing(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Containers",
 						Type: &types.Type{
 							Kind: types.Slice,
@@ -58,14 +58,14 @@ func TestListTypeMissing(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Items",
 						Type: &types.Type{
 							Kind: types.Slice,
 						},
 						CommentLines: []string{"+listType=map"},
 					},
-					types.Member{
+					{
 						Name:     "ListMeta",
 						Embedded: true,
 						Type: &types.Type{
@@ -82,13 +82,13 @@ func TestListTypeMissing(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Items",
 						Type: &types.Type{
 							Kind: types.Slice,
 						},
 					},
-					types.Member{
+					{
 						Name:     "ListMeta",
 						Embedded: true,
 						Type: &types.Type{
@@ -105,7 +105,7 @@ func TestListTypeMissing(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Items",
 						Type: &types.Type{
 							Kind: types.Slice,

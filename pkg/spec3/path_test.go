@@ -43,11 +43,11 @@ func TestPathJSONSerialization(t *testing.T) {
 							Responses: &spec3.Responses{
 								ResponsesProps: spec3.ResponsesProps{
 									StatusCodeResponses: map[int]*spec3.Response{
-										200: &spec3.Response{
+										200: {
 											ResponseProps: spec3.ResponseProps{
 												Description: "Pet response",
 												Content: map[string]*spec3.MediaType{
-													"*/*": &spec3.MediaType{
+													"*/*": {
 														MediaTypeProps: spec3.MediaTypeProps{
 															Schema: &spec.Schema{
 																SchemaProps: spec.SchemaProps{
@@ -72,7 +72,7 @@ func TestPathJSONSerialization(t *testing.T) {
 						},
 					},
 					Parameters: []*spec3.Parameter{
-						&spec3.Parameter{
+						{
 							ParameterProps: spec3.ParameterProps{
 								Name:        "id",
 								In:          "path",

@@ -35,7 +35,7 @@ func TestServerJSONSerialization(t *testing.T) {
 			name: "basic",
 			target: &spec3.Server{
 				ServerProps: spec3.ServerProps{
-					URL: "https://development.gigantic-server.com/v1",
+					URL:         "https://development.gigantic-server.com/v1",
 					Description: "Development server",
 				},
 			},

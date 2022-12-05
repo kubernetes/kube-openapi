@@ -35,7 +35,7 @@ func TestConvertGolden(t *testing.T) {
 	// from GetOpenAPIDefinitions. Anonymous function returning empty
 	// Ref is not used.
 	var defNames []string
-	for name, _ := range generated.GetOpenAPIDefinitions(func(name string) spec.Ref {
+	for name := range generated.GetOpenAPIDefinitions(func(name string) spec.Ref {
 		return spec.Ref{}
 	}) {
 		defNames = append(defNames, name)

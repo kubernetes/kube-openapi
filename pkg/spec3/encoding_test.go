@@ -38,7 +38,7 @@ func TestEncodingJSONSerialization(t *testing.T) {
 				EncodingProps: spec3.EncodingProps{
 					ContentType: "image/png",
 					Headers: map[string]*spec3.Header{
-						"X-Rate-Limit-Limit": &spec3.Header{
+						"X-Rate-Limit-Limit": {
 							HeaderProps: spec3.HeaderProps{
 								Description: "The number of allowed requests in the current period",
 								Schema: &spec.Schema{

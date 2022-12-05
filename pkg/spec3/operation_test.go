@@ -39,7 +39,7 @@ func TestOperationJSONSerialization(t *testing.T) {
 					Summary:     "Updates a pet in the store with form data",
 					OperationId: "updatePetWithForm",
 					Parameters: []*spec3.Parameter{
-						&spec3.Parameter{
+						{
 							ParameterProps: spec3.ParameterProps{
 								Name:        "petId",
 								In:          "path",
@@ -56,19 +56,19 @@ func TestOperationJSONSerialization(t *testing.T) {
 					RequestBody: &spec3.RequestBody{
 						RequestBodyProps: spec3.RequestBodyProps{
 							Content: map[string]*spec3.MediaType{
-								"application/x-www-form-urlencoded": &spec3.MediaType{
+								"application/x-www-form-urlencoded": {
 									MediaTypeProps: spec3.MediaTypeProps{
 										Schema: &spec.Schema{
 											SchemaProps: spec.SchemaProps{
 												Type: []string{"object"},
 												Properties: map[string]spec.Schema{
-													"name": spec.Schema{
+													"name": {
 														SchemaProps: spec.SchemaProps{
 															Description: "Updated name of the pet",
 															Type:        []string{"string"},
 														},
 													},
-													"status": spec.Schema{
+													"status": {
 														SchemaProps: spec.SchemaProps{
 															Description: "Updated status of the pet",
 															Type:        []string{"string"},
@@ -85,12 +85,12 @@ func TestOperationJSONSerialization(t *testing.T) {
 					Responses: &spec3.Responses{
 						ResponsesProps: spec3.ResponsesProps{
 							StatusCodeResponses: map[int]*spec3.Response{
-								200: &spec3.Response{
+								200: {
 									ResponseProps: spec3.ResponseProps{
 										Description: "Pet updated.",
 										Content: map[string]*spec3.MediaType{
-											"application/json": &spec3.MediaType{},
-											"application/xml": &spec3.MediaType{},
+											"application/json": {},
+											"application/xml":  {},
 										},
 									},
 								},

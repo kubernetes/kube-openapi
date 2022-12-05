@@ -37,7 +37,7 @@ func TestSchemasJSONSerialization(t *testing.T) {
 			name: "scenario1: smoke test serialization of spec3.Components.Schemas",
 			target: spec3.Components{
 				Schemas: map[string]*spec.Schema{
-					"io.k8s.api.admissionregistration.v1beta1.MutatingWebhook": &spec.Schema{
+					"io.k8s.api.admissionregistration.v1beta1.MutatingWebhook": {
 						SchemaProps: spec.SchemaProps{
 							Description: "MutatingWebhook describes an admission webhook and the resources and operations it applies to.",
 							Type:        []string{"object"},
@@ -143,7 +143,7 @@ func TestSchemasJSONSerialization(t *testing.T) {
 			name: "scenario2: schema can be defined as a ref, see: https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md#componentsObject",
 			target: spec3.Components{
 				Schemas: map[string]*spec.Schema{
-					"io.k8s.api.admissionregistration.v1beta1.MutatingWebhook": &spec.Schema{
+					"io.k8s.api.admissionregistration.v1beta1.MutatingWebhook": {
 						SchemaProps: spec.SchemaProps{
 							Ref: spec.MustCreateRef("k8s.io/api/admissionregistration/v1beta1.WebhookClientConfig"),
 						},

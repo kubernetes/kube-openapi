@@ -35,7 +35,7 @@ func TestSecurityRequirementJSONSerialization(t *testing.T) {
 			name: "Non-OAuth2 Security Requirement",
 			target: &spec3.SecurityRequirement{
 				SecurityRequirementProps: map[string][]string{
-					"api_key": []string{},
+					"api_key": {},
 				},
 			},
 			expectedOutput: `{"api_key":[]}`,
@@ -44,7 +44,7 @@ func TestSecurityRequirementJSONSerialization(t *testing.T) {
 			name: "OAuth2 Security Requirement",
 			target: &spec3.SecurityRequirement{
 				SecurityRequirementProps: map[string][]string{
-					"petstore_auth": []string{
+					"petstore_auth": {
 						"write_pets",
 						"read:pets",
 					},

@@ -21,5 +21,5 @@ type FruitsBasket struct {
 	Content FruitType `json:"content"`
 
 	// +default=0
-	Count  int `json:"count"`
+	Count int `json:"count"`
 }

@@ -65,7 +65,7 @@ func TestPathsRoundtrip(t *testing.T) {
 					"x-framework": "swagger-go",
 				}},
 				map[string]PathItem{
-					"/this-is-a-path": PathItem{Refable: Refable{MustCreateRef("/components/a/path/item")}},
+					"/this-is-a-path": {Refable: Refable{MustCreateRef("/components/a/path/item")}},
 				},
 			},
 		}, {

@@ -39,7 +39,7 @@ func CreateOpenAPIBuilderConfig() *common.Config {
 			},
 		},
 		ResponseDefinitions: map[string]spec.Response{
-			"NotFound": spec.Response{
+			"NotFound": {
 				ResponseProps: spec.ResponseProps{
 					Description: "Entity not found.",
 				},
