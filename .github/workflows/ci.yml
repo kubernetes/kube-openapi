@@ -38,6 +38,9 @@ jobs:
         cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
         GOPATH=${GITHUB_WORKSPACE} go test ./cmd/... ./pkg/... ./test/...
   required:
+    # The name of the ci jobs above change based on the golang version.
+    # Use this as a stable required job that depends on the above jobs.
+    # ref: https://github.com/kubernetes/test-infra/pull/27016
     needs: ci
     runs-on: ubuntu-latest
     steps:
