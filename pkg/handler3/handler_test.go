@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -82,19 +83,108 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		respStatus   int
 		urlPath      string
 		respBody     []byte
+		expectedETag string
+		sendETag     bool
 	}{
-		{"", 200, "openapi/v3", returnedGroupVersionListJSON},
-		{"", 200, "openapi/v3/apis/apps/v1", returnedJSON},
-		{"*/*", 200, "openapi/v3/apis/apps/v1", returnedJSON},
-		{"application/json", 200, "openapi/v3/apis/apps/v1", returnedJSON},
-		{"application/*", 200, "openapi/v3/apis/apps/v1", returnedJSON},
-		{"test/test", 406, "openapi/v3/apis/apps/v1", []byte{}},
-		{"application/test", 406, "openapi/v3/apis/apps/v1", []byte{}},
-		{"application/test, */*", 200, "openapi/v3/apis/apps/v1", returnedJSON},
-		{"application/com.github.proto-openapi.spec.v3@v1.0+protobuf", 200, "openapi/v3/apis/apps/v1", returnedPb},
-		{"application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, "openapi/v3/apis/apps/v1", returnedJSON},
-		{"application/com.github.proto-openapi.spec.v3@v1.0+protobuf, application/json", 200, "openapi/v3/apis/apps/v1", returnedPb},
-		{"application/com.github.proto-openapi.spec.v3@v1.0+protobuf; q=0.5, application/json", 200, "openapi/v3/apis/apps/v1", returnedJSON},
+		{
+			acceptHeader: "",
+			respStatus:   200,
+			urlPath:      "openapi/v3",
+			respBody:     returnedGroupVersionListJSON,
+			expectedETag: computeETag(returnedGroupVersionListJSON),
+		}, {
+			acceptHeader: "",
+			respStatus:   304,
+			urlPath:      "openapi/v3",
+			respBody:     returnedGroupVersionListJSON,
+			expectedETag: computeETag(returnedGroupVersionListJSON),
+			sendETag:     true,
+		}, {
+			acceptHeader: "",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "",
+			respStatus:   304,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+			sendETag:     true,
+		}, {
+			acceptHeader: "*/*",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "application/json",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "application/*",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "test/test",
+			respStatus:   406,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     []byte{},
+		}, {
+			acceptHeader: "application/test",
+			respStatus:   406,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     []byte{},
+		}, {
+			acceptHeader: "application/test,  */*",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedPb,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
+			respStatus:   304,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedPb,
+			expectedETag: computeETag(returnedJSON),
+			sendETag:     true,
+		}, {
+			acceptHeader: "application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf, application/json",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedPb,
+			expectedETag: computeETag(returnedJSON),
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf, application/json",
+			respStatus:   304,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedPb,
+			expectedETag: computeETag(returnedJSON),
+			sendETag:     true,
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf; q=0.5, application/json",
+			respStatus:   200,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedJSON,
+			expectedETag: computeETag(returnedJSON),
+		},
 	}
 
 	for _, tc := range tcs {
@@ -104,15 +194,37 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		}
 
 		req.Header.Add("Accept", tc.acceptHeader)
+		if tc.sendETag {
+			req.Header.Add("If-None-Match", strconv.Quote(tc.expectedETag))
+		}
 		resp, err := client.Do(req)
 		if err != nil {
 			t.Errorf("Accept: %v: Unexpected error in serving HTTP request: %v", tc.acceptHeader, err)
 		}
+		defer resp.Body.Close()
 
 		if resp.StatusCode != tc.respStatus {
 			t.Errorf("Accept: %v: Unexpected response status code, want: %v, got: %v", tc.acceptHeader, tc.respStatus, resp.StatusCode)
 		}
-		defer resp.Body.Close()
+
+		if tc.respStatus == 304 {
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
+			}
+			if len(body) != 0 {
+				t.Errorf("Response Body length must be 0 if 304 is returned.")
+			}
+		}
+		if tc.respStatus != 200 {
+			continue
+		}
+
+		gotETag := resp.Header.Get("ETag")
+		if strconv.Quote(tc.expectedETag) != gotETag {
+			t.Errorf("Expect ETag %s, got %s", strconv.Quote(tc.expectedETag), gotETag)
+		}
+
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
