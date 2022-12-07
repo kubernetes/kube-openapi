@@ -99,18 +99,16 @@ func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 		},
 		"reference-nullable": {
 			SchemaProps: spec.SchemaProps{
-				Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+				Ref:      spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
 				Nullable: true,
 			},
 		},
 		"reference-default": {
 			SchemaProps: spec.SchemaProps{
-				Ref: spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
+				Ref:     spec.MustCreateRef("/components/schemas/builder3.TestOutput"),
 				Default: map[string]interface{}{},
 			},
 		},
-
-
 	}
 	schema.Extensions = spec.Extensions{"x-test": "test"}
 	def := openapi.EmbedOpenAPIDefinitionIntoV2Extension(openapi.OpenAPIDefinition{
@@ -316,7 +314,7 @@ func getTestRequestBody() *spec3.RequestBody {
 	ret := &spec3.RequestBody{
 		RequestBodyProps: spec3.RequestBodyProps{
 			Content: map[string]*spec3.MediaType{
-				restful.MIME_JSON: &spec3.MediaType{
+				restful.MIME_JSON: {
 					MediaTypeProps: spec3.MediaTypeProps{
 						Schema: getRefSchema("#/components/schemas/builder3.TestInput"),
 					},

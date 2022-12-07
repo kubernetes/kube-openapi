@@ -39,7 +39,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `json:"podSpec"`,
 					},
@@ -53,7 +53,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `json:"podSpec,omitempty"`,
 					},
@@ -67,7 +67,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `json:"podSpec,omitempty" protobuf:"bytes,1,opt,name=podSpec"`,
 					},
@@ -81,7 +81,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "",
 						Tags: `json:"podSpec"`,
 					},
@@ -95,7 +95,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `json:"PodSpec"`,
 					},
@@ -109,7 +109,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "podSpec",
 						Tags: `json:"podSpec"`,
 					},
@@ -123,7 +123,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `json:"spec"`,
 					},
@@ -137,7 +137,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Spec",
 						Tags: `json:"podSpec"`,
 					},
@@ -151,7 +151,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "JSONSpec",
 						Tags: `json:"jsonSpec"`,
 					},
@@ -165,7 +165,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "JSONSpec",
 						Tags: `json:"jsonspec"`,
 					},
@@ -179,7 +179,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "HTTPJSONSpec",
 						Tags: `json:"httpJSONSpec"`,
 					},
@@ -195,7 +195,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "HTTPJSONSpec",
 						Tags: `json:"httpjsonSpec"`,
 					},
@@ -209,7 +209,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "podSpec",
 						Tags: `json:"-"`,
 					},
@@ -223,7 +223,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `json:"-,"`,
 					},
@@ -238,7 +238,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "",
 						Tags: `json:""`,
 					},
@@ -252,7 +252,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "podSpec",
 						Tags: `json:""`,
 					},
@@ -266,7 +266,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "podSpec",
 						Tags: `json:"metadata"`,
 					},
@@ -286,7 +286,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "PodSpec",
 						Tags: `podSpec`,
 					},
@@ -301,7 +301,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "S",
 						Tags: `json:"s"`,
 					},
@@ -316,7 +316,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Pod-Spec",
 						Tags: `json:"pod-Spec"`,
 					},
@@ -330,7 +330,7 @@ func TestNamesMatch(t *testing.T) {
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
-					types.Member{
+					{
 						Name: "Pod_Spec",
 						Tags: `json:"pod_Spec"`,
 					},

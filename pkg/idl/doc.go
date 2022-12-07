@@ -26,21 +26,24 @@ package idl
 // This tag MUST only be used on lists, or the generation step will
 // fail.
 //
-// Atomic
+// # Atomic
 //
 // Example:
-//  +listType=atomic
+//
+//	+listType=atomic
 //
 // Atomic lists will be entirely replaced when updated. This tag may be
 // used on any type of list (struct, scalar, ...).
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-list-type": "atomic"
 //
-// Map
+//	"x-kubernetes-list-type": "atomic"
+//
+// # Map
 //
 // Example:
-//  +listType=map
+//
+//	+listType=map
 //
 // These lists are like maps in that their elements have a non-index key
 // used to identify them. Order is preserved upon merge. Using the map
@@ -48,18 +51,21 @@ package idl
 // the generation step.
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-list-type": "map"
 //
-// Set
+//	"x-kubernetes-list-type": "map"
+//
+// # Set
 //
 // Example:
-//  +listType=set
+//
+//	+listType=set
 //
 // Sets are lists that must not have multiple times the same value. Each
 // value must be a scalar (or another atomic type).
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-list-type": "set"
+//
+//	"x-kubernetes-list-type": "set"
 type ListType string
 
 // ListMapKey annotates map lists by specifying the key used as the index of the map.
@@ -72,10 +78,12 @@ type ListType string
 // An example of how this can be used is shown in the ListType (map) example.
 //
 // Example:
-//  +listMapKey=name
+//
+//	+listMapKey=name
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-list-map-key": "name"
+//
+//	"x-kubernetes-list-map-key": "name"
 type ListMapKey string
 
 // MapType annotates a map to further describe its topology. It may
@@ -90,16 +98,18 @@ type ListMapKey string
 //
 // This tag MUST only be used on maps, or the generation step will fail.
 //
-// Atomic
+// # Atomic
 //
 // Example:
-//  +mapType=atomic
+//
+//	+mapType=atomic
 //
 // Atomic maps will be entirely replaced when updated. This tag may be
 // used on any map.
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-map-type": "atomic"
+//
+//	"x-kubernetes-map-type": "atomic"
 type MapType string
 
 // OpenAPIGen needs to be described.
@@ -109,12 +119,14 @@ type OpenAPIGen string
 // By default, fields will be marked as required if not otherwise specified.
 //
 // Example:
+//
 //	+optional
 //
 // Additionally, the json struct tag directive "omitempty" can be used to imply
 // the same.
 //
 // Example:
+//
 //	OptionalField `json:"optionalField,omitempty"`
 type Optional string
 
@@ -136,16 +148,18 @@ type PatchStrategy string
 //
 // This tag MUST only be used on structs, or the generation step will fail.
 //
-// Atomic
+// # Atomic
 //
 // Example:
-//  +structType=atomic
+//
+//	+structType=atomic
 //
 // Atomic structs will be entirely replaced when updated. This tag may be
 // used on any struct.
 //
 // Using this tag will generate the following OpenAPI extension:
-//  "x-kubernetes-map-type": "atomic"
+//
+//	"x-kubernetes-map-type": "atomic"
 type StructType string
 
 // Union is TBD.

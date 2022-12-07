@@ -36,7 +36,7 @@ func TestExternalDocumentationJSONSerialization(t *testing.T) {
 			target: &spec3.ExternalDocumentation{
 				ExternalDocumentationProps: spec3.ExternalDocumentationProps{
 					Description: "Find more info here",
-					URL: "https://example.com",
+					URL:         "https://example.com",
 				},
 			},
 			expectedOutput: `{"description":"Find more info here","url":"https://example.com"}`,

@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"github.com/google/go-cmp/cmp"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 
 	"k8s.io/kube-openapi/pkg/spec3"
 )
@@ -64,7 +64,7 @@ func TestSecuritySchemaJSONSerialization(t *testing.T) {
 				SecuritySchemeProps: spec3.SecuritySchemeProps{
 					Type: "oauth2",
 					Flows: map[string]*spec3.OAuthFlow{
-						"implicit": &spec3.OAuthFlow{
+						"implicit": {
 							OAuthFlowProps: spec3.OAuthFlowProps{
 								AuthorizationUrl: "https://example.com/api/oauth/dialog",
 								Scopes: map[string]string{

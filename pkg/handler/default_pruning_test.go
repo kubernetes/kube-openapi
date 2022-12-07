@@ -31,16 +31,16 @@ func TestDefaultPruning(t *testing.T) {
 		"foo": spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Default: 0,
-				AllOf:   []spec.Schema{spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
-				AnyOf:   []spec.Schema{spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
-				OneOf:   []spec.Schema{spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
+				AllOf:   []spec.Schema{{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
+				AnyOf:   []spec.Schema{{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
+				OneOf:   []spec.Schema{{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
 				Not:     &spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}},
 				Properties: map[string]spec.Schema{
-					"foo": spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}},
+					"foo": {SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}},
 				},
 				AdditionalProperties: &spec.SchemaOrBool{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
 				PatternProperties: map[string]spec.Schema{
-					"foo": spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}},
+					"foo": {SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}},
 				},
 				Dependencies: spec.Dependencies{
 					"foo": spec.SchemaOrStringArray{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Default: "default-string", Title: "Field"}}},
@@ -61,16 +61,16 @@ func TestDefaultPruning(t *testing.T) {
 	wanted := spec.Definitions{
 		"foo": spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				AllOf: []spec.Schema{spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}}},
-				AnyOf: []spec.Schema{spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}}},
-				OneOf: []spec.Schema{spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}}},
+				AllOf: []spec.Schema{{SchemaProps: spec.SchemaProps{Title: "Field"}}},
+				AnyOf: []spec.Schema{{SchemaProps: spec.SchemaProps{Title: "Field"}}},
+				OneOf: []spec.Schema{{SchemaProps: spec.SchemaProps{Title: "Field"}}},
 				Not:   &spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}},
 				Properties: map[string]spec.Schema{
-					"foo": spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}},
+					"foo": {SchemaProps: spec.SchemaProps{Title: "Field"}},
 				},
 				AdditionalProperties: &spec.SchemaOrBool{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}}},
 				PatternProperties: map[string]spec.Schema{
-					"foo": spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}},
+					"foo": {SchemaProps: spec.SchemaProps{Title: "Field"}},
 				},
 				Dependencies: spec.Dependencies{
 					"foo": spec.SchemaOrStringArray{Schema: &spec.Schema{SchemaProps: spec.SchemaProps{Title: "Field"}}},

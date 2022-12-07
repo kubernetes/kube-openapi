@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go: [ '1.18', '1.x' ]
+        go: [ '1.19', '1.18', '1.x' ]
         gostable: [true]
         include:
         - go: '1.x'
@@ -33,6 +33,10 @@ jobs:
         cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
         go mod tidy && git diff --exit-code
         go build ./cmd/... ./pkg/...
+    - name: Format
+      run: |
+        diff=$(gofmt -s -d .)
+        if [[ -n "${diff}" ]]; then echo "${diff}"; exit 1; fi
     - name: Test
       run: |
         cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/

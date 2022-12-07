@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 func TestResponseJSONSerialization(t *testing.T) {
@@ -37,7 +37,7 @@ func TestResponseJSONSerialization(t *testing.T) {
 			target: &spec3.Response{
 				ResponseProps: spec3.ResponseProps{
 					Content: map[string]*spec3.MediaType{
-						"text/plain": &spec3.MediaType{
+						"text/plain": {
 							MediaTypeProps: spec3.MediaTypeProps{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{

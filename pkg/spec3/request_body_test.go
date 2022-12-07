@@ -37,7 +37,7 @@ func TestRequestBodyJSONSerialization(t *testing.T) {
 				RequestBodyProps: spec3.RequestBodyProps{
 					Description: "user to add to the system",
 					Content: map[string]*spec3.MediaType{
-						"application/json": &spec3.MediaType{
+						"application/json": {
 							MediaTypeProps: spec3.MediaTypeProps{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{

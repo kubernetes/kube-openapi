@@ -35,7 +35,7 @@ func TestExampleJSONSerialization(t *testing.T) {
 			target: &spec3.Example{
 				ExampleProps: spec3.ExampleProps{
 					Summary: "An example",
-					Value: map[string]string{"foo": "bar"},
+					Value:   map[string]string{"foo": "bar"},
 				},
 			},
 			expectedOutput: `{"summary":"An example","value":{"foo":"bar"}}`,

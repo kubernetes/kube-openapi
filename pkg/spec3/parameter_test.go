@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 func TestParameterJSONSerialization(t *testing.T) {
@@ -35,13 +35,13 @@ func TestParameterJSONSerialization(t *testing.T) {
 			name: "header parameter",
 			target: &spec3.Parameter{
 				ParameterProps: spec3.ParameterProps{
-					Name: "token",
-					In: "header",
+					Name:        "token",
+					In:          "header",
 					Description: "token to be passed as a header",
-					Required: true,
+					Required:    true,
 					Schema: &spec.Schema{
 						SchemaProps: spec.SchemaProps{
-							Type: []string{"integer"},
+							Type:   []string{"integer"},
 							Format: "int64",
 						},
 					},
@@ -54,10 +54,10 @@ func TestParameterJSONSerialization(t *testing.T) {
 			name: "path parameter",
 			target: &spec3.Parameter{
 				ParameterProps: spec3.ParameterProps{
-					Name: "username",
-					In: "path",
+					Name:        "username",
+					In:          "path",
 					Description: "username to fetch",
-					Required: true,
+					Required:    true,
 					Schema: &spec.Schema{
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"string"},
@@ -67,7 +67,6 @@ func TestParameterJSONSerialization(t *testing.T) {
 			},
 			expectedOutput: `{"name":"username","in":"path","description":"username to fetch","required":true,"schema":{"type":"string"}}`,
 		},
-
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
