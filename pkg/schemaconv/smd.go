@@ -351,6 +351,8 @@ func toStringSlice(o interface{}) (out []string, ok bool) {
 			}
 		}
 		return out, true
+	case []string:
+		return t, true
 	}
 	return nil, false
 }
