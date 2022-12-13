@@ -41,19 +41,29 @@ func ToSchema(models proto.Models) (*schema.Schema, error) {
 // merge (i.e. kubectl apply v2), it will preserve unknown fields if specified.
 func ToSchemaWithPreserveUnknownFields(models proto.Models, preserveUnknownFields bool) (*schema.Schema, error) {
 	c := convert{
-		input:                 models,
 		preserveUnknownFields: preserveUnknownFields,
 		output:                &schema.Schema{},
 	}
-	if err := c.convertAll(); err != nil {
-		return nil, err
+	for _, name := range models.ListModels() {
+		model := models.LookupModel(name)
+
+		var a schema.Atom
+		c2 := c.push(name, &a)
+		model.Accept(c2)
+		c.pop(c2)
+
+		c.insertTypeDef(name, a)
 	}
+
+	if len(c.errorMessages) > 0 {
+		return nil, errors.New(strings.Join(c.errorMessages, "\n"))
+	}
+
 	c.addCommonTypes()
 	return c.output, nil
 }
 
 type convert struct {
-	input                 proto.Models
 	preserveUnknownFields bool
 	output                *schema.Schema
 
@@ -64,7 +74,6 @@ type convert struct {
 
 func (c *convert) push(name string, a *schema.Atom) *convert {
 	return &convert{
-		input:                 c.input,
 		preserveUnknownFields: c.preserveUnknownFields,
 		output:                c.output,
 		currentName:           name,
@@ -78,30 +87,17 @@ func (c *convert) pop(c2 *convert) {
 	c.errorMessages = append(c.errorMessages, c2.errorMessages...)
 }
 
-func (c *convert) convertAll() error {
-	for _, name := range c.input.ListModels() {
-		model := c.input.LookupModel(name)
-		c.insertTypeDef(name, model)
-	}
-	if len(c.errorMessages) > 0 {
-		return errors.New(strings.Join(c.errorMessages, "\n"))
-	}
-	return nil
-}
-
 func (c *convert) reportError(format string, args ...interface{}) {
 	c.errorMessages = append(c.errorMessages,
 		c.currentName+": "+fmt.Sprintf(format, args...),
 	)
 }
 
-func (c *convert) insertTypeDef(name string, model proto.Schema) {
+func (c *convert) insertTypeDef(name string, atom schema.Atom) {
 	def := schema.TypeDef{
 		Name: name,
+		Atom: atom,
 	}
-	c2 := c.push(name, &def.Atom)
-	model.Accept(c2)
-	c.pop(c2)
 	if def.Atom == (schema.Atom{}) {
 		// This could happen if there were a top-level reference.
 		return
