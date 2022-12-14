@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	quantityResource = "io.k8s.apimachinery.pkg.api.resource.Quantity"
+	quantityResource     = "io.k8s.apimachinery.pkg.api.resource.Quantity"
+	rawExtensionResource = "io.k8s.apimachinery.pkg.runtime.RawExtension"
 )
 
 type convert struct {
