@@ -69,18 +69,15 @@ func (c *convert) makeRef(model proto.Schema, preserveUnknownFields bool) schema
 		_, n := path.Split(r.Reference())
 		tr.NamedType = &n
 
-		ext := model.GetExtensions()
-		if val, ok := ext["x-kubernetes-map-type"]; ok {
-			switch val {
-			case "atomic":
-				relationship := schema.Atomic
-				tr.ElementRelationship = &relationship
-			case "granular":
-				relationship := schema.Separable
-				tr.ElementRelationship = &relationship
-			default:
-				c.reportError("unknown map type %v", val)
-			}
+		mapRelationship, err := getMapElementRelationship(model.GetExtensions())
+
+		if err != nil {
+			c.reportError(err.Error())
+		}
+
+		// empty string means unset.
+		if len(mapRelationship) > 0 {
+			tr.ElementRelationship = &mapRelationship
 		}
 	} else {
 		// compute the type inline
@@ -130,85 +127,36 @@ func (c *convert) VisitKind(k *proto.Kind) {
 		}
 	}
 
-	ext := k.GetExtensions()
-	if val, ok := ext["x-kubernetes-map-type"]; ok {
-		switch val {
-		case "atomic":
-			a.Map.ElementRelationship = schema.Atomic
-		case "granular":
-			a.Map.ElementRelationship = schema.Separable
-		default:
-			c.reportError("unknown map type %v", val)
-		}
+	a.Map.ElementRelationship, err = getMapElementRelationship(k.GetExtensions())
+	if err != nil {
+		c.reportError(err.Error())
 	}
 }
 
 func (c *convert) VisitArray(a *proto.Array) {
+	relationship, mapKeys, err := getListElementRelationship(a.GetExtensions())
+	if err != nil {
+		c.reportError(err.Error())
+	}
+
 	atom := c.top()
 	atom.List = &schema.List{
-		ElementRelationship: schema.Atomic,
-	}
-	l := atom.List
-	l.ElementType = c.makeRef(a.SubType, c.preserveUnknownFields)
-
-	ext := a.GetExtensions()
-
-	if val, ok := ext["x-kubernetes-list-type"]; ok {
-		if val == "atomic" {
-			l.ElementRelationship = schema.Atomic
-		} else if val == "set" {
-			l.ElementRelationship = schema.Associative
-		} else if val == "map" {
-			l.ElementRelationship = schema.Associative
-			if keys, ok := ext["x-kubernetes-list-map-keys"]; ok {
-				if keyNames, ok := toStringSlice(keys); ok {
-					l.Keys = keyNames
-				} else {
-					c.reportError("uninterpreted map keys: %#v", keys)
-				}
-			} else {
-				c.reportError("missing map keys")
-			}
-		} else {
-			c.reportError("unknown list type %v", val)
-			l.ElementRelationship = schema.Atomic
-		}
-	} else if val, ok := ext["x-kubernetes-patch-strategy"]; ok {
-		if val == "merge" || val == "merge,retainKeys" {
-			l.ElementRelationship = schema.Associative
-			if key, ok := ext["x-kubernetes-patch-merge-key"]; ok {
-				if keyName, ok := key.(string); ok {
-					l.Keys = []string{keyName}
-				} else {
-					c.reportError("uninterpreted merge key: %#v", key)
-				}
-			} else {
-				// It's not an error for this to be absent, it
-				// means it's a set.
-			}
-		} else if val == "retainKeys" {
-		} else {
-			c.reportError("unknown patch strategy %v", val)
-			l.ElementRelationship = schema.Atomic
-		}
+		ElementType:         c.makeRef(a.SubType, c.preserveUnknownFields),
+		ElementRelationship: relationship,
+		Keys:                mapKeys,
 	}
 }
 
 func (c *convert) VisitMap(m *proto.Map) {
-	a := c.top()
-	a.Map = &schema.Map{}
-	a.Map.ElementType = c.makeRef(m.SubType, c.preserveUnknownFields)
+	relationship, err := getMapElementRelationship(m.GetExtensions())
+	if err != nil {
+		c.reportError(err.Error())
+	}
 
-	ext := m.GetExtensions()
-	if val, ok := ext["x-kubernetes-map-type"]; ok {
-		switch val {
-		case "atomic":
-			a.Map.ElementRelationship = schema.Atomic
-		case "granular":
-			a.Map.ElementRelationship = schema.Separable
-		default:
-			c.reportError("unknown map type %v", val)
-		}
+	a := c.top()
+	a.Map = &schema.Map{
+		ElementType:         c.makeRef(m.SubType, c.preserveUnknownFields),
+		ElementRelationship: relationship,
 	}
 }
 
@@ -217,30 +165,7 @@ func (c *convert) VisitPrimitive(p *proto.Primitive) {
 	if c.currentName == quantityResource {
 		a.Scalar = ptr(schema.Scalar("untyped"))
 	} else {
-		switch p.Type {
-		case proto.Integer:
-			a.Scalar = ptr(schema.Numeric)
-		case proto.Number:
-			a.Scalar = ptr(schema.Numeric)
-		case proto.String:
-			switch p.Format {
-			case "":
-				a.Scalar = ptr(schema.String)
-			case "byte":
-				// byte really means []byte and is encoded as a string.
-				a.Scalar = ptr(schema.String)
-			case "int-or-string":
-				a.Scalar = ptr(schema.Scalar("untyped"))
-			case "date-time":
-				a.Scalar = ptr(schema.Scalar("untyped"))
-			default:
-				a.Scalar = ptr(schema.Scalar("untyped"))
-			}
-		case proto.Boolean:
-			a.Scalar = ptr(schema.Boolean)
-		default:
-			a.Scalar = ptr(schema.Scalar("untyped"))
-		}
+		*a = convertPrimitive(p.Type, p.Format)
 	}
 }
 
