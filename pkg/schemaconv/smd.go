@@ -236,3 +236,101 @@ func toStringSlice(o interface{}) (out []string, ok bool) {
 }
 
 func ptr(s schema.Scalar) *schema.Scalar { return &s }
+
+// Basic conversion functions to convert OpenAPI schema definitions to
+// SMD Schema atoms
+func convertPrimitive(typ string, format string) (a schema.Atom) {
+	switch typ {
+	case "integer":
+		a.Scalar = ptr(schema.Numeric)
+	case "number":
+		a.Scalar = ptr(schema.Numeric)
+	case "string":
+		switch format {
+		case "":
+			a.Scalar = ptr(schema.String)
+		case "byte":
+			// byte really means []byte and is encoded as a string.
+			a.Scalar = ptr(schema.String)
+		case "int-or-string":
+			a.Scalar = ptr(schema.Scalar("untyped"))
+		case "date-time":
+			a.Scalar = ptr(schema.Scalar("untyped"))
+		default:
+			a.Scalar = ptr(schema.Scalar("untyped"))
+		}
+	case "boolean":
+		a.Scalar = ptr(schema.Boolean)
+	default:
+		a.Scalar = ptr(schema.Scalar("untyped"))
+	}
+
+	return a
+}
+
+func getListElementRelationship(ext map[string]any) (schema.ElementRelationship, []string, error) {
+	if val, ok := ext["x-kubernetes-list-type"]; ok {
+		switch val {
+		case "atomic":
+			return schema.Atomic, nil, nil
+		case "set":
+			return schema.Associative, nil, nil
+		case "map":
+			keys, ok := ext["x-kubernetes-list-map-keys"]
+
+			if !ok {
+				return schema.Associative, nil, fmt.Errorf("missing map keys")
+			}
+
+			keyNames, ok := toStringSlice(keys)
+			if !ok {
+				return schema.Associative, nil, fmt.Errorf("uninterpreted map keys: %#v", keys)
+			}
+
+			return schema.Associative, keyNames, nil
+		default:
+			return schema.Atomic, nil, fmt.Errorf("unknown list type %v", val)
+		}
+	} else if val, ok := ext["x-kubernetes-patch-strategy"]; ok {
+		switch val {
+		case "merge", "merge,retainKeys":
+			if key, ok := ext["x-kubernetes-patch-merge-key"]; ok {
+				keyName, ok := key.(string)
+
+				if !ok {
+					return schema.Associative, nil, fmt.Errorf("uninterpreted merge key: %#v", key)
+				}
+
+				return schema.Associative, []string{keyName}, nil
+			}
+			// It's not an error for x-kubernetes-patch-merge-key to be absent,
+			// it means it's a set
+			return schema.Associative, nil, nil
+		case "retainKeys":
+			return schema.Atomic, nil, nil
+		default:
+			return schema.Atomic, nil, fmt.Errorf("unknown patch strategy %v", val)
+		}
+	}
+
+	// Treat as atomic by default
+	return schema.Atomic, nil, nil
+}
+
+// Returns map element relationship if specified, or empty string if unspecified
+func getMapElementRelationship(ext map[string]any) (schema.ElementRelationship, error) {
+	val, ok := ext["x-kubernetes-map-type"]
+	if !ok {
+		// unset Map element relationship
+		return "", nil
+	}
+
+	switch val {
+	case "atomic":
+		return schema.Atomic, nil
+	case "granular":
+		return schema.Separable, nil
+	default:
+		return "", fmt.Errorf("unknown map type %v", val)
+	}
+}
