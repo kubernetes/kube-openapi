@@ -112,7 +112,14 @@ func (c *convert) parseSchema(m *spec.Schema) schema.Atom {
 }
 
 func (c *convert) makeOpenAPIRef(specSchema *spec.Schema) schema.TypeRef {
-	if _, n := path.Split(specSchema.Ref.String()); len(n) > 0 {
+	refString := specSchema.Ref.String()
+
+	// Special-case handling for $ref stored inside a single-element allOf
+	if len(refString) == 0 && len(specSchema.AllOf) == 1 && len(specSchema.AllOf[0].Ref.String()) > 0 {
+		refString = specSchema.AllOf[0].Ref.String()
+	}
+
+	if _, n := path.Split(refString); len(n) > 0 {
 		//!TODO: Refactor the field ElementRelationship override
 		// we can generate the types with overrides ahead of time rather than
 		// requiring the hacky runtime support
