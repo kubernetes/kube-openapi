@@ -6,7 +6,7 @@ implement that subset with little to no assumption about the structure of the
 code or routes. Thus, there should be no kubernetes specific code in this repo. 
 
 
-There are two main parts: 
+There are two main parts in this repo: 
  - A model generator that goes through .go files, find and generate model 
 definitions. 
  - The spec generator that is responsible for dynamically generate 
