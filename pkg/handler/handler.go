@@ -49,10 +49,8 @@ func computeETag(data []byte) string {
 // OpenAPIService is the service responsible for serving OpenAPI spec. It has
 // the ability to safely change the spec while serving it.
 type OpenAPIService struct {
-	// rwMutex protects All members of this service.
-	rwMutex sync.RWMutex
-
-	lastModified time.Time
+	// mutex protects All members of this service.
+	mutex sync.Mutex
 
 	jsonCache  handler.HandlerCache
 	protoCache handler.HandlerCache
@@ -68,37 +66,9 @@ func NewOpenAPIService(spec *spec.Swagger) (*OpenAPIService, error) {
 	return o, nil
 }
 
-func (o *OpenAPIService) getSwaggerBytes() ([]byte, string, time.Time, error) {
-	o.rwMutex.RLock()
-	defer o.rwMutex.RUnlock()
-	specBytes, err := o.jsonCache.Get()
-	if err != nil {
-		return nil, "", time.Time{}, err
-	}
-	etagBytes, err := o.etagCache.Get()
-	if err != nil {
-		return nil, "", time.Time{}, err
-	}
-	return specBytes, string(etagBytes), o.lastModified, nil
-}
-
-func (o *OpenAPIService) getSwaggerPbBytes() ([]byte, string, time.Time, error) {
-	o.rwMutex.RLock()
-	defer o.rwMutex.RUnlock()
-	specPb, err := o.protoCache.Get()
-	if err != nil {
-		return nil, "", time.Time{}, err
-	}
-	etagBytes, err := o.etagCache.Get()
-	if err != nil {
-		return nil, "", time.Time{}, err
-	}
-	return specPb, string(etagBytes), o.lastModified, nil
-}
-
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
-	o.rwMutex.Lock()
-	defer o.rwMutex.Unlock()
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
 	o.jsonCache = o.jsonCache.New(func() ([]byte, error) {
 		return json.Marshal(openapiSpec)
 	})
@@ -116,8 +86,6 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 		}
 		return []byte(computeETag(json)), nil
 	})
-	o.lastModified = time.Now()
-
 	return nil
 }
 
@@ -143,14 +111,16 @@ func RegisterOpenAPIVersionedService(spec *spec.Swagger, servePath string, handl
 // RegisterOpenAPIVersionedService registers a handler to provide access to provided swagger spec.
 func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handler common.PathHandler) error {
 	accepted := []struct {
-		Type           string
-		SubType        string
-		GetDataAndETag func() ([]byte, string, time.Time, error)
+		Type    string
+		SubType string
+		GetData func() ([]byte, error)
 	}{
-		{"application", "json", o.getSwaggerBytes},
-		{"application", "com.github.proto-openapi.spec.v2@v1.0+protobuf", o.getSwaggerPbBytes},
+		{"application", "json", func() ([]byte, error) { return o.jsonCache.Get() }},
+		{"application", "com.github.proto-openapi.spec.v2@v1.0+protobuf", func() ([]byte, error) { return o.protoCache.Get() }},
 	}
 
+	var lastEtag string
+	var lastModified time.Time
 	handler.Handle(servePath, gziphandler.GzipHandler(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			decipherableFormats := r.Header.Get("Accept")
@@ -168,21 +138,38 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 						continue
 					}
 
+					contentType := accepts.Type + "/" + accepts.SubType
+					w.Header().Set("Content-Type", contentType)
+
+					o.mutex.Lock()
 					// serve the first matching media type in the sorted clause list
-					data, etag, lastModified, err := accepts.GetDataAndETag()
+					data, err := accepts.GetData()
 					if err != nil {
 						klog.Errorf("Error in OpenAPI handler: %s", err)
 						// only return a 503 if we have no older cache data to serve
 						if data == nil {
 							w.WriteHeader(http.StatusServiceUnavailable)
+							o.mutex.Unlock()
 							return
 						}
 					}
-					contentType := accepts.Type + "/" + accepts.SubType
-					w.Header().Set("Content-Type", contentType)
 
-					// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
-					w.Header().Set("Etag", strconv.Quote(etag))
+					etag, err := o.etagCache.Get()
+					if err != nil {
+						// We couldn't get the etag, don't use caching at all.
+						klog.Warningf("Error in OpenAPI handler: %s", err)
+						lastModified = time.Now()
+					} else {
+						if string(etag) != lastEtag {
+							lastModified = time.Now()
+							lastEtag = string(etag)
+						}
+						// ETag must be enclosed in double quotes:
+						// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
+						w.Header().Set("Etag", strconv.Quote(string(etag)))
+					}
+					o.mutex.Unlock()
+
 					// ServeContent will take care of caching using eTag.
 					http.ServeContent(w, r, servePath, lastModified, bytes.NewReader(data))
 					return
