@@ -66,11 +66,19 @@ func NewOpenAPIService(spec *spec.Swagger) (*OpenAPIService, error) {
 	return o, nil
 }
 
-func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
+// UpdateSpecLazy updates the handler to use the spec given. While
+// `UpdateSpec` takes the actual spec, `UpdateSpecLazy` receives a
+// function that will be called to prepare the spec when the first
+// download request happens.
+func (o *OpenAPIService) UpdateSpecLazy(specGetter func() (*spec.Swagger, error)) error {
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 	o.jsonCache = o.jsonCache.New(func() ([]byte, error) {
-		return json.Marshal(openapiSpec)
+		spec, err := specGetter()
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(spec)
 	})
 	o.protoCache = o.protoCache.New(func() ([]byte, error) {
 		json, err := o.jsonCache.Get()
@@ -87,6 +95,10 @@ func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 		return []byte(computeETag(json)), nil
 	})
 	return nil
+}
+
+func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
+	return o.UpdateSpecLazy(func() (*spec.Swagger, error) { return openapiSpec, nil })
 }
 
 func ToProtoBinary(json []byte) ([]byte, error) {
