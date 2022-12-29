@@ -2,6 +2,7 @@ package handler
 
 import (
 	json "encoding/json"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"testing"
 
+	"k8s.io/kube-openapi/pkg/cached"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -27,10 +29,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
 	}
 
-	returnedJSON, err := s.MarshalJSON()
-	if err != nil {
-		t.Errorf("Unexpected error in preparing returnedJSON: %v", err)
-	}
+	returnedJSON := normalizeSwaggerOrDie(returnedSwagger)
 	var decodedJSON map[string]interface{}
 	if err := json.Unmarshal(returnedJSON, &decodedJSON); err != nil {
 		t.Fatal(err)
@@ -41,11 +40,8 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	o, err := NewOpenAPIService(&s)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
+	o := NewOpenAPIService(&s)
+	if err := o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
 		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
 	}
 	server := httptest.NewServer(mux)
@@ -113,6 +109,84 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		if !reflect.DeepEqual(body, tc.respBody) {
 			t.Errorf("Accept: %v: Response body mismatches, \nwant: %s, \ngot:  %s", tc.acceptHeader, string(tc.respBody), string(body))
 		}
+	}
+}
+
+var updatedSwagger = []byte(`{
+  "swagger": "2.0",
+  "info": {
+   "title": "Kubernetes",
+   "version": "v1.12.0"
+  }}`)
+
+func getBodyOrDie(server *httptest.Server) string {
+	req, err := http.NewRequest("GET", server.URL+"/openapi/v2", nil)
+	if err != nil {
+		panic(fmt.Errorf("Unexpected error in creating new request: %v", err))
+	}
+
+	req.Header.Add("Accept", "application/json")
+	resp, err := server.Client().Do(req)
+	if err != nil {
+		panic(fmt.Errorf("Unexpected error in serving HTTP request: %v", err))
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		panic(fmt.Errorf("Unexpected error in reading response body: %v", err))
+	}
+	return string(body)
+}
+
+func normalizeSwaggerOrDie(j []byte) []byte {
+	var s spec.Swagger
+	err := s.UnmarshalJSON(j)
+	if err != nil {
+		panic(fmt.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err))
+	}
+	rj, err := json.Marshal(s)
+	if err != nil {
+		panic(fmt.Errorf("Unexpected error in preparing returnedJSON: %v", err))
+	}
+	return rj
+}
+
+func TestUpdateSpecLazy(t *testing.T) {
+	returnedJSON := normalizeSwaggerOrDie(returnedSwagger)
+	var s spec.Swagger
+	err := s.UnmarshalJSON(returnedJSON)
+	if err != nil {
+		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	o := NewOpenAPIService(&s)
+	if err := o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
+		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
+	}
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	body := getBodyOrDie(server)
+	if body != string(returnedJSON) {
+		t.Errorf("Unexpected swagger received, got %q, expected %q", body, string(returnedSwagger))
+	}
+
+	o.UpdateSpecLazy(cached.NewStaticSource(func() cached.Result[*spec.Swagger] {
+		var s spec.Swagger
+		err := s.UnmarshalJSON(updatedSwagger)
+		if err != nil {
+			t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
+		}
+		return cached.NewResultOK(&s, "SOMEHASH")
+	}))
+
+	updatedJSON := normalizeSwaggerOrDie(updatedSwagger)
+	body = getBodyOrDie(server)
+
+	if body != string(updatedJSON) {
+		t.Errorf("Unexpected swagger received, got %q, expected %q", body, string(updatedJSON))
 	}
 }
 
