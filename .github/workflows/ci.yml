@@ -13,24 +13,16 @@ jobs:
     strategy:
       matrix:
         go: [ '1.19', '1.18', '1.x' ]
-        gostable: [true]
-        include:
-        - go: '1.x'
-          gostable: false
     steps:
-    - uses: actions/checkout@v2
-      with:
-        path: src/k8s.io/kube-openapi/
+    - uses: actions/checkout@v3
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: "${{ matrix.go }}"
-        stable: ${{ matrix.gostable }}"
 
     - name: Build
       run: |
-        cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
         go mod tidy && git diff --exit-code
         go build ./cmd/... ./pkg/...
     - name: Format
@@ -39,13 +31,12 @@ jobs:
         if [[ -n "${diff}" ]]; then echo "${diff}"; exit 1; fi
     - name: Test
       run: |
-        cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/
-        GOPATH=${GITHUB_WORKSPACE} go test ./cmd/... ./pkg/...
+        go test ./cmd/... ./pkg/...
     - name: Run integration tests
       run: |
-        cd ${GITHUB_WORKSPACE}/src/k8s.io/kube-openapi/test/integration
+        cd test/integration
         go mod tidy && git diff --exit-code
-        GOPATH=${GITHUB_WORKSPACE} go test ./...
+        go test ./...
   required:
     # The name of the ci jobs above change based on the golang version.
     # Use this as a stable required job that depends on the above jobs.
