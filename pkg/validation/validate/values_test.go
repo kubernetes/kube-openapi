@@ -154,6 +154,13 @@ func TestValuMultipleOf(t *testing.T) {
 	err = MultipleOf("test", "body", 8, 0.2)
 	assert.Nil(t, err)
 
+	// zero
+	err = MultipleOf("test", "body", 9, 0)
+	assert.Error(t, err)
+
+	err = MultipleOf("test", "body", 9.1, 0)
+	assert.Error(t, err)
+
 	// negative
 
 	err = MultipleOf("test", "body", 3, 0.4)
@@ -332,6 +339,18 @@ func TestValues_MultipleOfNative(t *testing.T) {
 	assert.Nil(t, MultipleOfNativeType("path", "in", uint64(5), 1))
 
 	var err *errors.Validation
+
+	err = MultipleOfNativeType("path", "in", int64(5), 0)
+	if assert.NotNil(t, err) {
+		code := int(err.Code())
+		assert.Equal(t, code, int(errors.MultipleOfMustBePositiveCode))
+	}
+
+	err = MultipleOfNativeType("path", "in", uint64(5), 0)
+	if assert.NotNil(t, err) {
+		code := int(err.Code())
+		assert.Equal(t, code, int(errors.MultipleOfMustBePositiveCode))
+	}
 
 	err = MultipleOfNativeType("path", "in", int64(5), -1)
 	if assert.NotNil(t, err) {
