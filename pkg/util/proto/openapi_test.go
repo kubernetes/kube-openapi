@@ -19,6 +19,7 @@ package proto_test
 import (
 	"path/filepath"
 
+	openapi_v3 "github.com/google/gnostic/openapiv3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -366,5 +367,72 @@ var _ = Describe("Reading apps/v1/Deployment from v3.0.0 openAPIData", func() {
 			Expect(key).ToNot(BeNil())
 			Expect(key.Reference()).To(Equal("io.k8s.api.core.v1.PodTemplateSpec"))
 		})
+	})
+})
+
+var _ = Describe("Reading v3 OpenAPI spec with x-kubernetes-group-version-kind", func() {
+	spec := []byte(`{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Kubernetes",
+		"version": "v1.24.0"
+	},
+	"paths": {
+		"/foo": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "OK",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Foo"
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"schemas": {
+			"Foo": {
+				"type": "object",
+				"properties": {},
+				"x-kubernetes-group-version-kind": [
+					{
+						"group": "foo",
+						"kind": "Foo",
+						"version": "v1"
+					}
+				]
+			}
+		}
+	}
+}`)
+	var schema proto.Schema
+
+	BeforeEach(func() {
+		document, err := openapi_v3.ParseDocument(spec)
+		Expect(err).To(BeNil())
+
+		models, modelsErr := proto.NewOpenAPIV3Data(document)
+		Expect(modelsErr).To(BeNil())
+
+		model := "Foo"
+		schema = models.LookupModel(model)
+		Expect(schema).ToNot(BeNil())
+	})
+
+	It("should have an extension with gvk", func() {
+		_, found := schema.GetExtensions()["x-kubernetes-group-version-kind"]
+		Expect(found).To(BeTrue())
+	})
+
+	It("should convert to proto.Kind type", func() {
+		foo, ok := schema.(*proto.Kind)
+		Expect(ok).To(BeTrue())
+		Expect(foo).ToNot(BeNil())
 	})
 })
