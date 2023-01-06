@@ -51,23 +51,22 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	client := server.Client()
 
 	tcs := []struct {
-		acceptHeader        string
-		respStatus          int
-		respBody            []byte
-		expectedContentType string
+		acceptHeader string
+		respStatus   int
+		respBody     []byte
 	}{
-		{"", 200, returnedJSON, "application/json"},
-		{"*/*", 200, returnedJSON, "application/json"},
-		{"application/*", 200, returnedJSON, "application/json"},
-		{"application/json", 200, returnedJSON, "application/json"},
-		{"test/test", 406, []byte{}, "application/json"},
-		{"application/test", 406, []byte{}, "application/json"},
-		{"application/test, */*", 200, returnedJSON, "application/json"},
-		{"application/test, application/json", 200, returnedJSON, "application/json"},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedPb, "application/com.github.proto-openapi.spec.v2@v1.0+protobuf"},
-		{"application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedJSON, "application/json"},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf, application/json", 200, returnedPb, "application/com.github.proto-openapi.spec.v2@v1.0+protobuf"},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf; q=0.5, application/json", 200, returnedJSON, "application/json"},
+		{"", 200, returnedJSON},
+		{"*/*", 200, returnedJSON},
+		{"application/*", 200, returnedJSON},
+		{"application/json", 200, returnedJSON},
+		{"test/test", 406, []byte{}},
+		{"application/test", 406, []byte{}},
+		{"application/test, */*", 200, returnedJSON},
+		{"application/test, application/json", 200, returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedPb},
+		{"application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf, application/json", 200, returnedPb},
+		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf; q=0.5, application/json", 200, returnedJSON},
 	}
 
 	for _, tc := range tcs {
@@ -84,13 +83,6 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 
 		if resp.StatusCode != tc.respStatus {
 			t.Errorf("Accept: %v: Unexpected response status code, want: %v, got: %v", tc.acceptHeader, tc.respStatus, resp.StatusCode)
-		}
-		if resp.StatusCode != 200 {
-			continue
-		}
-
-		if resp.Header.Get("Content-Type") != tc.expectedContentType {
-			t.Errorf("Content-Type: Unexpected content type, want: %v, got: %v", tc.expectedContentType, resp.Header.Get("Content-Type"))
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
