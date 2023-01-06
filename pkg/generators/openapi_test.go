@@ -1658,7 +1658,8 @@ SchemaProps: spec.SchemaProps{`+"\n"+
 Default: "",
 Type: []string{"string"},
 Format: "",
-Enum: []interface{}{"a", "b"}},
+Enum: []interface{}{"a", "b"},
+},
 },
 "NoCommentEnum": {
 SchemaProps: spec.SchemaProps{`+"\n"+
@@ -1666,14 +1667,16 @@ SchemaProps: spec.SchemaProps{`+"\n"+
 Default: "",
 Type: []string{"string"},
 Format: "",
-Enum: []interface{}{"a", "b"}},
+Enum: []interface{}{"a", "b"},
+},
 },
 "OptionalEnum": {
 SchemaProps: spec.SchemaProps{`+"\n"+
 		"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
 Type: []string{"string"},
 Format: "",
-Enum: []interface{}{"a", "b"}},
+Enum: []interface{}{"a", "b"},
+},
 },
 },
 Required: []string{"Value","NoCommentEnum"},
