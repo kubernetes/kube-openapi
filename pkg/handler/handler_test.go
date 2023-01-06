@@ -89,8 +89,8 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			continue
 		}
 
-		if got := resp.Header.Get("Content-Type"); got != tc.expectedContentType {
-			t.Errorf("Content-Type: Unexpected content type, want: %v, got: %v", tc.expectedContentType, got)
+		if resp.Header.Get("Content-Type") != tc.expectedContentType {
+			t.Errorf("Content-Type: Unexpected content type, want: %v, got: %v", tc.expectedContentType, resp.Header.Get("Content-Type"))
 		}
 		defer resp.Body.Close()
 		body, err := ioutil.ReadAll(resp.Body)
