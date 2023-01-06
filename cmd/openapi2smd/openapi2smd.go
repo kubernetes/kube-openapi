@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 
@@ -33,7 +33,7 @@ func main() {
 		log.Fatal("this program takes input on stdin and writes output to stdout.")
 	}
 
-	input, err := ioutil.ReadAll(os.Stdin)
+	input, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		log.Fatalf("error reading stdin: %v", err)
 	}

@@ -19,7 +19,7 @@ package aggregator
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -1970,7 +1970,7 @@ definitions:
 
 func loadTestData() ([]*spec.Swagger, *spec.Swagger) {
 	loadSpec := func(fileName string) *spec.Swagger {
-		bs, err := ioutil.ReadFile(filepath.Join("../../test/integration/testdata/aggregator", fileName))
+		bs, err := os.ReadFile(filepath.Join("../../test/integration/testdata/aggregator", fileName))
 		if err != nil {
 			panic(err)
 		}

@@ -17,7 +17,7 @@ limitations under the License.
 package schemaconv
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -83,7 +83,7 @@ func testToSchema(t *testing.T, openAPIPath, expectedNewSchemaPath string) {
 		t.Fatal(err)
 	}
 
-	expect, err := ioutil.ReadFile(expectedNewSchemaPath)
+	expect, err := os.ReadFile(expectedNewSchemaPath)
 	if err != nil {
 		t.Fatalf("Unable to read golden data file %q: %v", expectedNewSchemaPath, err)
 	}

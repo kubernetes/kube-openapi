@@ -18,7 +18,7 @@ package handler3
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -208,7 +208,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		}
 
 		if tc.respStatus == 304 {
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
 			}
@@ -225,7 +225,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			t.Errorf("Expect ETag %s, got %s", strconv.Quote(tc.expectedETag), gotETag)
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
 		}
@@ -374,7 +374,7 @@ func TestCacheBusting(t *testing.T) {
 		}
 
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
 		}
