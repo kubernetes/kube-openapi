@@ -18,7 +18,7 @@ package openapiconv
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -41,7 +41,7 @@ func TestConvert(t *testing.T) {
 
 	for _, tc := range tcs {
 
-		spec2JSON, err := ioutil.ReadFile(filepath.Join("testdata_generated_from_k8s/v2_" + tc.groupVersion + ".json"))
+		spec2JSON, err := os.ReadFile(filepath.Join("testdata_generated_from_k8s/v2_" + tc.groupVersion + ".json"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +66,7 @@ func TestConvert(t *testing.T) {
 			t.Errorf("Expected OpenAPI V2 to be untouched before and after conversion")
 		}
 
-		spec3JSON, err := ioutil.ReadFile(filepath.Join("testdata_generated_from_k8s/v3_" + tc.groupVersion + ".json"))
+		spec3JSON, err := os.ReadFile(filepath.Join("testdata_generated_from_k8s/v3_" + tc.groupVersion + ".json"))
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -18,7 +18,6 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -63,7 +62,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("json marshal error: %s", err.Error())
 	}
-	err = ioutil.WriteFile(swaggerFilename, specBytes, 0644)
+	err = os.WriteFile(swaggerFilename, specBytes, 0644)
 	if err != nil {
 		log.Fatalf("stdout write error: %s", err.Error())
 	}

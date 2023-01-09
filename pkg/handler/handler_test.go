@@ -2,9 +2,10 @@ package handler
 
 import (
 	json "encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 
@@ -85,7 +86,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			t.Errorf("Accept: %v: Unexpected response status code, want: %v, got: %v", tc.acceptHeader, tc.respStatus, resp.StatusCode)
 		}
 		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Accept: %v: Unexpected error in reading response body: %v", tc.acceptHeader, err)
 		}
@@ -96,7 +97,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 }
 
 func TestToProtoBinary(t *testing.T) {
-	bs, err := ioutil.ReadFile("../../test/integration/testdata/aggregator/openapi.json")
+	bs, err := os.ReadFile("../../test/integration/testdata/aggregator/openapi.json")
 	if err != nil {
 		t.Fatal(err)
 	}

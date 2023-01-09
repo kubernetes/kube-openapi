@@ -17,7 +17,6 @@ limitations under the License.
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -75,7 +74,7 @@ var _ = BeforeSuite(func() {
 	workingDirectory = abs
 
 	// Create a temporary directory for generated swagger files.
-	tempDir, terr = ioutil.TempDir("./", "openapi")
+	tempDir, terr = os.MkdirTemp("./", "openapi")
 	Expect(terr).ShouldNot(HaveOccurred())
 
 	// Build the OpenAPI code generator.
