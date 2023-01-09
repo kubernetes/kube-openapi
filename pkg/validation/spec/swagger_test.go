@@ -188,7 +188,7 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 	err = json.Unmarshal(jsonBytes, &actual)
 	require.NoError(t, err)
 
-	if !reflect.DeepEqual(expected, actual) {
+	if !cmp.Equal(expected, actual, SwaggerDiffOptions...) {
 		t.Fatal(cmp.Diff(expected, actual, SwaggerDiffOptions...))
 	}
 

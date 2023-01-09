@@ -55,7 +55,7 @@ func gnosticCommonTest(t testing.TB, fuzzer *fuzz.Fuzzer) {
 	ok, err := actual.FromGnostic(gnosticSpec)
 	require.NoError(t, err)
 	require.True(t, ok)
-	if !reflect.DeepEqual(expected, actual) {
+	if !cmp.Equal(expected, actual, SwaggerDiffOptions...) {
 		t.Fatal(cmp.Diff(expected, actual, SwaggerDiffOptions...))
 	}
 
