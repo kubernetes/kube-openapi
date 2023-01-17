@@ -2,15 +2,7 @@ types:
 - name: io.k8s.testcase.Empty
   map:
     elementType:
-      scalar: untyped
-      list:
-        elementType:
-          namedType: __untyped_atomic_
-        elementRelationship: atomic
-      map:
-        elementType:
-          namedType: __untyped_deduced_
-        elementRelationship: separable
+      namedType: __untyped_deduced_
 - name: io.k8s.testcase.EmptyPreserveUnknownFieldsObject
   map:
     fields:
@@ -18,15 +10,7 @@ types:
       type:
         map:
           elementType:
-            scalar: untyped
-            list:
-              elementType:
-                namedType: __untyped_atomic_
-              elementRelationship: atomic
-            map:
-              elementType:
-                namedType: __untyped_deduced_
-              elementRelationship: separable
+            namedType: __untyped_deduced_
 - name: io.k8s.testcase.PopulatedPreserveUnknownFieldsObject
   map:
     fields:

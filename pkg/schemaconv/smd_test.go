@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	yaml "gopkg.in/yaml.v2"
 
 	"k8s.io/kube-openapi/pkg/util/proto"
@@ -95,6 +96,7 @@ func testToSchema(t *testing.T, openAPIPath, expectedNewSchemaPath string) {
 			filepath.Join("pkg", "schemaconv", expectedNewSchemaPath),
 		)
 		t.Log("You can then use `git diff` to see the changes.")
+		t.Error(cmp.Diff(string(expect), string(got)))
 	}
 }
 
