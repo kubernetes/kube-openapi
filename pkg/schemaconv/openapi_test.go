@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package schemaconv_test
+package schemaconv
 
 import (
 	"embed"
@@ -27,7 +27,6 @@ import (
 	openapi_v2 "github.com/google/gnostic/openapiv2"
 	"github.com/stretchr/testify/require"
 
-	"k8s.io/kube-openapi/pkg/schemaconv"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util/proto"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -53,6 +52,27 @@ func toPtrMap[T comparable, V any](m map[T]V) map[T]*V {
 	return res
 }
 
+func normalizeTypeRef(tr *schema.TypeRef) {
+	if tr.Inlined == deducedDef.Atom {
+		// Deduplicate deducedDef (mostly for testing)
+		*tr = schema.TypeRef{
+			NamedType: &deducedName,
+		}
+	} else if tr.NamedType != nil && *tr.NamedType == rawExtensionResource {
+		// In old conversion all references to rawExtension were
+		// replaced with untyped. In new implementation we preserve
+		// the references and instead change the raw extension type
+		// to untyped.
+		// For normalization, just convert rawextension references
+		// to "untyped"
+		*tr = schema.TypeRef{
+			NamedType: &untypedName,
+		}
+	} else {
+		normalizeType(&tr.Inlined)
+	}
+}
+
 // There are minor differences in new API that are semantically equivalent:
 //  1. old openapi would replace refs to RawExtensoin with "untyped" and leave
 //     RawExtension with a non-referenced/nonworking definition. New implemenatation
@@ -61,34 +81,28 @@ func toPtrMap[T comparable, V any](m map[T]V) map[T]*V {
 //     arbitrary/deduced maps where the new implementation leaves it unset
 //     if it is unset by the user.
 func normalizeType(typ *schema.Atom) {
-	untypedName := "__untyped_atomic_"
-
 	if typ.List != nil {
 		if typ.List.ElementType.Inlined != (schema.Atom{}) {
-			normalizeType(&typ.List.ElementType.Inlined)
+			typ.List = &*typ.List
+			normalizeTypeRef(&typ.List.ElementType)
 		}
 	}
 
 	if typ.Map != nil {
-		for i, f := range typ.Fields {
+		typ.Map = &*typ.Map
 
+		fields := make([]schema.StructField, 0)
+		copy(typ.Fields, fields)
+		typ.Fields = fields
+
+		for i, f := range typ.Fields {
 			// Known Difference: Old conversion parses "{}" as empty map[any]any.
 			// 					 New conversion parses it as empty map[string]any
 			if reflect.DeepEqual(f.Default, map[any]any{}) {
 				f.Default = map[string]any{}
 			}
 
-			if f.Type.Inlined != (schema.Atom{}) {
-				normalizeType(&f.Type.Inlined)
-			} else if f.Type.NamedType != nil && *f.Type.NamedType == "io.k8s.apimachinery.pkg.runtime.RawExtension" {
-				// In old conversion all references to rawExtension were
-				// replaced with untyped. In new implementation we preserve
-				// the references and instead change the raw extension type
-				// to untyped.
-				// For normalization, just convert rawextension references
-				// to "untyped"
-				f.Type.NamedType = &untypedName
-			}
+			normalizeTypeRef(&f.Type)
 			typ.Fields[i] = f
 		}
 
@@ -101,17 +115,16 @@ func normalizeType(typ *schema.Atom) {
 		typ.Unions = nil
 
 		if typ.Map.ElementType.NamedType != nil {
-			if len(typ.Map.ElementRelationship) == 0 && typ.Scalar != nil && typ.List != nil && *typ.Map.ElementType.NamedType == "__untyped_deduced_" {
+			if len(typ.Map.ElementRelationship) == 0 && typ.Scalar != nil && typ.List != nil && *typ.Map.ElementType.NamedType == deducedName {
 				// In old implementation arbitrary/deduced map would always also
 				// include "separable".
 				// New implementation has some code paths that dont follow that
 				// (separable is default) so always attaach separable to deduced.
 				typ.Map.ElementRelationship = schema.Separable
-			} else if *typ.Map.ElementType.NamedType == "io.k8s.apimachinery.pkg.runtime.RawExtension" {
-				// See other rawextension comment elsewhere.
-				*typ.Map.ElementType.NamedType = untypedName
 			}
 		}
+
+		normalizeTypeRef(&typ.Map.ElementType)
 	}
 }
 
@@ -135,7 +148,6 @@ func normalizeTypes(types []schema.TypeDef) map[string]schema.TypeDef {
 	//
 	// This bit of code reverts the new conversion's fix, and puts in place the old
 	// broken raw extension definition.
-	deducedName := "__untyped_deduced_"
 	res["io.k8s.apimachinery.pkg.runtime.RawExtension"] = schema.TypeDef{
 		Name: "io.k8s.apimachinery.pkg.runtime.RawExtension",
 		Atom: schema.Atom{
@@ -206,7 +218,7 @@ func TestCRDOpenAPIConversion(t *testing.T) {
 
 			v2Types, err := specToSchemaViaProtoModels(openAPIV2Contents)
 			require.NoError(t, err)
-			v3Types, err := schemaconv.ToSchemaFromOpenAPI(v3.Components.Schemas, false)
+			v3Types, err := ToSchemaFromOpenAPI(v3.Components.Schemas, false)
 			require.NoError(t, err)
 
 			require.Equal(t, normalizeTypes(v2Types.Types), normalizeTypes(v3Types.Types))
@@ -228,7 +240,7 @@ func TestOpenAPIImplementation(t *testing.T) {
 	err = json.Unmarshal([]byte(swaggerJSON), &swag)
 	require.NoError(t, err)
 
-	newConversionTypes, err := schemaconv.ToSchemaFromOpenAPI(toPtrMap(swag.Definitions), false)
+	newConversionTypes, err := ToSchemaFromOpenAPI(toPtrMap(swag.Definitions), false)
 	require.NoError(t, err)
 
 	require.Equal(t, normalizeTypes(protoModels.Types), normalizeTypes(newConversionTypes.Types))
@@ -245,7 +257,7 @@ func specToSchemaViaProtoModels(input []byte) (*schema.Schema, error) {
 		return nil, err
 	}
 
-	newSchema, err := schemaconv.ToSchema(models)
+	newSchema, err := ToSchema(models)
 	if err != nil {
 		return nil, err
 	}
@@ -262,7 +274,7 @@ func BenchmarkOpenAPIConversion(b *testing.B) {
 	b.Run("spec.Schema->schema.Schema", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := schemaconv.ToSchemaFromOpenAPI(toPtrMap(doc.Definitions), false)
+			_, err := ToSchemaFromOpenAPI(toPtrMap(doc.Definitions), false)
 			require.NoError(b, err)
 		}
 	})
@@ -304,7 +316,7 @@ func BenchmarkOpenAPICRDConversion(b *testing.B) {
 			b.Run("spec.Schema->schema.Schema", func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					_, err := schemaconv.ToSchemaFromOpenAPI(v3.Components.Schemas, false)
+					_, err := ToSchemaFromOpenAPI(v3.Components.Schemas, false)
 					require.NoError(b, err)
 				}
 			})

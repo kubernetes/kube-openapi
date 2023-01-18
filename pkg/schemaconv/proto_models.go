@@ -89,11 +89,6 @@ func (c *convert) makeRef(model proto.Schema, preserveUnknownFields bool) schema
 		if tr == (schema.TypeRef{}) {
 			// emit warning?
 			tr.NamedType = &untypedName
-		} else if tr.Inlined == deducedDef.Atom {
-			// Deduplicate deducedDef (mostly for testing)
-			tr = schema.TypeRef{
-				NamedType: &deducedName,
-			}
 		}
 	}
 	return tr
