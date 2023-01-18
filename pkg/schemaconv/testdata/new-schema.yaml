@@ -8033,7 +8033,15 @@ types:
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceSubresourceStatus
   map:
     elementType:
-      namedType: __untyped_deduced_
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
 - name: io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceSubresources
   map:
     fields:
@@ -8488,7 +8496,15 @@ types:
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.FieldsV1
   map:
     elementType:
-      namedType: __untyped_deduced_
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.GroupVersionForDiscovery
   map:
     fields:
@@ -8657,7 +8673,15 @@ types:
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Patch
   map:
     elementType:
-      namedType: __untyped_deduced_
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
 - name: io.k8s.apimachinery.pkg.apis.meta.v1.Preconditions
   map:
     fields:
@@ -8753,7 +8777,15 @@ types:
 - name: io.k8s.apimachinery.pkg.runtime.RawExtension
   map:
     elementType:
-      namedType: __untyped_deduced_
+      scalar: untyped
+      list:
+        elementType:
+          namedType: __untyped_atomic_
+        elementRelationship: atomic
+      map:
+        elementType:
+          namedType: __untyped_deduced_
+        elementRelationship: separable
 - name: io.k8s.apimachinery.pkg.util.intstr.IntOrString
   scalar: untyped
 - name: io.k8s.apimachinery.pkg.version.Info
