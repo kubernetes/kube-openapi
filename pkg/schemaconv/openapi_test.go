@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package schemaconv
+package schemaconv_test
 
 import (
 	"embed"
@@ -27,6 +27,7 @@ import (
 	openapi_v2 "github.com/google/gnostic/openapiv2"
 	"github.com/stretchr/testify/require"
 
+	"k8s.io/kube-openapi/pkg/schemaconv"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util/proto"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -38,6 +39,14 @@ var swaggerJSON string
 
 //go:embed testdata/crds
 var crdFS embed.FS
+
+var deducedName string = "__untyped_deduced_"
+var untypedName string = "__untyped_atomic_"
+
+const (
+	quantityResource     = "io.k8s.apimachinery.pkg.api.resource.Quantity"
+	rawExtensionResource = "io.k8s.apimachinery.pkg.runtime.RawExtension"
+)
 
 func toPtrMap[T comparable, V any](m map[T]V) map[T]*V {
 	if m == nil {
@@ -53,8 +62,24 @@ func toPtrMap[T comparable, V any](m map[T]V) map[T]*V {
 }
 
 func normalizeTypeRef(tr *schema.TypeRef) {
-	if tr.Inlined == deducedDef.Atom {
-		// Deduplicate deducedDef (mostly for testing)
+	var untypedScalar schema.Scalar = "untyped"
+
+	// Deduplicate deducedDef
+	if tr.Inlined.Equals(&schema.Atom{
+		Scalar: &untypedScalar,
+		List: &schema.List{
+			ElementType: schema.TypeRef{
+				NamedType: &untypedName,
+			},
+			ElementRelationship: schema.Atomic,
+		},
+		Map: &schema.Map{
+			ElementType: schema.TypeRef{
+				NamedType: &deducedName,
+			},
+			ElementRelationship: schema.Separable,
+		},
+	}) {
 		*tr = schema.TypeRef{
 			NamedType: &deducedName,
 		}
@@ -218,7 +243,7 @@ func TestCRDOpenAPIConversion(t *testing.T) {
 
 			v2Types, err := specToSchemaViaProtoModels(openAPIV2Contents)
 			require.NoError(t, err)
-			v3Types, err := ToSchemaFromOpenAPI(v3.Components.Schemas, false)
+			v3Types, err := schemaconv.ToSchemaFromOpenAPI(v3.Components.Schemas, false)
 			require.NoError(t, err)
 
 			require.Equal(t, normalizeTypes(v2Types.Types), normalizeTypes(v3Types.Types))
@@ -240,7 +265,7 @@ func TestOpenAPIImplementation(t *testing.T) {
 	err = json.Unmarshal([]byte(swaggerJSON), &swag)
 	require.NoError(t, err)
 
-	newConversionTypes, err := ToSchemaFromOpenAPI(toPtrMap(swag.Definitions), false)
+	newConversionTypes, err := schemaconv.ToSchemaFromOpenAPI(toPtrMap(swag.Definitions), false)
 	require.NoError(t, err)
 
 	require.Equal(t, normalizeTypes(protoModels.Types), normalizeTypes(newConversionTypes.Types))
@@ -257,7 +282,7 @@ func specToSchemaViaProtoModels(input []byte) (*schema.Schema, error) {
 		return nil, err
 	}
 
-	newSchema, err := ToSchema(models)
+	newSchema, err := schemaconv.ToSchema(models)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +299,7 @@ func BenchmarkOpenAPIConversion(b *testing.B) {
 	b.Run("spec.Schema->schema.Schema", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := ToSchemaFromOpenAPI(toPtrMap(doc.Definitions), false)
+			_, err := schemaconv.ToSchemaFromOpenAPI(toPtrMap(doc.Definitions), false)
 			require.NoError(b, err)
 		}
 	})
@@ -316,7 +341,7 @@ func BenchmarkOpenAPICRDConversion(b *testing.B) {
 			b.Run("spec.Schema->schema.Schema", func(b *testing.B) {
 				b.ReportAllocs()
 				for i := 0; i < b.N; i++ {
-					_, err := ToSchemaFromOpenAPI(v3.Components.Schemas, false)
+					_, err := schemaconv.ToSchemaFromOpenAPI(v3.Components.Schemas, false)
 					require.NoError(b, err)
 				}
 			})
