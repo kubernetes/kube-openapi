@@ -17,8 +17,8 @@ limitations under the License.
 package schemaconv_test
 
 import (
-	"embed"
 	"encoding/json"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -34,11 +34,8 @@ import (
 	"sigs.k8s.io/structured-merge-diff/v4/schema"
 )
 
-//go:embed testdata/swagger.json
-var swaggerJSON string
-
-//go:embed testdata/crds
-var crdFS embed.FS
+var swaggerJSONPath = "testdata/swagger.json"
+var testCRDPath = "testdata/crds"
 
 var deducedName string = "__untyped_deduced_"
 var untypedName string = "__untyped_atomic_"
@@ -225,15 +222,15 @@ func normalizeTypes(types []schema.TypeDef) map[string]schema.TypeDef {
 }
 
 func TestCRDOpenAPIConversion(t *testing.T) {
-	files, err := crdFS.ReadDir("testdata/crds/openapiv2")
+	files, err := os.ReadDir("testdata/crds/openapiv2")
 	require.NoError(t, err)
 	for _, entry := range files {
 		t.Run(entry.Name(), func(t *testing.T) {
 			t.Parallel()
-			openAPIV2Contents, err := crdFS.ReadFile("testdata/crds/openapiv2/" + entry.Name())
+			openAPIV2Contents, err := os.ReadFile("testdata/crds/openapiv2/" + entry.Name())
 			require.NoError(t, err)
 
-			openAPIV3Contents, err := crdFS.ReadFile("testdata/crds/openapiv3/" + entry.Name())
+			openAPIV3Contents, err := os.ReadFile("testdata/crds/openapiv3/" + entry.Name())
 			require.NoError(t, err)
 
 			var v3 spec3.OpenAPI
@@ -258,11 +255,14 @@ func TestCRDOpenAPIConversion(t *testing.T) {
 //
 // Compare YAML forms. We have some allowed differences...
 func TestOpenAPIImplementation(t *testing.T) {
-	protoModels, err := specToSchemaViaProtoModels([]byte(swaggerJSON))
+	swaggerJSON, err := os.ReadFile(swaggerJSONPath)
+	require.NoError(t, err)
+
+	protoModels, err := specToSchemaViaProtoModels(swaggerJSON)
 	require.NoError(t, err)
 
 	var swag spec.Swagger
-	err = json.Unmarshal([]byte(swaggerJSON), &swag)
+	err = json.Unmarshal(swaggerJSON, &swag)
 	require.NoError(t, err)
 
 	newConversionTypes, err := schemaconv.ToSchemaFromOpenAPI(toPtrMap(swag.Definitions), false)
@@ -291,8 +291,11 @@ func specToSchemaViaProtoModels(input []byte) (*schema.Schema, error) {
 }
 
 func BenchmarkOpenAPIConversion(b *testing.B) {
+	swaggerJSON, err := os.ReadFile(swaggerJSONPath)
+	require.NoError(b, err)
+
 	doc := spec.Swagger{}
-	require.NoError(b, doc.UnmarshalJSON([]byte(swaggerJSON)))
+	require.NoError(b, doc.UnmarshalJSON(swaggerJSON))
 
 	// Beginning the benchmark from spec.Schema, since that is the format
 	// stored by the kube-apiserver
@@ -317,14 +320,14 @@ func BenchmarkOpenAPIConversion(b *testing.B) {
 }
 
 func BenchmarkOpenAPICRDConversion(b *testing.B) {
-	files, err := crdFS.ReadDir("testdata/crds/openapiv2")
+	files, err := os.ReadDir("testdata/crds/openapiv2")
 	require.NoError(b, err)
 	for _, entry := range files {
 		b.Run(entry.Name(), func(b *testing.B) {
-			openAPIV2Contents, err := crdFS.ReadFile("testdata/crds/openapiv2/" + entry.Name())
+			openAPIV2Contents, err := os.ReadFile("testdata/crds/openapiv2/" + entry.Name())
 			require.NoError(b, err)
 
-			openAPIV3Contents, err := crdFS.ReadFile("testdata/crds/openapiv3/" + entry.Name())
+			openAPIV3Contents, err := os.ReadFile("testdata/crds/openapiv3/" + entry.Name())
 			require.NoError(b, err)
 
 			var v2 spec.Swagger
