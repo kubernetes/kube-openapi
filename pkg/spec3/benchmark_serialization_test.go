@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kube-openapi/pkg/internal"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -105,16 +106,16 @@ func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 			}
 		})
 
-		// TODO: Enable this benchmark when jsonv2 is functional for OpenAPI V3.
-		// b.Run("jsonv2", func(b2 *testing.B) {
-		// b2.ReportAllocs()
-		// 	internal.UseOptimizedJSONUnmarshaling = true
-		// 	for i := 0; i < b2.N; i++ {
-		// 		var result OpenAPI
-		// 		if err := result.UnmarshalJSON(originalJSON); err != nil {
-		// 			b2.Fatal(err)
-		// 		}
-		// 	}
-		// })
+		b.Run("jsonv2", func(b2 *testing.B) {
+			b2.ReportAllocs()
+			internal.UseOptimizedJSONUnmarshaling = true
+			internal.UseOptimizedJSONUnmarshalingV3 = true
+			for i := 0; i < b2.N; i++ {
+				var result *OpenAPI
+				if err := jsonv2.Unmarshal(originalJSON, &result); err != nil {
+					b2.Fatal(err)
+				}
+			}
+		})
 	}
 }
