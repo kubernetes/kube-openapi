@@ -96,11 +96,7 @@ func (o *Operation) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.
 	if err := opts.UnmarshalNext(dec, &x); err != nil {
 		return err
 	}
-	x.Extensions.sanitize()
-	if len(x.Extensions) == 0 {
-		x.Extensions = nil
-	}
-	o.VendorExtensible.Extensions = x.Extensions
+	o.Extensions = internal.SanitizeExtensions(x.Extensions)
 	o.OperationProps = OperationProps(x.OperationPropsNoMethods)
 	return nil
 }

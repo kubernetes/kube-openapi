@@ -109,13 +109,9 @@ func (p *Parameter) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.
 	if err := p.Refable.Ref.fromMap(x.Extensions); err != nil {
 		return err
 	}
-	x.Extensions.sanitize()
-	if len(x.Extensions) == 0 {
-		x.Extensions = nil
-	}
 	p.CommonValidations = x.CommonValidations
 	p.SimpleSchema = x.SimpleSchema
-	p.VendorExtensible.Extensions = x.Extensions
+	p.Extensions = internal.SanitizeExtensions(x.Extensions)
 	p.ParamProps = x.ParamProps
 	return nil
 }

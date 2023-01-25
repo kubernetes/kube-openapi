@@ -72,11 +72,7 @@ func (t *Tag) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Decode
 	if err := opts.UnmarshalNext(dec, &x); err != nil {
 		return err
 	}
-	x.Extensions.sanitize()
-	if len(x.Extensions) == 0 {
-		x.Extensions = nil
-	}
-	t.VendorExtensible.Extensions = x.Extensions
+	t.Extensions = internal.SanitizeExtensions(x.Extensions)
 	t.TagProps = x.TagProps
 	return nil
 }

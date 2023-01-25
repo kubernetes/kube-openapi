@@ -89,17 +89,9 @@ func (e Extensions) GetObject(key string, out interface{}) error {
 	return nil
 }
 
-func (e Extensions) sanitize() {
-	for k := range e {
-		if !isExtensionKey(k) {
-			delete(e, k)
-		}
-	}
-}
-
 func (e Extensions) sanitizeWithExtra() (extra map[string]any) {
 	for k, v := range e {
-		if !isExtensionKey(k) {
+		if !internal.IsExtensionKey(k) {
 			if extra == nil {
 				extra = make(map[string]any)
 			}
@@ -108,10 +100,6 @@ func (e Extensions) sanitizeWithExtra() (extra map[string]any) {
 		}
 	}
 	return extra
-}
-
-func isExtensionKey(k string) bool {
-	return len(k) > 1 && (k[0] == 'x' || k[0] == 'X') && k[1] == '-'
 }
 
 // VendorExtensible composition block.
@@ -212,11 +200,7 @@ func (i *Info) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Decod
 	if err := opts.UnmarshalNext(dec, &x); err != nil {
 		return err
 	}
-	x.Extensions.sanitize()
-	if len(x.Extensions) == 0 {
-		x.Extensions = nil
-	}
-	i.VendorExtensible.Extensions = x.Extensions
+	i.Extensions = internal.SanitizeExtensions(x.Extensions)
 	i.InfoProps = x.InfoProps
 	return nil
 }
