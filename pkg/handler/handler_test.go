@@ -64,10 +64,10 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		{"application/test", 406, []byte{}},
 		{"application/test, */*", 200, returnedJSON},
 		{"application/test, application/json", 200, returnedJSON},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedPb},
-		{"application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedJSON},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf, application/json", 200, returnedPb},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf; q=0.5, application/json", 200, returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf", 200, returnedPb},
+		{"application/json, application/com.github.proto-openapi.spec.v2.v1.0+protobuf", 200, returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf, application/json", 200, returnedPb},
+		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf; q=0.5, application/json", 200, returnedJSON},
 	}
 
 	for _, tc := range tcs {
