@@ -52,26 +52,27 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	client := server.Client()
 
 	tcs := []struct {
-		acceptHeader string
-		respStatus   int
-		respBody     []byte
+		acceptHeader              string
+		respStatus                int
+		responseContentTypeHeader string
+		respBody                  []byte
 	}{
-		{"", 200, returnedJSON},
-		{"*/*", 200, returnedJSON},
-		{"application/*", 200, returnedJSON},
-		{"application/json", 200, returnedJSON},
-		{"test/test", 406, []byte{}},
-		{"application/test", 406, []byte{}},
-		{"application/test, */*", 200, returnedJSON},
-		{"application/test, application/json", 200, returnedJSON},
-		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf", 200, returnedPb},
-		{"application/json, application/com.github.proto-openapi.spec.v2.v1.0+protobuf", 200, returnedJSON},
-		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf, application/json", 200, returnedPb},
-		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf; q=0.5, application/json", 200, returnedJSON},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedPb},
-		{"application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, returnedJSON},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf, application/json", 200, returnedPb},
-		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf; q=0.5, application/json", 200, returnedJSON},
+		{"", 200, "application/json", returnedJSON},
+		{"*/*", 200, "application/json", returnedJSON},
+		{"application/*", 200, "application/json", returnedJSON},
+		{"application/json", 200, "application/json", returnedJSON},
+		{"test/test", 406, "", []byte{}},
+		{"application/test", 406, "", []byte{}},
+		{"application/test, */*", 200, "application/json", returnedJSON},
+		{"application/test, application/json", 200, "application/json", returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf", 200, "application/com.github.proto-openapi.spec.v2.v1.0+protobuf", returnedPb},
+		{"application/json, application/com.github.proto-openapi.spec.v2.v1.0+protobuf", 200, "application/json", returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf, application/json", 200, "application/com.github.proto-openapi.spec.v2.v1.0+protobuf", returnedPb},
+		{"application/com.github.proto-openapi.spec.v2.v1.0+protobuf; q=0.5, application/json", 200, "application/json", returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, "application/com.github.proto-openapi.spec.v2.v1.0+protobuf", returnedPb},
+		{"application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf", 200, "application/json", returnedJSON},
+		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf, application/json", 200, "application/com.github.proto-openapi.spec.v2.v1.0+protobuf", returnedPb},
+		{"application/com.github.proto-openapi.spec.v2@v1.0+protobuf; q=0.5, application/json", 200, "application/json", returnedJSON},
 	}
 
 	for _, tc := range tcs {
@@ -89,6 +90,11 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		if resp.StatusCode != tc.respStatus {
 			t.Errorf("Accept: %v: Unexpected response status code, want: %v, got: %v", tc.acceptHeader, tc.respStatus, resp.StatusCode)
 		}
+
+		if resp.Header.Get("Content-Type") != tc.responseContentTypeHeader {
+			t.Errorf("Accept: %v: Unexpected content type in response, want: %v, got: %v", tc.acceptHeader, tc.responseContentTypeHeader, resp.Header.Get("Content-Type"))
+		}
+
 		defer resp.Body.Close()
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {

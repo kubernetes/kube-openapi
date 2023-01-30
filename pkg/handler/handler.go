@@ -182,6 +182,14 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 							return
 						}
 					}
+					// Set Content-Type header in the reponse
+					if accepts.SubType != "com.github.proto-openapi.spec.v2@v1.0+protobuf" {
+						contentType := accepts.Type + "/" + accepts.SubType
+						w.Header().Set("Content-Type", contentType)
+					} else {
+						contentType := accepts.Type + "/" + "com.github.proto-openapi.spec.v2.v1.0+protobuf"
+						w.Header().Set("Content-Type", contentType)
+					}
 					// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
 					w.Header().Set("Etag", strconv.Quote(etag))
 					// ServeContent will take care of caching using eTag.
