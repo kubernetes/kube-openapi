@@ -215,9 +215,6 @@ func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Reque
 			if clause.SubType != accepts.SubType && clause.SubType != "*" {
 				continue
 			}
-			if accepts.SubType == subTypeProtobufDeprecated {
-				fmt.Println("Deprecated: use SubType com.github.proto-openapi.spec.v3.v1.0+protobuf instead.")
-			}
 			data, etag, lastModified, err := o.getSingleGroupBytes(accepts.SubType, group)
 			if err != nil {
 				return

@@ -174,10 +174,6 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 					if clause.SubType != accepts.SubType && clause.SubType != "*" {
 						continue
 					}
-					if accepts.SubType == subTypeProtobufDeprecated {
-						klog.Info("Deprecated: use SubType com.github.proto-openapi.spec.v2.v1.0+protobuf instead.")
-					}
-
 					// serve the first matching media type in the sorted clause list
 					data, etag, lastModified, err := accepts.GetDataAndETag()
 					if err != nil {
