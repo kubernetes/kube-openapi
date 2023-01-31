@@ -148,7 +148,7 @@ func (r *Responses) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.
 				return nil
 			}
 			switch k := tok.String(); {
-			case isExtensionKey(k):
+			case internal.IsExtensionKey(k):
 				ext = nil
 				if err := opts.UnmarshalNext(dec, &ext); err != nil {
 					return err

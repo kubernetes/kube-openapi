@@ -68,17 +68,11 @@ func (r *Response) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.D
 		return err
 	}
 
-	r.Extensions = x.Extensions
-	r.ResponseProps = x.ResponseProps
-
-	if err := r.Refable.Ref.fromMap(r.Extensions); err != nil {
+	if err := r.Refable.Ref.fromMap(x.Extensions); err != nil {
 		return err
 	}
-
-	r.Extensions.sanitize()
-	if len(r.Extensions) == 0 {
-		r.Extensions = nil
-	}
+	r.Extensions = internal.SanitizeExtensions(x.Extensions)
+	r.ResponseProps = x.ResponseProps
 
 	return nil
 }

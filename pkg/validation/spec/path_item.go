@@ -70,18 +70,11 @@ func (p *PathItem) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.D
 	if err := opts.UnmarshalNext(dec, &x); err != nil {
 		return err
 	}
-
-	p.Extensions = x.Extensions
-	p.PathItemProps = x.PathItemProps
-
-	if err := p.Refable.Ref.fromMap(p.Extensions); err != nil {
+	if err := p.Refable.Ref.fromMap(x.Extensions); err != nil {
 		return err
 	}
-
-	p.Extensions.sanitize()
-	if len(p.Extensions) == 0 {
-		p.Extensions = nil
-	}
+	p.Extensions = internal.SanitizeExtensions(x.Extensions)
+	p.PathItemProps = x.PathItemProps
 
 	return nil
 }

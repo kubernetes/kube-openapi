@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 
 	"github.com/go-openapi/swag"
+	"k8s.io/kube-openapi/pkg/internal"
 	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 )
 
@@ -72,11 +73,7 @@ func (s *SecurityScheme) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *js
 	if err := opts.UnmarshalNext(dec, &x); err != nil {
 		return err
 	}
-	x.Extensions.sanitize()
-	if len(x.Extensions) == 0 {
-		x.Extensions = nil
-	}
-	s.VendorExtensible.Extensions = x.Extensions
+	s.Extensions = internal.SanitizeExtensions(x.Extensions)
 	s.SecuritySchemeProps = x.SecuritySchemeProps
 	return nil
 }
