@@ -223,11 +223,11 @@ func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Reque
 				return
 			}
 			// Set Content-Type header in the reponse
-			if accepts.SubType != subTypeProtobufDeprecated {
-				contentType := accepts.Type + "/" + accepts.SubType
+			if accepts.SubType == subTypeProtobufDeprecated {
+				contentType := accepts.Type + "/" + subTypeProtobuf
 				w.Header().Set("Content-Type", contentType)
 			} else {
-				contentType := accepts.Type + "/" + subTypeProtobuf
+				contentType := accepts.Type + "/" + accepts.SubType
 				w.Header().Set("Content-Type", contentType)
 			}
 			// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag

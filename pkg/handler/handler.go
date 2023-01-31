@@ -39,6 +39,12 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
+const (
+	subTypeProtobufDeprecated = "com.github.proto-openapi.spec.v2@v1.0+protobuf"
+	subTypeProtobuf           = "com.github.proto-openapi.spec.v2.v1.0+protobuf"
+	subTypeJSON               = "json"
+)
+
 func computeETag(data []byte) string {
 	if data == nil {
 		return ""
@@ -147,9 +153,9 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 		SubType        string
 		GetDataAndETag func() ([]byte, string, time.Time, error)
 	}{
-		{"application", "json", o.getSwaggerBytes},
-		{"application", "com.github.proto-openapi.spec.v2@v1.0+protobuf", o.getSwaggerPbBytes},
-		{"application", "com.github.proto-openapi.spec.v2.v1.0+protobuf", o.getSwaggerPbBytes},
+		{"application", subTypeJSON, o.getSwaggerBytes},
+		{"application", subTypeProtobufDeprecated, o.getSwaggerPbBytes},
+		{"application", subTypeProtobuf, o.getSwaggerPbBytes},
 	}
 
 	handler.Handle(servePath, gziphandler.GzipHandler(http.HandlerFunc(
@@ -168,7 +174,7 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 					if clause.SubType != accepts.SubType && clause.SubType != "*" {
 						continue
 					}
-					if accepts.SubType == "com.github.proto-openapi.spec.v2@v1.0+protobuf" {
+					if accepts.SubType == subTypeProtobufDeprecated {
 						klog.Info("Deprecated: use SubType com.github.proto-openapi.spec.v2.v1.0+protobuf instead.")
 					}
 
@@ -183,11 +189,11 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 						}
 					}
 					// Set Content-Type header in the reponse
-					if accepts.SubType != "com.github.proto-openapi.spec.v2@v1.0+protobuf" {
-						contentType := accepts.Type + "/" + accepts.SubType
+					if accepts.SubType == subTypeProtobufDeprecated {
+						contentType := accepts.Type + "/" + subTypeProtobuf
 						w.Header().Set("Content-Type", contentType)
 					} else {
-						contentType := accepts.Type + "/" + "com.github.proto-openapi.spec.v2.v1.0+protobuf"
+						contentType := accepts.Type + "/" + accepts.SubType
 						w.Header().Set("Content-Type", contentType)
 					}
 					// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
