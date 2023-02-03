@@ -18,9 +18,11 @@ package spec3_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -110,5 +112,18 @@ func TestPathJSONSerialization(t *testing.T) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
 		})
+	}
+}
+
+func TestPathsNullUnmarshal(t *testing.T) {
+	nullByte := []byte(`null`)
+
+	expected := spec3.Paths{}
+	test := spec3.Paths{
+		Paths: map[string]*spec3.Path{"/path": {}},
+	}
+	jsonv2.Unmarshal(nullByte, &test)
+	if !reflect.DeepEqual(test, expected) {
+		t.Error("Expected unmarshal of null to reset the Paths struct")
 	}
 }

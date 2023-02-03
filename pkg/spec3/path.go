@@ -87,7 +87,8 @@ func (p *Paths) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Deco
 	}
 	switch k := tok.Kind(); k {
 	case 'n':
-		return nil // noop
+		*p = Paths{}
+		return nil
 	case '{':
 		for {
 			tok, err := dec.ReadToken()

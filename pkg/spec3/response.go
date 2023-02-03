@@ -121,7 +121,8 @@ func (r *Responses) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.
 	}
 	switch k := tok.Kind(); k {
 	case 'n':
-		return nil // noop
+		*r = Responses{}
+		return nil
 	case '{':
 		for {
 			tok, err := dec.ReadToken()

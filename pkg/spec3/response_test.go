@@ -18,10 +18,12 @@ package spec3_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/spec3"
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -90,5 +92,20 @@ func TestResponseJSONSerialization(t *testing.T) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
 		})
+	}
+}
+
+func TestResponsesNullUnmarshal(t *testing.T) {
+	nullByte := []byte(`null`)
+
+	expected := spec3.Responses{}
+	test := spec3.Responses{
+		ResponsesProps: spec3.ResponsesProps{
+			Default: &spec3.Response{},
+		},
+	}
+	jsonv2.Unmarshal(nullByte, &test)
+	if !reflect.DeepEqual(test, expected) {
+		t.Error("Expected unmarshal of null to reset the Responses struct")
 	}
 }
