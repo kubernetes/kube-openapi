@@ -21,9 +21,36 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
 	"k8s.io/kube-openapi/pkg/spec3"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
+
+func TestResponsesRoundTrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			Name: "Basic Test With Extensions",
+			Object: &spec3.Responses{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-framework": "swagger-go",
+					},
+				},
+				ResponsesProps: spec3.ResponsesProps{
+					Default: &spec3.Response{
+						Refable: spec.Refable{Ref: spec.MustCreateRef("/components/some/ref.foo")},
+					},
+				},
+			},
+		},
+	}
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&spec3.Responses{}))
+		})
+	}
+}
 
 func TestResponseJSONSerialization(t *testing.T) {
 	cases := []struct {
