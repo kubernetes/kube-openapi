@@ -149,13 +149,14 @@ func RegisterOpenAPIVersionedService(spec *spec.Swagger, servePath string, handl
 // RegisterOpenAPIVersionedService registers a handler to provide access to provided swagger spec.
 func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handler common.PathHandler) error {
 	accepted := []struct {
-		Type           string
-		SubType        string
-		GetDataAndETag func() ([]byte, string, time.Time, error)
+		Type                string
+		SubType             string
+		ReturnedContentType string
+		GetDataAndETag      func() ([]byte, string, time.Time, error)
 	}{
-		{"application", subTypeJSON, o.getSwaggerBytes},
-		{"application", subTypeProtobufDeprecated, o.getSwaggerPbBytes},
-		{"application", subTypeProtobuf, o.getSwaggerPbBytes},
+		{"application", subTypeJSON, "application/" + subTypeJSON, o.getSwaggerBytes},
+		{"application", subTypeProtobufDeprecated, "application/" + subTypeProtobuf, o.getSwaggerPbBytes},
+		{"application", subTypeProtobuf, "application/" + subTypeProtobuf, o.getSwaggerPbBytes},
 	}
 
 	handler.Handle(servePath, gziphandler.GzipHandler(http.HandlerFunc(
@@ -185,13 +186,8 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 						}
 					}
 					// Set Content-Type header in the reponse
-					if accepts.SubType == subTypeProtobufDeprecated {
-						contentType := accepts.Type + "/" + subTypeProtobuf
-						w.Header().Set("Content-Type", contentType)
-					} else {
-						contentType := accepts.Type + "/" + accepts.SubType
-						w.Header().Set("Content-Type", contentType)
-					}
+					w.Header().Set("Content-Type", accepts.ReturnedContentType)
+
 					// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
 					w.Header().Set("Etag", strconv.Quote(etag))
 					// ServeContent will take care of caching using eTag.

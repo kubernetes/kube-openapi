@@ -199,12 +199,13 @@ func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Reque
 	}
 
 	accepted := []struct {
-		Type    string
-		SubType string
+		Type                string
+		SubType             string
+		ReturnedContentType string
 	}{
-		{"application", subTypeJSON},
-		{"application", subTypeProtobuf},
-		{"application", subTypeProtobufDeprecated},
+		{"application", subTypeJSON, "application/" + subTypeJSON},
+		{"application", subTypeProtobuf, "application/" + subTypeProtobuf},
+		{"application", subTypeProtobufDeprecated, "application/" + subTypeProtobuf},
 	}
 
 	for _, clause := range clauses {
@@ -220,13 +221,8 @@ func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Reque
 				return
 			}
 			// Set Content-Type header in the reponse
-			if accepts.SubType == subTypeProtobufDeprecated {
-				contentType := accepts.Type + "/" + subTypeProtobuf
-				w.Header().Set("Content-Type", contentType)
-			} else {
-				contentType := accepts.Type + "/" + accepts.SubType
-				w.Header().Set("Content-Type", contentType)
-			}
+			w.Header().Set("Content-Type", accepts.ReturnedContentType)
+
 			// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
 			w.Header().Set("Etag", strconv.Quote(etag))
 
