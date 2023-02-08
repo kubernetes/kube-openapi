@@ -19,6 +19,7 @@ package handler3
 import (
 	"bytes"
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -246,10 +247,6 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			t.Errorf("Accept: %v: Unexpected response status code, want: %v, got: %v", tc.acceptHeader, tc.respStatus, resp.StatusCode)
 		}
 
-		if resp.Header.Get("Content-Type") != tc.responseContentTypeHeader {
-			t.Errorf("Accept: %v: Unexpected content type in response, want: %v, got: %v", tc.acceptHeader, tc.responseContentTypeHeader, resp.Header.Get("Content-Type"))
-		}
-
 		if tc.respStatus == 304 {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
@@ -261,6 +258,15 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		}
 		if tc.respStatus != 200 {
 			continue
+		}
+
+		responseContentType := resp.Header.Get("Content-Type")
+		if responseContentType != tc.responseContentTypeHeader {
+			t.Errorf("Accept: %v: Unexpected content type in response, want: %v, got: %v", tc.acceptHeader, tc.responseContentTypeHeader, responseContentType)
+		}
+		_, _, err = mime.ParseMediaType(responseContentType)
+		if err != nil {
+			t.Errorf("Unexpected error in prarsing response content type: %v, err: %v", responseContentType, err)
 		}
 
 		gotETag := resp.Header.Get("ETag")

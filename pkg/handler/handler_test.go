@@ -3,6 +3,7 @@ package handler
 import (
 	json "encoding/json"
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -90,9 +91,18 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		if resp.StatusCode != tc.respStatus {
 			t.Errorf("Accept: %v: Unexpected response status code, want: %v, got: %v", tc.acceptHeader, tc.respStatus, resp.StatusCode)
 		}
+		if tc.respStatus != 200 {
+			continue
+		}
 
-		if resp.Header.Get("Content-Type") != tc.responseContentTypeHeader {
-			t.Errorf("Accept: %v: Unexpected content type in response, want: %v, got: %v", tc.acceptHeader, tc.responseContentTypeHeader, resp.Header.Get("Content-Type"))
+		responseContentType := resp.Header.Get("Content-Type")
+		if responseContentType != tc.responseContentTypeHeader {
+			t.Errorf("Accept: %v: Unexpected content type in response, want: %v, got: %v", tc.acceptHeader, tc.responseContentTypeHeader, responseContentType)
+		}
+
+		_, _, err = mime.ParseMediaType(responseContentType)
+		if err != nil {
+			t.Errorf("Unexpected error in prarsing response content type: %v, err: %v", responseContentType, err)
 		}
 
 		defer resp.Body.Close()
