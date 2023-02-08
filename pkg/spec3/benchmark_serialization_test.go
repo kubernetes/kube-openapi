@@ -10,7 +10,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/kube-openapi/pkg/internal"
-	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -112,7 +111,7 @@ func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 			internal.UseOptimizedJSONUnmarshalingV3 = true
 			for i := 0; i < b2.N; i++ {
 				var result *OpenAPI
-				if err := jsonv2.Unmarshal(originalJSON, &result); err != nil {
+				if err := result.CustomUnmarshalJSON(originalJSON); err != nil {
 					b2.Fatal(err)
 				}
 			}

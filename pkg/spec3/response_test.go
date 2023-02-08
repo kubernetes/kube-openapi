@@ -54,6 +54,29 @@ func TestResponsesRoundTrip(t *testing.T) {
 	}
 }
 
+func TestResponseRoundTrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			Name: "Basic Roundtrip",
+			Object: &spec3.Response{
+				spec.Refable{Ref: spec.MustCreateRef("Dog")},
+				spec3.ResponseProps{
+					Description: "foo",
+				},
+				spec.VendorExtensible{Extensions: spec.Extensions{
+					"x-framework": "go-swagger",
+				}},
+			},
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&spec3.Response{}))
+		})
+	}
+}
+
 func TestResponseJSONSerialization(t *testing.T) {
 	cases := []struct {
 		name           string

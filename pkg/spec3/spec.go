@@ -17,6 +17,10 @@ limitations under the License.
 package spec3
 
 import (
+	"encoding/json"
+
+	"k8s.io/kube-openapi/pkg/internal"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -34,4 +38,11 @@ type OpenAPI struct {
 	Components *Components `json:"components,omitempty"`
 	// ExternalDocs holds additional external documentation
 	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
+}
+
+func (o *OpenAPI) CustomUnmarshalJSON(data []byte) error {
+	if internal.UseOptimizedJSONUnmarshalingV3 {
+		return jsonv2.Unmarshal(data, &o)
+	}
+	return json.Unmarshal(data, &o)
 }
