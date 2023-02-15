@@ -87,7 +87,7 @@ func (r *ResponsesProps) UnmarshalJSON(data []byte) error {
 		return jsonv2.Unmarshal(data, r)
 	}
 	var res map[string]json.RawMessage
-		if err := json.Unmarshal(data, &res); err != nil {
+	if err := json.Unmarshal(data, &res); err != nil {
 		return err
 	}
 	if v, ok := res["default"]; ok {

@@ -111,7 +111,7 @@ func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 			internal.UseOptimizedJSONUnmarshalingV3 = true
 			for i := 0; i < b2.N; i++ {
 				var result *OpenAPI
-				if err := result.CustomUnmarshalJSON(originalJSON); err != nil {
+				if err := result.UnmarshalJSON(originalJSON); err != nil {
 					b2.Fatal(err)
 				}
 			}

@@ -40,9 +40,11 @@ type OpenAPI struct {
 	ExternalDocs *ExternalDocumentation `json:"externalDocs,omitempty"`
 }
 
-func (o *OpenAPI) CustomUnmarshalJSON(data []byte) error {
+func (o *OpenAPI) UnmarshalJSON(data []byte) error {
+	type OpenAPIWithNoFunctions OpenAPI
+	p := (*OpenAPIWithNoFunctions)(o)
 	if internal.UseOptimizedJSONUnmarshalingV3 {
-		return jsonv2.Unmarshal(data, &o)
+		return jsonv2.Unmarshal(data, &p)
 	}
-	return json.Unmarshal(data, &o)
+	return json.Unmarshal(data, &p)
 }

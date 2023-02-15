@@ -20,11 +20,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
-	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
