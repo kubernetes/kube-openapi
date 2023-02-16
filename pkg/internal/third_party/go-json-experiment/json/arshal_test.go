@@ -868,6 +868,85 @@ func TestMarshal(t *testing.T) {
 		want:    `{"key"`,
 		wantErr: &SemanticError{action: "marshal", GoType: chanStringType},
 	}, {
+		name:  name("Maps/String/Deterministic"),
+		mopts: MarshalOptions{Deterministic: true},
+		in:    map[string]int{"a": 0, "b": 1, "c": 2},
+		want:  `{"a":0,"b":1,"c":2}`,
+	}, {
+		name:    name("Maps/String/Deterministic+AllowInvalidUTF8+RejectDuplicateNames"),
+		mopts:   MarshalOptions{Deterministic: true},
+		eopts:   EncodeOptions{AllowInvalidUTF8: true, AllowDuplicateNames: false},
+		in:      map[string]int{"\xff": 0, "\xfe": 1},
+		want:    `{"�":1`,
+		wantErr: &SyntacticError{str: `duplicate name "�" in object`},
+	}, {
+		name:  name("Maps/String/Deterministic+AllowInvalidUTF8+AllowDuplicateNames"),
+		mopts: MarshalOptions{Deterministic: true},
+		eopts: EncodeOptions{AllowInvalidUTF8: true, AllowDuplicateNames: true},
+		in:    map[string]int{"\xff": 0, "\xfe": 1},
+		want:  `{"�":1,"�":0}`,
+	}, {
+		name: name("Maps/String/Deterministic+MarshalFuncs"),
+		mopts: MarshalOptions{
+			Deterministic: true,
+			Marshalers: MarshalFuncV2(func(mo MarshalOptions, enc *Encoder, v string) error {
+				if p := enc.StackPointer(); p != "/X" {
+					return fmt.Errorf("invalid stack pointer: got %s, want /X", p)
+				}
+				switch v {
+				case "a":
+					return enc.WriteToken(String("b"))
+				case "b":
+					return enc.WriteToken(String("a"))
+				default:
+					return fmt.Errorf("invalid value: %q", v)
+				}
+			}),
+		},
+		in:   map[namedString]map[string]int{"X": {"a": -1, "b": 1}},
+		want: `{"X":{"a":1,"b":-1}}`,
+	}, {
+		name: name("Maps/String/Deterministic+MarshalFuncs+RejectDuplicateNames"),
+		mopts: MarshalOptions{
+			Deterministic: true,
+			Marshalers: MarshalFuncV2(func(mo MarshalOptions, enc *Encoder, v string) error {
+				if p := enc.StackPointer(); p != "/X" {
+					return fmt.Errorf("invalid stack pointer: got %s, want /X", p)
+				}
+				switch v {
+				case "a", "b":
+					return enc.WriteToken(String("x"))
+				default:
+					return fmt.Errorf("invalid value: %q", v)
+				}
+			}),
+		},
+		eopts:   EncodeOptions{AllowDuplicateNames: false},
+		in:      map[namedString]map[string]int{"X": {"a": 1, "b": 1}},
+		want:    `{"X":{"x":1`,
+		wantErr: &SyntacticError{str: `duplicate name "x" in object`},
+	}, {
+		name: name("Maps/String/Deterministic+MarshalFuncs+AllowDuplicateNames"),
+		mopts: MarshalOptions{
+			Deterministic: true,
+			Marshalers: MarshalFuncV2(func(mo MarshalOptions, enc *Encoder, v string) error {
+				if p := enc.StackPointer(); p != "/0" {
+					return fmt.Errorf("invalid stack pointer: got %s, want /0", p)
+				}
+				switch v {
+				case "a", "b":
+					return enc.WriteToken(String("x"))
+				default:
+					return fmt.Errorf("invalid value: %q", v)
+				}
+			}),
+		},
+		eopts: EncodeOptions{AllowDuplicateNames: true},
+		in:    map[namedString]map[string]int{"X": {"a": 1, "b": 1}},
+		// NOTE: Since the names are identical, the exact values may be
+		// non-deterministic since sort cannot distinguish between members.
+		want: `{"X":{"x":1,"x":1}}`,
+	}, {
 		name: name("Maps/RecursiveMap"),
 		in: recursiveMap{
 			"fizz": {
@@ -1989,6 +2068,30 @@ func TestMarshal(t *testing.T) {
 		want:         `{"one":1,"two":2,"zero":0}`,
 		canonicalize: true,
 	}, {
+		name:  name("Structs/InlinedFallback/MapStringInt/Deterministic"),
+		mopts: MarshalOptions{Deterministic: true},
+		in: structInlineMapStringInt{
+			X: map[string]int{"zero": 0, "one": 1, "two": 2},
+		},
+		want: `{"one":1,"two":2,"zero":0}`,
+	}, {
+		name:  name("Structs/InlinedFallback/MapStringInt/Deterministic+AllowInvalidUTF8+RejectDuplicateNames"),
+		mopts: MarshalOptions{Deterministic: true},
+		eopts: EncodeOptions{AllowInvalidUTF8: true, AllowDuplicateNames: false},
+		in: structInlineMapStringInt{
+			X: map[string]int{"\xff": 0, "\xfe": 1},
+		},
+		want:    `{"�":1`,
+		wantErr: &SyntacticError{str: `duplicate name "�" in object`},
+	}, {
+		name:  name("Structs/InlinedFallback/MapStringInt/Deterministic+AllowInvalidUTF8+AllowDuplicateNames"),
+		mopts: MarshalOptions{Deterministic: true},
+		eopts: EncodeOptions{AllowInvalidUTF8: true, AllowDuplicateNames: true},
+		in: structInlineMapStringInt{
+			X: map[string]int{"\xff": 0, "\xfe": 1},
+		},
+		want: `{"�":1,"�":0}`,
+	}, {
 		name:  name("Structs/InlinedFallback/MapStringInt/StringifiedNumbers"),
 		mopts: MarshalOptions{StringifyNumbers: true},
 		in: structInlineMapStringInt{
@@ -1999,9 +2102,15 @@ func TestMarshal(t *testing.T) {
 	}, {
 		name: name("Structs/InlinedFallback/MapStringInt/MarshalFuncV1"),
 		mopts: MarshalOptions{
-			Marshalers: MarshalFuncV1(func(v int) ([]byte, error) {
-				return []byte(fmt.Sprintf(`"%v"`, v)), nil
-			}),
+			Marshalers: NewMarshalers(
+				// Marshalers do not affect the string key of inlined maps.
+				MarshalFuncV1(func(v string) ([]byte, error) {
+					return []byte(fmt.Sprintf(`"%q"`, strings.ToUpper(v))), nil
+				}),
+				MarshalFuncV1(func(v int) ([]byte, error) {
+					return []byte(fmt.Sprintf(`"%v"`, v)), nil
+				}),
+			),
 		},
 		in: structInlineMapStringInt{
 			X: map[string]int{"zero": 0, "one": 1, "two": 2},
@@ -2254,7 +2363,7 @@ func TestMarshal(t *testing.T) {
 		want: `null`,
 	}, {
 		name: name("Pointers/NilL1"),
-		in:   (**int)(new(*int)),
+		in:   new(*int),
 		want: `null`,
 	}, {
 		name: name("Pointers/Bool"),
@@ -2382,6 +2491,24 @@ func TestMarshal(t *testing.T) {
 		name: name("Interfaces/Any/Maps/NonEmpty"),
 		in:   struct{ X any }{map[string]any{"fizz": "buzz"}},
 		want: `{"X":{"fizz":"buzz"}}`,
+	}, {
+		name:  name("Interfaces/Any/Maps/Deterministic"),
+		mopts: MarshalOptions{Deterministic: true},
+		in:    struct{ X any }{map[string]any{"alpha": "", "bravo": ""}},
+		want:  `{"X":{"alpha":"","bravo":""}}`,
+	}, {
+		name:    name("Interfaces/Any/Maps/Deterministic+AllowInvalidUTF8+RejectDuplicateNames"),
+		mopts:   MarshalOptions{Deterministic: true},
+		eopts:   EncodeOptions{AllowInvalidUTF8: true, AllowDuplicateNames: false},
+		in:      struct{ X any }{map[string]any{"\xff": "", "\xfe": ""}},
+		want:    `{"X":{"�":""`,
+		wantErr: &SyntacticError{str: `duplicate name "�" in object`},
+	}, {
+		name:  name("Interfaces/Any/Maps/Deterministic+AllowInvalidUTF8+AllowDuplicateNames"),
+		mopts: MarshalOptions{Deterministic: true},
+		eopts: EncodeOptions{AllowInvalidUTF8: true, AllowDuplicateNames: true},
+		in:    struct{ X any }{map[string]any{"\xff": "alpha", "\xfe": "bravo"}},
+		want:  `{"X":{"�":"bravo","�":"alpha"}}`,
 	}, {
 		name:    name("Interfaces/Any/Maps/RejectInvalidUTF8"),
 		in:      struct{ X any }{map[string]any{"\xff": "", "\xfe": ""}},
@@ -3498,7 +3625,7 @@ func TestMarshal(t *testing.T) {
 		want:    `{"T"`,
 		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`undefined format layout: UndefinedConstant`)},
 	}, {
-		name: name("Time/Format/Overflow"),
+		name: name("Time/Format/YearOverflow"),
 		in: struct {
 			T1 time.Time
 			T2 time.Time
@@ -3507,9 +3634,9 @@ func TestMarshal(t *testing.T) {
 			time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC),
 		},
 		want:    `{"T1":"9999-12-31T23:59:59Z","T2"`,
-		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`year 10000 outside of range [0,9999]`)},
+		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`year outside of range [0,9999]`)},
 	}, {
-		name: name("Time/Format/Underflow"),
+		name: name("Time/Format/YearUnderflow"),
 		in: struct {
 			T1 time.Time
 			T2 time.Time
@@ -3518,7 +3645,26 @@ func TestMarshal(t *testing.T) {
 			time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Second),
 		},
 		want:    `{"T1":"0000-01-01T00:00:00Z","T2"`,
-		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`year -1 outside of range [0,9999]`)},
+		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`year outside of range [0,9999]`)},
+	}, {
+		name:    name("Time/Format/YearUnderflow"),
+		in:      struct{ T time.Time }{time.Date(-998, 1, 1, 0, 0, 0, 0, time.UTC).Add(-time.Second)},
+		want:    `{"T"`,
+		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`year outside of range [0,9999]`)},
+	}, {
+		name: name("Time/Format/ZoneExact"),
+		in:   struct{ T time.Time }{time.Date(2020, 1, 1, 0, 0, 0, 0, time.FixedZone("", 23*60*60+59*60))},
+		want: `{"T":"2020-01-01T00:00:00+23:59"}`,
+	}, {
+		name:    name("Time/Format/ZoneHourOverflow"),
+		in:      struct{ T time.Time }{time.Date(2020, 1, 1, 0, 0, 0, 0, time.FixedZone("", 24*60*60))},
+		want:    `{"T"`,
+		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`timezone hour outside of range [0,23]`)},
+	}, {
+		name:    name("Time/Format/ZoneHourOverflow"),
+		in:      struct{ T time.Time }{time.Date(2020, 1, 1, 0, 0, 0, 0, time.FixedZone("", 123*60*60))},
+		want:    `{"T"`,
+		wantErr: &SemanticError{action: "marshal", GoType: timeTimeType, Err: errors.New(`timezone hour outside of range [0,23]`)},
 	}, {
 		name:  name("Time/IgnoreInvalidFormat"),
 		mopts: MarshalOptions{formatDepth: 1000, format: "invalid"},
@@ -5014,6 +5160,30 @@ func TestUnmarshal(t *testing.T) {
 			return err
 		}()},
 	}, {
+		name:  name("Structs/Format/Bytes/Invalid/Base16/NonAlphabet/LineFeed"),
+		inBuf: `{"Base16": "aa\naa"}`,
+		inVal: new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: func() error {
+			_, err := hex.Decode(make([]byte, 9), []byte("aa\naa"))
+			return err
+		}()},
+	}, {
+		name:  name("Structs/Format/Bytes/Invalid/Base16/NonAlphabet/CarriageReturn"),
+		inBuf: `{"Base16": "aa\raa"}`,
+		inVal: new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: func() error {
+			_, err := hex.Decode(make([]byte, 9), []byte("aa\raa"))
+			return err
+		}()},
+	}, {
+		name:  name("Structs/Format/Bytes/Invalid/Base16/NonAlphabet/Space"),
+		inBuf: `{"Base16": "aa aa"}`,
+		inVal: new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: func() error {
+			_, err := hex.Decode(make([]byte, 9), []byte("aa aa"))
+			return err
+		}()},
+	}, {
 		name: name("Structs/Format/Bytes/Invalid/Base32/Padding"),
 		inBuf: `[
 			{"Base32": "NA======"},
@@ -5061,6 +5231,21 @@ func TestUnmarshal(t *testing.T) {
 			return err
 		}()},
 	}, {
+		name:    name("Structs/Format/Bytes/Invalid/Base32/NonAlphabet/LineFeed"),
+		inBuf:   `{"Base32": "AAAA\nAAAA"}`,
+		inVal:   new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: errors.New("illegal data at input byte 4")},
+	}, {
+		name:    name("Structs/Format/Bytes/Invalid/Base32/NonAlphabet/CarriageReturn"),
+		inBuf:   `{"Base32": "AAAA\rAAAA"}`,
+		inVal:   new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: errors.New("illegal data at input byte 4")},
+	}, {
+		name:    name("Structs/Format/Bytes/Invalid/Base32/NonAlphabet/Space"),
+		inBuf:   `{"Base32": "AAAA AAAA"}`,
+		inVal:   new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: base32.CorruptInputError(4)},
+	}, {
 		name:  name("Structs/Format/Bytes/Invalid/Base64/WrongAlphabet"),
 		inBuf: `{"Base64": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"}`,
 		inVal: new(structFormatBytes),
@@ -5076,6 +5261,21 @@ func TestUnmarshal(t *testing.T) {
 			_, err := base64.URLEncoding.Decode(make([]byte, 48), []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"))
 			return err
 		}()},
+	}, {
+		name:    name("Structs/Format/Bytes/Invalid/Base64/NonAlphabet/LineFeed"),
+		inBuf:   `{"Base64": "aa=\n="}`,
+		inVal:   new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: errors.New("illegal data at input byte 3")},
+	}, {
+		name:    name("Structs/Format/Bytes/Invalid/Base64/NonAlphabet/CarriageReturn"),
+		inBuf:   `{"Base64": "aa=\r="}`,
+		inVal:   new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: errors.New("illegal data at input byte 3")},
+	}, {
+		name:    name("Structs/Format/Bytes/Invalid/Base64/NonAlphabet/Space"),
+		inBuf:   `{"Base64": "aa= ="}`,
+		inVal:   new(structFormatBytes),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: bytesType, Err: base64.CorruptInputError(2)},
 	}, {
 		name: name("Structs/Format/Floats"),
 		inBuf: `[
@@ -5908,7 +6108,7 @@ func TestUnmarshal(t *testing.T) {
 	}, {
 		name:  name("Pointers/NullL1"),
 		inBuf: `null`,
-		inVal: addr((**string)(new(*string))),
+		inVal: addr(new(*string)),
 		want:  addr((**string)(nil)),
 	}, {
 		name:  name("Pointers/Bool"),
@@ -7297,7 +7497,7 @@ func TestUnmarshal(t *testing.T) {
 		uopts: UnmarshalOptions{formatDepth: 1000, format: "invalid"},
 		inBuf: `"1s"`,
 		inVal: addr(time.Duration(0)),
-		want:  addr(time.Duration(time.Second)),
+		want:  addr(time.Second),
 	}, {
 		name:  name("Time/Zero"),
 		inBuf: `{"T1":"0001-01-01T00:00:00Z","T2":"01 Jan 01 00:00 UTC","T3":"0001-01-01","T4":"0001-01-01T00:00:00Z","T5":"0001-01-01T00:00:00Z"}`,
@@ -7402,7 +7602,7 @@ func TestUnmarshal(t *testing.T) {
 			T time.Time
 		}),
 		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: timeTimeType, Err: func() error {
-			_, err := time.Parse(time.RFC3339Nano, "2021-09-29T12:44:52")
+			_, err := time.Parse(time.RFC3339, "2021-09-29T12:44:52")
 			return err
 		}()},
 	}, {
@@ -7412,6 +7612,26 @@ func TestUnmarshal(t *testing.T) {
 			T time.Time `json:",format:UndefinedConstant"`
 		}),
 		wantErr: &SemanticError{action: "unmarshal", GoType: timeTimeType, Err: errors.New(`undefined format layout: UndefinedConstant`)},
+	}, {
+		name:    name("Time/Format/SingleDigitHour"),
+		inBuf:   `{"T":"2000-01-01T1:12:34Z"}`,
+		inVal:   new(struct{ T time.Time }),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: timeTimeType, Err: &time.ParseError{time.RFC3339, "2000-01-01T1:12:34Z", "15", "1", ""}},
+	}, {
+		name:    name("Time/Format/SubsecondComma"),
+		inBuf:   `{"T":"2000-01-01T00:00:00,000Z"}`,
+		inVal:   new(struct{ T time.Time }),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: timeTimeType, Err: &time.ParseError{time.RFC3339, "2000-01-01T00:00:00,000Z", ".", ",", ""}},
+	}, {
+		name:    name("Time/Format/TimezoneHourOverflow"),
+		inBuf:   `{"T":"2000-01-01T00:00:00+24:00"}`,
+		inVal:   new(struct{ T time.Time }),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: timeTimeType, Err: &time.ParseError{time.RFC3339, "2000-01-01T00:00:00+24:00", "Z07:00", "+24:00", ": timezone hour out of range"}},
+	}, {
+		name:    name("Time/Format/TimezoneMinuteOverflow"),
+		inBuf:   `{"T":"2000-01-01T00:00:00+00:60"}`,
+		inVal:   new(struct{ T time.Time }),
+		wantErr: &SemanticError{action: "unmarshal", JSONKind: '"', GoType: timeTimeType, Err: &time.ParseError{time.RFC3339, "2000-01-01T00:00:00+00:60", "Z07:00", "+00:60", ": timezone minute out of range"}},
 	}, {
 		name:  name("Time/Syntax/Invalid"),
 		inBuf: `{"T":x}`,
