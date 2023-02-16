@@ -30,4 +30,4 @@ rm *.png
 #       If this changes, the code will need to be updated.
 rm go.mod go.sum
 # Update references to point to the fork
-find . -type f -name "*.go" -print0 | xargs -0 sed -i'' "s#github.com/go-json-experiment/json#k8s.io/kube-openapi/${GO_JSON_EXPERIMENT_DIR}#g"
+find . -type f -name "*.go" -print0 | xargs -0 perl -pi -e "s#github.com/go-json-experiment/json#k8s.io/kube-openapi/${GO_JSON_EXPERIMENT_DIR}#g"
