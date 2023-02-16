@@ -1,5 +1,5 @@
 Forked from: https://github.com/go-json-experiment/json
-Commit Hash: 4987ed27d44794668c752d227a2d3a7be54570bc
+Commit Hash: 540f014424240312547dcccddf11a8229ca0f463
 
 This internal fork exists to prevent dependency issues with go-json-experiment
 until its API stabilizes.
