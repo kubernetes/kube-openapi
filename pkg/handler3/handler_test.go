@@ -19,6 +19,7 @@ package handler3
 import (
 	"bytes"
 	"io"
+	"mime"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -79,19 +80,21 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	client := server.Client()
 
 	tcs := []struct {
-		acceptHeader string
-		respStatus   int
-		urlPath      string
-		respBody     []byte
-		expectedETag string
-		sendETag     bool
+		acceptHeader              string
+		respStatus                int
+		urlPath                   string
+		respBody                  []byte
+		expectedETag              string
+		sendETag                  bool
+		responseContentTypeHeader string
 	}{
 		{
-			acceptHeader: "",
-			respStatus:   200,
-			urlPath:      "openapi/v3",
-			respBody:     returnedGroupVersionListJSON,
-			expectedETag: computeETag(returnedGroupVersionListJSON),
+			acceptHeader:              "",
+			respStatus:                200,
+			urlPath:                   "openapi/v3",
+			respBody:                  returnedGroupVersionListJSON,
+			expectedETag:              computeETag(returnedGroupVersionListJSON),
+			responseContentTypeHeader: "application/json",
 		}, {
 			acceptHeader: "",
 			respStatus:   304,
@@ -100,11 +103,12 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			expectedETag: computeETag(returnedGroupVersionListJSON),
 			sendETag:     true,
 		}, {
-			acceptHeader: "",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
 		}, {
 			acceptHeader: "",
 			respStatus:   304,
@@ -113,23 +117,26 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			expectedETag: computeETag(returnedJSON),
 			sendETag:     true,
 		}, {
-			acceptHeader: "*/*",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "*/*",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
 		}, {
-			acceptHeader: "application/json",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "application/json",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
 		}, {
-			acceptHeader: "application/*",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "application/*",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
 		}, {
 			acceptHeader: "test/test",
 			respStatus:   406,
@@ -141,17 +148,61 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			urlPath:      "openapi/v3/apis/apps/v1",
 			respBody:     []byte{},
 		}, {
-			acceptHeader: "application/test,  */*",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "application/test,  */*",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
 		}, {
-			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
-			respStatus:   200,
+			acceptHeader:              "application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedPb,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
+			respStatus:   304,
 			urlPath:      "openapi/v3/apis/apps/v1",
 			respBody:     returnedPb,
 			expectedETag: computeETag(returnedJSON),
+			sendETag:     true,
+		}, {
+			acceptHeader:              "application/json, application/com.github.proto-openapi.spec.v2.v1.0+protobuf",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
+		}, {
+			acceptHeader:              "application/com.github.proto-openapi.spec.v3.v1.0+protobuf, application/json",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedPb,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
+		}, {
+			acceptHeader: "application/com.github.proto-openapi.spec.v3.v1.0+protobuf, application/json",
+			respStatus:   304,
+			urlPath:      "openapi/v3/apis/apps/v1",
+			respBody:     returnedPb,
+			expectedETag: computeETag(returnedJSON),
+			sendETag:     true,
+		}, {
+			acceptHeader:              "application/com.github.proto-openapi.spec.v3.v1.0+protobuf; q=0.5, application/json",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
+		}, {
+			acceptHeader:              "application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedPb,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
 		}, {
 			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
 			respStatus:   304,
@@ -160,30 +211,19 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			expectedETag: computeETag(returnedJSON),
 			sendETag:     true,
 		}, {
-			acceptHeader: "application/json, application/com.github.proto-openapi.spec.v2@v1.0+protobuf",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "application/com.github.proto-openapi.spec.v3@v1.0+protobuf, application/json",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedPb,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
 		}, {
-			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf, application/json",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedPb,
-			expectedETag: computeETag(returnedJSON),
-		}, {
-			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf, application/json",
-			respStatus:   304,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedPb,
-			expectedETag: computeETag(returnedJSON),
-			sendETag:     true,
-		}, {
-			acceptHeader: "application/com.github.proto-openapi.spec.v3@v1.0+protobuf; q=0.5, application/json",
-			respStatus:   200,
-			urlPath:      "openapi/v3/apis/apps/v1",
-			respBody:     returnedJSON,
-			expectedETag: computeETag(returnedJSON),
+			acceptHeader:              "application/com.github.proto-openapi.spec.v3@v1.0+protobuf; q=0.5, application/json",
+			respStatus:                200,
+			urlPath:                   "openapi/v3/apis/apps/v1",
+			respBody:                  returnedJSON,
+			expectedETag:              computeETag(returnedJSON),
+			responseContentTypeHeader: "application/json",
 		},
 	}
 
@@ -218,6 +258,15 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		}
 		if tc.respStatus != 200 {
 			continue
+		}
+
+		responseContentType := resp.Header.Get("Content-Type")
+		if responseContentType != tc.responseContentTypeHeader {
+			t.Errorf("Accept: %v: Unexpected content type in response, want: %v, got: %v", tc.acceptHeader, tc.responseContentTypeHeader, responseContentType)
+		}
+		_, _, err = mime.ParseMediaType(responseContentType)
+		if err != nil {
+			t.Errorf("Unexpected error in prarsing response content type: %v, err: %v", responseContentType, err)
 		}
 
 		gotETag := resp.Header.Get("ETag")
@@ -288,7 +337,7 @@ func TestCacheBusting(t *testing.T) {
 			hash,
 			"public, immutable",
 		},
-		{"application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
+		{"application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
 			200,
 			"openapi/v3/apis/apps/v1?hash=" + hash,
 			returnedPb,
@@ -303,7 +352,7 @@ func TestCacheBusting(t *testing.T) {
 			hash,
 			"public, immutable",
 		},
-		{"application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
+		{"application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
 			200,
 			"openapi/v3/apis/apps/v1?hash=OUTDATEDHASH",
 			returnedPb,
@@ -318,7 +367,7 @@ func TestCacheBusting(t *testing.T) {
 			"",
 			"",
 		},
-		{"application/com.github.proto-openapi.spec.v3@v1.0+protobuf",
+		{"application/com.github.proto-openapi.spec.v3.v1.0+protobuf",
 			200,
 			"openapi/v3/apis/apps/v1",
 			returnedPb,
