@@ -902,8 +902,8 @@
     "properties": {
      "Field": {
       "default": {},
-      "x-kubernetes-map-type": "atomic",
-      "$ref": "#/definitions/structtype.ContainedStruct"
+      "$ref": "#/definitions/structtype.ContainedStruct",
+      "x-kubernetes-map-type": "atomic"
      },
      "OtherField": {
       "type": "integer",
@@ -938,8 +938,8 @@
     "properties": {
      "Field": {
       "default": {},
-      "x-kubernetes-map-type": "atomic",
-      "$ref": "#/definitions/structtype.DeclaredAtomicStruct"
+      "$ref": "#/definitions/structtype.DeclaredAtomicStruct",
+      "x-kubernetes-map-type": "atomic"
      },
      "OtherField": {
       "type": "integer",
@@ -957,8 +957,8 @@
     "properties": {
      "Field": {
       "default": {},
-      "x-kubernetes-map-type": "granular",
-      "$ref": "#/definitions/structtype.ContainedStruct"
+      "$ref": "#/definitions/structtype.ContainedStruct",
+      "x-kubernetes-map-type": "granular"
      },
      "OtherField": {
       "type": "integer",

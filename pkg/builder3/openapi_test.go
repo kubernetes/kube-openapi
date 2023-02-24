@@ -28,6 +28,7 @@ import (
 
 	openapi "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -462,5 +463,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 	if !assert.NoError(err) {
 		return
 	}
-	assert.Equal(string(expected_json), string(actual_json))
+	if err := jsontesting.JsonCompare(expected_json, actual_json); err != nil {
+		t.Error(err)
+	}
 }

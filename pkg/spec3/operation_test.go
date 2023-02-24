@@ -20,8 +20,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -109,8 +109,8 @@ func TestOperationJSONSerialization(t *testing.T) {
 				t.Fatal(err)
 			}
 			serializedTarget := string(rawTarget)
-			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
-				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
+			if err := jsontesting.JsonCompare([]byte(tc.expectedOutput), []byte(serializedTarget)); err != nil {
+				t.Fatalf("diff %s", err)
 			}
 		})
 	}

@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"k8s.io/kube-openapi/pkg/spec3"
+	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -51,19 +52,19 @@ func TestConvert(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		openAPIV2JSONBeforeConversion, err := json.Marshal(swaggerSpec)
+		openAPIV2JSONBeforeConversion, err := swaggerSpec.MarshalJSON()
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		convertedV3Spec := ConvertV2ToV3(&swaggerSpec)
 
-		openAPIV2JSONAfterConversion, err := json.Marshal(swaggerSpec)
+		openAPIV2JSONAfterConversion, err := swaggerSpec.MarshalJSON()
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(openAPIV2JSONBeforeConversion, openAPIV2JSONAfterConversion) {
-			t.Errorf("Expected OpenAPI V2 to be untouched before and after conversion")
+		if err := jsontesting.JsonCompare(openAPIV2JSONBeforeConversion, openAPIV2JSONAfterConversion); err != nil {
+			t.Errorf("Expected OpenAPI V2 to be untouched before and after conversion: %v", err)
 		}
 
 		spec3JSON, err := os.ReadFile(filepath.Join("testdata_generated_from_k8s/v3_" + tc.groupVersion + ".json"))

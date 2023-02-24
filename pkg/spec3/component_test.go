@@ -20,11 +20,12 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 
-	"k8s.io/kube-openapi/pkg/spec3"
 	"reflect"
+
+	"k8s.io/kube-openapi/pkg/spec3"
 )
 
 func TestSchemasJSONSerialization(t *testing.T) {
@@ -159,9 +160,8 @@ func TestSchemasJSONSerialization(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			serializedTarget := string(rawTarget)
-			if !cmp.Equal(serializedTarget, tc.expectedOutput) {
-				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
+			if err := jsontesting.JsonCompare([]byte(tc.expectedOutput), rawTarget); err != nil {
+				t.Error(err)
 			}
 
 			var expected spec3.Components
