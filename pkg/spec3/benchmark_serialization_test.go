@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	fuzz "github.com/google/gofuzz"
 	"k8s.io/kube-openapi/pkg/internal"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -18,6 +19,29 @@ import (
 var swaggerDiffOptions = []cmp.Option{cmp.Comparer(func(a spec.Ref, b spec.Ref) bool {
 	return a.String() == b.String()
 })}
+
+func TestOpenAPIV3RoundTrip(t *testing.T) {
+	var fuzzer *fuzz.Fuzzer
+	fuzzer = fuzz.NewWithSeed(1646791953)
+	// Make sure we have enough depth such that maps do not yield nil elements
+	fuzzer.MaxDepth(22).NilChance(0.5).NumElements(1, 7)
+	fuzzer.Funcs(OpenAPIV3FuzzFuncs...)
+	expected := &OpenAPI{}
+	fuzzer.Fuzz(expected)
+
+	j, err := json.Marshal(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var actual *OpenAPI
+	err = json.Unmarshal(j, &actual)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(expected, actual) {
+		t.Fatal(cmp.Diff(expected, actual, swaggerDiffOptions...))
+	}
+}
 
 func TestOpenAPIV3Deserialize(t *testing.T) {
 	swagFile, err := os.Open("./testdata/appsv1spec.json")
