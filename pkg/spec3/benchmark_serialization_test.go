@@ -129,16 +129,16 @@ func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 			}
 		})
 
-		// TODO: Enable this benchmark when jsonv2 is functional for OpenAPI V3.
-		// b.Run("jsonv2", func(b2 *testing.B) {
-		// b2.ReportAllocs()
-		// 	internal.UseOptimizedJSONUnmarshaling = true
-		// 	for i := 0; i < b2.N; i++ {
-		// 		var result OpenAPI
-		// 		if err := result.UnmarshalJSON(originalJSON); err != nil {
-		// 			b2.Fatal(err)
-		// 		}
-		// 	}
-		// })
+		b.Run("jsonv2", func(b2 *testing.B) {
+			b2.ReportAllocs()
+			internal.UseOptimizedJSONUnmarshaling = true
+			internal.UseOptimizedJSONUnmarshalingV3 = true
+			for i := 0; i < b2.N; i++ {
+				var result *OpenAPI
+				if err := result.UnmarshalJSON(originalJSON); err != nil {
+					b2.Fatal(err)
+				}
+			}
+		})
 	}
 }

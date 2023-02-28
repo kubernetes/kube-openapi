@@ -18,10 +18,12 @@ package spec3_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/spec3"
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -48,6 +50,29 @@ func TestResponsesRoundTrip(t *testing.T) {
 	for _, tcase := range cases {
 		t.Run(tcase.Name, func(t *testing.T) {
 			require.NoError(t, tcase.RoundTripTest(&spec3.Responses{}))
+		})
+	}
+}
+
+func TestResponseRoundTrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			Name: "Basic Roundtrip",
+			Object: &spec3.Response{
+				spec.Refable{Ref: spec.MustCreateRef("Dog")},
+				spec3.ResponseProps{
+					Description: "foo",
+				},
+				spec.VendorExtensible{Extensions: spec.Extensions{
+					"x-framework": "go-swagger",
+				}},
+			},
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&spec3.Response{}))
 		})
 	}
 }
@@ -90,5 +115,20 @@ func TestResponseJSONSerialization(t *testing.T) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
 		})
+	}
+}
+
+func TestResponsesNullUnmarshal(t *testing.T) {
+	nullByte := []byte(`null`)
+
+	expected := spec3.Responses{}
+	test := spec3.Responses{
+		ResponsesProps: spec3.ResponsesProps{
+			Default: &spec3.Response{},
+		},
+	}
+	jsonv2.Unmarshal(nullByte, &test)
+	if !reflect.DeepEqual(test, expected) {
+		t.Error("Expected unmarshal of null to reset the Responses struct")
 	}
 }

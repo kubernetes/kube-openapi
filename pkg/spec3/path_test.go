@@ -18,12 +18,39 @@ package spec3_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+	jsonv2 "k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
 	"k8s.io/kube-openapi/pkg/spec3"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
+
+func TestPathRoundTrip(t *testing.T) {
+	cases := []jsontesting.RoundTripTestCase{
+		{
+			Name: "Basic Roundtrip",
+			Object: &spec3.Path{
+				spec.Refable{Ref: spec.MustCreateRef("Dog")},
+				spec3.PathProps{
+					Description: "foo",
+				},
+				spec.VendorExtensible{Extensions: spec.Extensions{
+					"x-framework": "go-swagger",
+				}},
+			},
+		},
+	}
+
+	for _, tcase := range cases {
+		t.Run(tcase.Name, func(t *testing.T) {
+			require.NoError(t, tcase.RoundTripTest(&spec3.Path{}))
+		})
+	}
+}
 
 func TestPathJSONSerialization(t *testing.T) {
 	cases := []struct {
@@ -110,5 +137,18 @@ func TestPathJSONSerialization(t *testing.T) {
 				t.Fatalf("diff %s", cmp.Diff(serializedTarget, tc.expectedOutput))
 			}
 		})
+	}
+}
+
+func TestPathsNullUnmarshal(t *testing.T) {
+	nullByte := []byte(`null`)
+
+	expected := spec3.Paths{}
+	test := spec3.Paths{
+		Paths: map[string]*spec3.Path{"/path": {}},
+	}
+	jsonv2.Unmarshal(nullByte, &test)
+	if !reflect.DeepEqual(test, expected) {
+		t.Error("Expected unmarshal of null to reset the Paths struct")
 	}
 }
