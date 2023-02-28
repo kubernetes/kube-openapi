@@ -239,7 +239,7 @@ func (c *static[T]) Get() Result[T] {
 // lock held). This is the type that should typically be stored in
 // structs.
 type Replaceable[T any] struct {
-	cache  atomic.Value
+	cache  atomic.Pointer[Data[T]]
 	result *Result[T]
 }
 
@@ -250,7 +250,7 @@ type Replaceable[T any] struct {
 // instead. If the cache fails but we never returned a success, that
 // failure is returned.
 func (c *Replaceable[T]) Get() Result[T] {
-	result := c.cache.Load().(Data[T]).Get()
+	result := (*c.cache.Load()).Get()
 	if result.Err != nil && c.result != nil && c.result.Err == nil {
 		return *c.result
 	}
@@ -260,5 +260,5 @@ func (c *Replaceable[T]) Get() Result[T] {
 
 // Replace changes the cache in a thread-safe way.
 func (c *Replaceable[T]) Replace(cache Data[T]) {
-	c.cache.Swap(cache)
+	c.cache.Swap(&cache)
 }
