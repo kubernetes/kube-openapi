@@ -1,9 +1,10 @@
 package spec3
 
 import (
-	fuzz "github.com/google/gofuzz"
 	"math/rand"
 	"strings"
+
+	fuzz "github.com/google/gofuzz"
 
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -182,11 +183,15 @@ var OpenAPIV3FuzzFuncs []interface{} = []interface{}{
 		c.Fuzz(&v.Description)
 		v.URL = "https://" + randAlphanumString()
 	},
+	func(v *spec.SchemaURL, c fuzz.Continue) {
+		*v = spec.SchemaURL("https://" + randAlphanumString())
+	},
 	func(v *spec.Schema, c fuzz.Continue) {
 		if c.Intn(refChance) == 0 {
 			c.Fuzz(&v.Ref)
 			return
 		}
+		c.Fuzz(&v.Schema)
 		c.Fuzz(&v.VendorExtensible)
 		c.Fuzz(&v.Description)
 		c.Fuzz(&v.Nullable)

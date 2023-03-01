@@ -523,6 +523,7 @@ func (s Schema) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder)
 		ArbitraryKeys
 		SchemaProps        schemaPropsOmitZero        `json:",inline"`
 		SwaggerSchemaProps swaggerSchemaPropsOmitZero `json:",inline"`
+		Schema             string                     `json:"$schema,omitempty"`
 		Ref                string                     `json:"$ref,omitempty"`
 	}
 	x.ArbitraryKeys = make(map[string]any, len(s.Extensions)+len(s.ExtraProps))
@@ -537,6 +538,7 @@ func (s Schema) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder)
 	x.SchemaProps = schemaPropsOmitZero(s.SchemaProps)
 	x.SwaggerSchemaProps = swaggerSchemaPropsOmitZero(s.SwaggerSchemaProps)
 	x.Ref = s.Ref.String()
+	x.Schema = string(s.Schema)
 	return opts.MarshalNext(enc, x)
 }
 
