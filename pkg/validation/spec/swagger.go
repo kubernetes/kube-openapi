@@ -385,7 +385,7 @@ func (s SchemaOrArray) MarshalJSON() ([]byte, error) {
 	if internal.UseOptimizedJSONMarshaling {
 		return internal.DeterministicMarshal(s)
 	}
-	if len(s.Schemas) > 0 {
+	if s.Schemas != nil {
 		return json.Marshal(s.Schemas)
 	}
 	return json.Marshal(s.Schema)
@@ -393,7 +393,7 @@ func (s SchemaOrArray) MarshalJSON() ([]byte, error) {
 
 // MarshalJSON converts this schema object or array into JSON structure
 func (s SchemaOrArray) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
-	if len(s.Schemas) > 0 {
+	if s.Schemas != nil {
 		return opts.MarshalNext(enc, s.Schemas)
 	}
 	return opts.MarshalNext(enc, s.Schema)
