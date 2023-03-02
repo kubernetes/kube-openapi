@@ -229,6 +229,28 @@ func TestSwaggerSpec_Marshalv2FuzzedIsStable(t *testing.T) {
 	}
 }
 
+func TestUnmarshalAdditionalProperties(t *testing.T) {
+	cases := []string{
+		`{}`,
+		`{"description": "the description of this schema"}`,
+		`false`,
+		`true`,
+	}
+
+	for _, tc := range cases {
+		t.Run(tc, func(t *testing.T) {
+			var v1, v2 SchemaOrBool
+			internal.UseOptimizedJSONUnmarshaling = true
+			require.NoError(t, json.Unmarshal([]byte(tc), &v2))
+			internal.UseOptimizedJSONUnmarshaling = false
+			require.NoError(t, json.Unmarshal([]byte(tc), &v1))
+			if !cmp.Equal(v1, v2, SwaggerDiffOptions...) {
+				t.Fatal(cmp.Diff(v1, v2, SwaggerDiffOptions...))
+			}
+		})
+	}
+}
+
 func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 	fuzzer := fuzz.
 		NewWithSeed(1646791953).
