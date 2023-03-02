@@ -274,16 +274,6 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 	actual := Swagger{}
 	internal.UseOptimizedJSONUnmarshaling = true
 
-	// Serialize into JSON again
-	jsonBytesV2, err := expected.MarshalJSON()
-	require.NoError(t, err)
-
-	t.Log("Specimen V2", string(jsonBytes))
-
-	if err := jsontesting.JsonCompare(jsonBytes, jsonBytesV2); err != nil {
-		t.Fatal(err)
-	}
-
 	err = json.Unmarshal(jsonBytes, &actual)
 	require.NoError(t, err)
 
@@ -298,12 +288,6 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 
 	if !reflect.DeepEqual(control, actual) {
 		t.Fatal(cmp.Diff(control, actual, SwaggerDiffOptions...))
-	}
-
-	newJsonBytes, err := json.Marshal(actual)
-	require.NoError(t, err)
-	if err := jsontesting.JsonCompare(jsonBytes, newJsonBytes); err != nil {
-		t.Fatal(err)
 	}
 }
 

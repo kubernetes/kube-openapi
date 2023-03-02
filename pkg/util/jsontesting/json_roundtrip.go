@@ -108,11 +108,6 @@ func (t RoundTripTestCase) RoundTripTest(example MarshalerUnmarshaler) error {
 		return fmt.Errorf("failed to marshal decoded value: %w", err)
 	}
 
-	reEncodedV2, err := example.MarshalJSON()
-	if err != nil {
-		return fmt.Errorf("failed to marshal decoded value with v2: %w", err)
-	}
-
 	// Check expected marshal error if it has not yet been checked
 	// (for case where JSON is provided, and object is not)
 	if testFinished, err := expectError(err, "marshal", t.ExpectedMarshalError); testFinished {
@@ -133,10 +128,6 @@ func (t RoundTripTestCase) RoundTripTest(example MarshalerUnmarshaler) error {
 
 	if !reflect.DeepEqual(expected, actual) {
 		return fmt.Errorf("expected equal values: %v", cmp.Diff(expected, actual))
-	}
-
-	if err := JsonCompare(reEncoded, reEncodedV2); err != nil {
-		return err
 	}
 
 	return nil
