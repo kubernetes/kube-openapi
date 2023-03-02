@@ -624,7 +624,7 @@ func (s *Schema) UnmarshalNextJSON(opts jsonv2.UnmarshalOptions, dec *jsonv2.Dec
 	}
 
 	s.ExtraProps = x.Extensions.sanitizeWithExtra()
-	s.VendorExtensible.Extensions = x.Extensions
+	s.Extensions = internal.SanitizeExtensions(x.Extensions)
 	s.SchemaProps = x.SchemaProps
 	s.SwaggerSchemaProps = x.SwaggerSchemaProps
 	return nil
