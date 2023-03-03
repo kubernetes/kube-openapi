@@ -27,6 +27,7 @@ var schema = Schema{
 	VendorExtensible: VendorExtensible{Extensions: map[string]interface{}{"x-framework": "go-swagger"}},
 	SchemaProps: SchemaProps{
 		Ref:              MustCreateRef("Cat"),
+		Schema:           "schemaURL",
 		Type:             []string{"string"},
 		Format:           "date",
 		Description:      "the description of this schema",
@@ -81,6 +82,7 @@ var schema = Schema{
 var schemaJSON = `{
 	"x-framework": "go-swagger",
   "$ref": "Cat",
+  "$schema": "schemaURL",
   "description": "the description of this schema",
   "maximum": 100,
   "minimum": 5,
@@ -155,6 +157,7 @@ func TestSchema(t *testing.T) {
 	actual2 := Schema{}
 	if assert.NoError(t, json.Unmarshal([]byte(schemaJSON), &actual2)) {
 		assert.Equal(t, schema.Ref, actual2.Ref)
+		assert.Equal(t, schema.Schema, actual2.Schema)
 		assert.Equal(t, schema.Description, actual2.Description)
 		assert.Equal(t, schema.Maximum, actual2.Maximum)
 		assert.Equal(t, schema.Minimum, actual2.Minimum)
