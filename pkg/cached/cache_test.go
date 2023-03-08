@@ -622,6 +622,21 @@ func TestReplaceable(t *testing.T) {
 	}
 }
 
+func TestReplaceableDifferentType(t *testing.T) {
+	replaceable := cached.Replaceable[bool]{}
+	replaceable.Replace(cached.NewSource(func() cached.Result[bool] {
+		return cached.NewResultOK(false, "hash")
+	}))
+	replaceable.Replace(cached.NewResultOK(true, "hash2"))
+	result := replaceable.Get()
+	if actual := result.Etag; actual != "hash2" {
+		t.Fatalf(`expected "hash2", got %q`, actual)
+	}
+	if result.Data != true {
+		t.Fatal(`expected "true", got "false"`)
+	}
+}
+
 func TestReplaceableAlternateError(t *testing.T) {
 	sourceCount := 0
 	source := cached.NewSource(func() cached.Result[[]byte] {

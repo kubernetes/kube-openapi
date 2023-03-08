@@ -18,7 +18,9 @@ package handler3
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -65,7 +67,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	o, err := NewOpenAPIService(nil)
+	o := NewOpenAPIService()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +309,7 @@ func TestCacheBusting(t *testing.T) {
 	}
 
 	mux := http.NewServeMux()
-	o, err := NewOpenAPIService(nil)
+	o := NewOpenAPIService()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -430,5 +432,110 @@ func TestCacheBusting(t *testing.T) {
 		if !reflect.DeepEqual(body, tc.respBody) {
 			t.Errorf("Accept: %v: Response body mismatches, \nwant: %s, \ngot:  %s", tc.acceptHeader, string(tc.respBody), string(body))
 		}
+	}
+}
+
+func openAPIOrDie(name string) *spec3.OpenAPI {
+	openapi := fmt.Sprintf(`{
+  "openapi": "3.0",
+  "info": {
+   "title": "%s",
+   "version": "v1.23.0"
+  },
+  "paths": {}}`, name)
+	spec := spec3.OpenAPI{}
+	if err := json.Unmarshal([]byte(openapi), &spec); err != nil {
+		panic(err)
+	}
+	return &spec
+}
+
+func getDiscovery(server *httptest.Server, path string) (*OpenAPIV3Discovery, string, error) {
+	client := server.Client()
+	req, err := http.NewRequest("GET", server.URL+"/"+path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("error in creating new request: %v", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("error in serving HTTP request: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		return nil, "", fmt.Errorf("unexpected response status code, want: %v, got: %v", 200, resp.StatusCode)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("Failed to read request body: %v", err)
+	}
+
+	discovery := &OpenAPIV3Discovery{}
+	if err := json.Unmarshal(body, &discovery); err != nil {
+		return nil, "", fmt.Errorf("failed to unmarshal discovery: %v", err)
+	}
+	return discovery, resp.Header.Get("etag"), nil
+}
+
+func TestUpdateGroupVersion(t *testing.T) {
+	mux := http.NewServeMux()
+	o := NewOpenAPIService()
+
+	mux.Handle("/openapi/v3", http.HandlerFunc(o.HandleDiscovery))
+
+	o.UpdateGroupVersion("apis/apps/v1", openAPIOrDie("apps-v1"))
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	discovery, discovery_etag, err := getDiscovery(server, "/openapi/v3")
+	if err != nil {
+		t.Fatalf("failed to get /openapi/v3: %v", err)
+	}
+	etag, ok := discovery.Paths["apis/apps/v1"]
+	if !ok {
+		t.Fatalf("missing apis/apps/v1")
+	}
+
+	// Update with the same thing, make sure we don't update anything.
+	o.UpdateGroupVersion("apis/apps/v1", openAPIOrDie("apps-v1"))
+
+	discovery, discovery_etag_updated, err := getDiscovery(server, "/openapi/v3")
+	if err != nil {
+		t.Fatalf("failed to get /openapi/v3: %v", err)
+	}
+	if len(discovery.Paths) != 1 {
+		t.Fatalf("Invalid number of Paths, expected 1: %v", discovery.Paths)
+	}
+	etag_updated, ok := discovery.Paths["apis/apps/v1"]
+	if !ok {
+		t.Fatalf("missing apis/apps/v1")
+	}
+
+	if discovery_etag_updated != discovery_etag {
+		t.Fatalf("No-op update shouldn't update OpenAPI Discovery etag")
+	}
+
+	if etag_updated != etag {
+		t.Fatalf("No-op update shouldn't update OpenAPI etag")
+	}
+
+	// Add one more, make sure it's in the list
+	o.UpdateGroupVersion("apis/something/v1", openAPIOrDie("something-v1"))
+	discovery, _, err = getDiscovery(server, "/openapi/v3")
+	if err != nil {
+		t.Fatalf("failed to get /openapi/v3: %v", err)
+	}
+	if len(discovery.Paths) != 2 {
+		t.Fatalf("Invalid number of Paths, expected 2: %v", discovery.Paths)
+	}
+
+	// And remove
+	o.DeleteGroupVersion("apis/apps/v1")
+	discovery, _, err = getDiscovery(server, "/openapi/v3")
+	if err != nil {
+		t.Fatalf("failed to get /openapi/v3: %v", err)
+	}
+	if len(discovery.Paths) != 1 {
+		t.Fatalf("Invalid number of Paths, expected 2: %v", discovery.Paths)
 	}
 }
