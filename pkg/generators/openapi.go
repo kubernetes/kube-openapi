@@ -609,6 +609,11 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 	postDoc = strings.Replace(postDoc, "\n", "\\n", -1)
 	postDoc = strings.Replace(postDoc, "\t", "\\t", -1)
 	postDoc = strings.Trim(postDoc, " ")
+	postDoc = openapi.TranslateDescription(postDoc)
+	// 修复常见格式错误
+	postDoc = strings.Replace(postDoc, "\\ ", "\\", -1)
+	postDoc = strings.Replace(postDoc, "\\“", "“", -1)
+	postDoc = strings.Replace(postDoc, "\\”", "”", -1)
 	if postDoc != "" {
 		g.Do("Description: \"$.$\",\n", postDoc)
 	}
