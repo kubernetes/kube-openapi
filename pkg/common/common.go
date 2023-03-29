@@ -322,3 +322,7 @@ func GenerateOpenAPIV3OneOfSchema(types []string) (oneOf []spec.Schema) {
 	}
 	return
 }
+
+func Int64Pointer(i int64) *int64 {
+	return &i
+}

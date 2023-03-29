@@ -1692,3 +1692,178 @@ Extensions: spec.Extensions{
 
 `, funcBuffer.String())
 }
+
+func TestValueValidations(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:value_validation_test
+type Blah struct {
+	// +maxLength=10
+    // +minLength=1
+    // +format=dnssubdomain
+    // +pattern=".+-.+"
+    // +optional
+	StringValue string
+	// +maximum=100
+    // +minimum=50
+    // +optional
+	IntValue int64
+	// +exclusiveMaximum=16
+    // +exclusiveMinimum=32
+    // +multipleOf=2
+    // +optional
+	IntValueExclusive int64
+    // +minItems=5
+    // +maxItems=10
+    ArrayValue []string
+   // +minProperties=2
+   // +maxProperties=4
+   MapValue map[string]string
+}`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	_ = assert
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"StringValue": {
+SchemaProps: spec.SchemaProps{
+MinLength: common.Int64Pointer(1),
+MaxLength: common.Int64Pointer(10),
+Pattern: ".+-.+",
+Default: "",
+Type: []string{"string"},
+Format: "dnssubdomain",
+},
+},
+"IntValue": {
+SchemaProps: spec.SchemaProps{
+Minimum: common.Int64Pointer(50),
+Maximum: common.Int64Pointer(100),
+Default: 0,
+Type: []string{"integer"},
+Format: "int64",
+},
+},
+"IntValueExclusive": {
+SchemaProps: spec.SchemaProps{
+ExclusiveMinimum: common.Int64Pointer(32),
+ExclusiveMaximum: common.Int64Pointer(16),
+MultipleOf: common.Int64Pointer(2),
+Default: 0,
+Type: []string{"integer"},
+Format: "int64",
+},
+},
+"ArrayValue": {
+SchemaProps: spec.SchemaProps{
+MinItems: common.Int64Pointer(5),
+MaxItems: common.Int64Pointer(10),
+Type: []string{"array"},
+Items: &spec.SchemaOrArray{
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+},
+},
+"MapValue": {
+SchemaProps: spec.SchemaProps{
+MinProperties: common.Int64Pointer(2),
+MaxProperties: common.Int64Pointer(4),
+Type: []string{"object"},
+AdditionalProperties: &spec.SchemaOrBool{
+Allows: true,
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+},
+},
+},
+Required: []string{"ArrayValue","MapValue"},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "value_validation_test",
+},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}
+
+func TestValidationRules(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer := testOpenAPITypeWriter(t, `
+package foo
+
+// +k8s:openapi-gen=true
+// +k8s:openapi-gen=x-kubernetes-type-tag:validation_rule_test
+type Blah struct {
+	// +validations='rule':'a < b','message':'a must be less than b','messageExpression':'"a ("+string(a)+") must be less than b ("+string(b)+")"'
+    // +optional
+	IntValue int64
+}`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	_ = assert
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"IntValue": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-validations": []interface{}{
+map[string]string {
+"rule": "a < b",
+"message": "a must be less than b",
+"messageExpression": "\"a (\"+string(a)+\") must be less than b (\"+string(b)+\")\"",
+},
+},
+},
+},
+SchemaProps: spec.SchemaProps{
+Default: 0,
+Type: []string{"integer"},
+Format: "int64",
+},
+},
+},
+},
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-type-tag": "validation_rule_test",
+},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+}

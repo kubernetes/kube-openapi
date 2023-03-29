@@ -29,10 +29,11 @@ func TestSingleTagExtension(t *testing.T) {
 
 	// Comments only contain one tag extension and one value.
 	var tests = []struct {
-		comments        []string
-		extensionTag    string
-		extensionName   string
-		extensionValues []string
+		comments             []string
+		extensionTag         string
+		extensionName        string
+		extensionValues      []string
+		extensionFieldValues []map[string]string
 	}{
 		{
 			comments:        []string{"+patchMergeKey=name"},
@@ -87,6 +88,17 @@ func TestSingleTagExtension(t *testing.T) {
 			extensionName:   "x-kubernetes-member-success",
 			extensionValues: []string{"success"},
 		},
+		{
+			comments:      []string{"+validations='rule':'x > y','message':'This is a message'"},
+			extensionTag:  "validations",
+			extensionName: "x-kubernetes-validations",
+			extensionFieldValues: []map[string]string{
+				{
+					"rule":    "x > y",
+					"message": "This is a message",
+				},
+			},
+		},
 	}
 	for _, test := range tests {
 		extensions, _ := parseExtensions(test.comments)
@@ -99,6 +111,9 @@ func TestSingleTagExtension(t *testing.T) {
 		}
 		if !reflect.DeepEqual(actual.values, test.extensionValues) {
 			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
+		}
+		if !reflect.DeepEqual(actual.fieldValues, test.extensionFieldValues) {
+			t.Errorf("Extension Field Values: expected (%s), actual (%s)\n", test.extensionFieldValues, actual.fieldValues)
 		}
 		if actual.hasMultipleValues() {
 			t.Errorf("%s: hasMultipleValues() should be false\n", actual.xName)

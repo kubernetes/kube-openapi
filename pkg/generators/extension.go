@@ -21,18 +21,39 @@ import (
 	"sort"
 	"strings"
 
+	"gopkg.in/yaml.v2"
 	"k8s.io/gengo/examples/set-gen/sets"
 	"k8s.io/gengo/types"
 )
 
 const extensionPrefix = "x-kubernetes-"
 
+// fieldSet is a map of field keys and values, but ordered purely to keep the code generator stable
+type fieldSet []field
+type field struct {
+	key, value string
+}
+
+// fieldExtractor is a function that extracts a fieldSet from each input string
+// E.g.
+// +mytag=a:1,b:2
+// +mytag=a:3,b:4
+//
+// Would result in:
+//
+//	[]fieldSet{
+//	  fieldSet{field{"a", "1"}, field{"b", "2"}},
+//	  fieldSet{field{"a", "3"}, field{"b", "4"}},
+//	}
+type fieldExtractor func([]string) ([]fieldSet, error)
+
 // extensionAttributes encapsulates common traits for particular extensions.
 type extensionAttributes struct {
-	xName         string
-	kind          types.Kind
-	allowedValues sets.String
-	enforceArray  bool
+	xName          string
+	kind           types.Kind
+	allowedValues  sets.String
+	enforceArray   bool
+	fieldExtractor fieldExtractor
 }
 
 // Extension tag to openapi extension attributes
@@ -67,16 +88,18 @@ var tagToExtension = map[string]extensionAttributes{
 		allowedValues: sets.NewString("atomic", "granular"),
 	},
 	"validations": {
-		xName: "x-kubernetes-validations",
-		kind:  types.Slice,
+		xName:          "x-kubernetes-validations",
+		enforceArray:   true,
+		fieldExtractor: validationsFieldExtractor,
 	},
 }
 
 // Extension encapsulates information necessary to generate an OpenAPI extension.
 type extension struct {
-	idlTag string   // Example: listType
-	xName  string   // Example: x-kubernetes-list-type
-	values []string // Example: [atomic]
+	idlTag      string   // Example: listType
+	xName       string   // Example: x-kubernetes-list-type
+	values      []string // Example: [atomic]
+	fieldValues []fieldSet
 }
 
 func (e extension) hasAllowedValues() bool {
@@ -177,11 +200,22 @@ func parseExtensions(comments []string) ([]extension, []error) {
 		if !exists {
 			continue
 		}
+
 		values := tagValues[idlTag]
+		var fieldValues []fieldSet
+		if xAttrs.fieldExtractor != nil {
+			var err error
+			fieldValues, err = xAttrs.fieldExtractor(values)
+			if err != nil {
+				errors = append(errors, err)
+			}
+			values = nil
+		}
 		e := extension{
-			idlTag: idlTag,       // listType
-			xName:  xAttrs.xName, // x-kubernetes-list-type
-			values: values,       // [atomic]
+			idlTag:      idlTag,       // listType
+			xName:       xAttrs.xName, // x-kubernetes-list-type
+			values:      values,       // [atomic]
+			fieldValues: fieldValues,
 		}
 		extensions = append(extensions, e)
 	}
@@ -199,4 +233,36 @@ func validateMemberExtensions(extensions []extension, m *types.Member) []error {
 		}
 	}
 	return errors
+}
+
+type ValidationRule struct {
+	Rule              string `yaml:"rule"`
+	Message           string `yaml:"message,omitempty"`
+	MessageExpression string `yaml:"messageExpression,omitempty"`
+}
+
+func (v ValidationRule) toFieldSet() fieldSet {
+	result := []field{{key: "rule", value: v.Rule}}
+	if len(v.Message) > 0 {
+		result = append(result, field{key: "message", value: v.Message})
+	}
+	if len(v.MessageExpression) > 0 {
+		result = append(result, field{key: "messageExpression", value: v.MessageExpression})
+	}
+	return result
+}
+
+func validationsFieldExtractor(rawStrings []string) ([]fieldSet, error) {
+	// TODO: Need a better parser so keys don't need to be quoted. Kubebuilder uses
+	// https://github.com/kubernetes-sigs/controller-tools/tree/master/pkg/markers
+	result := make([]fieldSet, len(rawStrings))
+	for i, raw := range rawStrings {
+		r := ValidationRule{}
+		err := yaml.Unmarshal([]byte("{"+raw+"}"), &r)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = r.toFieldSet()
+	}
+	return result, nil
 }
