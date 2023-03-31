@@ -1738,8 +1738,8 @@ Properties: map[string]spec.Schema{
 "StringValue": {
 SchemaProps: spec.SchemaProps{
 Pattern: ".+-.+",
-MinLength: common.Int64Pointer(1),
 MaxLength: common.Int64Pointer(10),
+MinLength: common.Int64Pointer(1),
 Default: "",
 Type: []string{"string"},
 Format: "dnssubdomain",
@@ -1747,10 +1747,10 @@ Format: "dnssubdomain",
 },
 "IntValue": {
 SchemaProps: spec.SchemaProps{
-Minimum: common.Float64Pointer(55.5),
-ExclusiveMinimum: true,
 Maximum: common.Float64Pointer(99.5),
 ExclusiveMaximum: true,
+Minimum: common.Float64Pointer(55.5),
+ExclusiveMinimum: true,
 Default: 0,
 Type: []string{"integer"},
 Format: "int64",
@@ -1766,8 +1766,8 @@ Format: "int64",
 },
 "ArrayValue": {
 SchemaProps: spec.SchemaProps{
-MinItems: common.Int64Pointer(5),
 MaxItems: common.Int64Pointer(10),
+MinItems: common.Int64Pointer(5),
 Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
@@ -1782,8 +1782,8 @@ Format: "",
 },
 "MapValue": {
 SchemaProps: spec.SchemaProps{
-MinProperties: common.Int64Pointer(2),
 MaxProperties: common.Int64Pointer(4),
+MinProperties: common.Int64Pointer(2),
 Type: []string{"object"},
 AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,

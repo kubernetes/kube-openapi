@@ -23,6 +23,8 @@ import (
 
 	"k8s.io/gengo/examples/set-gen/sets"
 	"k8s.io/gengo/types"
+
+	"k8s.io/kube-openapi/pkg/generators/tags"
 )
 
 func TestSingleTagExtension(t *testing.T) {
@@ -33,7 +35,7 @@ func TestSingleTagExtension(t *testing.T) {
 		extensionTag         string
 		extensionName        string
 		extensionValues      []string
-		extensionFieldValues []fieldSet
+		extensionFieldValues []tags.FieldValue
 	}{
 		{
 			comments:        []string{"+patchMergeKey=name"},
@@ -89,36 +91,38 @@ func TestSingleTagExtension(t *testing.T) {
 			extensionValues: []string{"success"},
 		},
 		{
-			comments:      []string{"+validations='rule':'x > y','message':'This is a message','messageExpression':'\"this is an expression\"'"},
+			comments:      []string{`+validations=rule:"x > y",message:"This is a message",messageExpression:"'this is an expression'"`},
 			extensionTag:  "validations",
 			extensionName: "x-kubernetes-validations",
-			extensionFieldValues: []fieldSet{
+			extensionFieldValues: []tags.FieldValue{
 				{
-					field{key: "rule", value: "x > y"},
-					field{key: "message", value: "This is a message"},
-					field{key: "messageExpression", value: "\"this is an expression\""},
+					"rule":              "x > y",
+					"message":           "This is a message",
+					"messageExpression": "'this is an expression'",
 				},
 			},
 		},
 	}
 	for _, test := range tests {
-		extensions, _ := parseExtensions(test.comments)
-		actual := extensions[0]
-		if actual.idlTag != test.extensionTag {
-			t.Errorf("Extension Tag: expected (%s), actual (%s)\n", test.extensionTag, actual.idlTag)
-		}
-		if actual.xName != test.extensionName {
-			t.Errorf("Extension Name: expected (%s), actual (%s)\n", test.extensionName, actual.xName)
-		}
-		if !reflect.DeepEqual(actual.values, test.extensionValues) {
-			t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
-		}
-		if !reflect.DeepEqual(actual.fieldValues, test.extensionFieldValues) {
-			t.Errorf("Extension Field Values: expected (%s), actual (%s)\n", test.extensionFieldValues, actual.fieldValues)
-		}
-		if actual.hasMultipleValues() {
-			t.Errorf("%s: hasMultipleValues() should be false\n", actual.xName)
-		}
+		t.Run(strings.Join(test.comments, "__"), func(t *testing.T) {
+			extensions, _ := parseExtensions(test.comments)
+			actual := extensions[0]
+			if actual.idlTag != test.extensionTag {
+				t.Errorf("Extension Tag: expected (%s), actual (%s)\n", test.extensionTag, actual.idlTag)
+			}
+			if actual.xName != test.extensionName {
+				t.Errorf("Extension Name: expected (%s), actual (%s)\n", test.extensionName, actual.xName)
+			}
+			if !reflect.DeepEqual(actual.values, test.extensionValues) {
+				t.Errorf("Extension Values: expected (%s), actual (%s)\n", test.extensionValues, actual.values)
+			}
+			if !reflect.DeepEqual(actual.fieldValues, test.extensionFieldValues) {
+				t.Errorf("Extension Field Values: expected (%s), actual (%s)\n", test.extensionFieldValues, actual.fieldValues)
+			}
+			if actual.hasMultipleValues() {
+				t.Errorf("%s: hasMultipleValues() should be false\n", actual.xName)
+			}
+		})
 	}
 
 }

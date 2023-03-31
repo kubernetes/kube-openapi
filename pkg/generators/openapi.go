@@ -54,29 +54,30 @@ var tempPatchTags = [...]string{
 	"patchStrategy",
 }
 
-type fieldTag struct {
-	fieldName, tagName string
-	kind               reflect.Kind
-	requiresQuotes     bool
+type valueValidation struct {
+	goFieldName    string
+	idlTagName     string
+	kind           reflect.Kind
+	requiresQuotes bool
 }
 
 // value validations
-var (
-	tagFormat           = fieldTag{fieldName: "Format", tagName: "format", kind: reflect.String}
-	tagPattern          = fieldTag{fieldName: "Pattern", tagName: "pattern", kind: reflect.String, requiresQuotes: true}
-	tagMaximum          = fieldTag{fieldName: "Maximum", tagName: "maximum", kind: reflect.Float64}
-	tagExclusiveMaximum = fieldTag{fieldName: "ExclusiveMaximum", tagName: "exclusiveMaximum", kind: reflect.Bool}
-	tagMinimum          = fieldTag{fieldName: "Minimum", tagName: "minimum", kind: reflect.Float64}
-	tagExclusiveMinimum = fieldTag{fieldName: "ExclusiveMinimum", tagName: "exclusiveMinimum", kind: reflect.Bool}
-	tagUniqueItems      = fieldTag{fieldName: "UniqueItems", tagName: "uniqueItems", kind: reflect.Bool}
-	tagMultipleOf       = fieldTag{fieldName: "MultipleOf", tagName: "multipleOf", kind: reflect.Float64}
-	tagMaxLength        = fieldTag{fieldName: "MaxLength", tagName: "maxLength", kind: reflect.Int64}
-	tagMinLength        = fieldTag{fieldName: "MinLength", tagName: "minLength", kind: reflect.Int64}
-	tagMaxItems         = fieldTag{fieldName: "MaxItems", tagName: "maxItems", kind: reflect.Int64}
-	tagMinItems         = fieldTag{fieldName: "MinItems", tagName: "minItems", kind: reflect.Int64}
-	tagMaxProperties    = fieldTag{fieldName: "MaxProperties", tagName: "maxProperties", kind: reflect.Int64}
-	tagMinProperties    = fieldTag{fieldName: "MinProperties", tagName: "minProperties", kind: reflect.Int64}
-)
+var supportedValueValidations = []valueValidation{
+	// 'format' is also supported, but it is handled separately due to how go types map to both OpenAPI type and format fields.
+	{goFieldName: "Pattern", idlTagName: "pattern", kind: reflect.String, requiresQuotes: true},
+	{goFieldName: "Maximum", idlTagName: "maximum", kind: reflect.Float64},
+	{goFieldName: "ExclusiveMaximum", idlTagName: "exclusiveMaximum", kind: reflect.Bool},
+	{goFieldName: "Minimum", idlTagName: "minimum", kind: reflect.Float64},
+	{goFieldName: "ExclusiveMinimum", idlTagName: "exclusiveMinimum", kind: reflect.Bool},
+	{goFieldName: "UniqueItems", idlTagName: "uniqueItems", kind: reflect.Bool},
+	{goFieldName: "MultipleOf", idlTagName: "multipleOf", kind: reflect.Float64},
+	{goFieldName: "MaxLength", idlTagName: "maxLength", kind: reflect.Int64},
+	{goFieldName: "MinLength", idlTagName: "minLength", kind: reflect.Int64},
+	{goFieldName: "MaxItems", idlTagName: "maxItems", kind: reflect.Int64},
+	{goFieldName: "MinItems", idlTagName: "minItems", kind: reflect.Int64},
+	{goFieldName: "MaxProperties", idlTagName: "maxProperties", kind: reflect.Int64},
+	{goFieldName: "MinProperties", idlTagName: "minProperties", kind: reflect.Int64},
+}
 
 func getOpenAPITagValue(comments []string) []string {
 	return types.ExtractCommentTags("+", comments)[tagName]
@@ -546,11 +547,25 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 			g.Do("[]interface{}{\n", nil)
 		}
 		if extension.fieldValues != nil {
-			for _, fieldSet := range extension.fieldValues {
+			for _, fieldMap := range extension.fieldValues {
 				g.Do("map[string]string {\n", nil)
-				for _, field := range fieldSet {
-					g.Do("$.key$: $.value$,\n", map[string]string{"key": strconv.Quote(field.key), "value": strconv.Quote(field.value)})
+				keys := make([]string, 0, len(fieldMap))
+				for k := range fieldMap {
+					keys = append(keys, k)
+					sort.Strings(keys) // output map into generated code in a consistent order
+					for _, k := range keys {
+						value := fieldMap[k]
+						var vStr string
+						switch v := value.(type) {
+						case string:
+							vStr = strconv.Quote(v)
+						default:
+							vStr = fmt.Sprintf("%v", value)
+						}
+						g.Do("$.key$: $.value$,\n", map[string]string{"key": strconv.Quote(k), "value": vStr})
+					}
 				}
+
 				g.Do("},\n", nil)
 			}
 		} else {
@@ -715,7 +730,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	if len(jsonTags) > 1 && jsonTags[1] == "string" {
 
 		// Use value validation format if it is specified
-		format, err := getSingleTagsValue(m.CommentLines, tagFormat.tagName)
+		format, err := getSingleTagsValue(m.CommentLines, "format")
 		if err != nil {
 			return fmt.Errorf("%w in %v: %v", err, parent, m.Name)
 		}
@@ -732,7 +747,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	// If we can get a openAPI type and format for this type, we consider it to be simple property
 	typeString, format := openapi.OpenAPITypeFormat(t.String())
 
-	formatFromTag, err := getSingleTagsValue(m.CommentLines, tagFormat.tagName)
+	formatFromTag, err := getSingleTagsValue(m.CommentLines, "format")
 	if err != nil {
 		return err
 	}
@@ -892,23 +907,8 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 func (g openAPITypeWriter) generateValueValidations(m *types.Member, parent *types.Type) error {
 	tags := types.ExtractCommentTags("+", m.CommentLines)
 
-	for _, ftag := range []fieldTag{
-		// formats are not handled here since some types are paired with formats
-		tagPattern,
-		tagMinimum,
-		tagExclusiveMinimum,
-		tagMaximum,
-		tagExclusiveMaximum,
-		tagUniqueItems,
-		tagMultipleOf,
-		tagMinLength,
-		tagMaxLength,
-		tagMinItems,
-		tagMaxItems,
-		tagMinProperties,
-		tagMaxProperties,
-	} {
-		if err := g.generateValueValidation(tags, ftag); err != nil {
+	for _, valueValidation := range supportedValueValidations {
+		if err := g.generateValueValidation(tags, valueValidation); err != nil {
 			return fmt.Errorf("%w in %v: %v", err, parent, m.Name)
 		}
 	}
@@ -916,8 +916,8 @@ func (g openAPITypeWriter) generateValueValidations(m *types.Member, parent *typ
 	return nil
 }
 
-func (g openAPITypeWriter) generateValueValidation(tags map[string][]string, ftag fieldTag) error {
-	value, ok, err := getSingleTagValue(tags, ftag)
+func (g openAPITypeWriter) generateValueValidation(tags map[string][]string, valueValidation valueValidation) error {
+	value, ok, err := getSingleTagValue(tags, valueValidation)
 	if err != nil {
 		return err
 	}
@@ -926,7 +926,7 @@ func (g openAPITypeWriter) generateValueValidation(tags map[string][]string, fta
 	}
 
 	var pointerFn string
-	switch ftag.kind {
+	switch valueValidation.kind {
 	case reflect.Int64:
 		pointerFn = "Int64Pointer"
 	case reflect.Float64:
@@ -934,7 +934,7 @@ func (g openAPITypeWriter) generateValueValidation(tags map[string][]string, fta
 	}
 
 	args := generator.Args{
-		"Field": ftag.fieldName,
+		"Field": valueValidation.goFieldName,
 		"Value": value,
 	}
 	if len(pointerFn) == 0 {
@@ -948,8 +948,8 @@ func (g openAPITypeWriter) generateValueValidation(tags map[string][]string, fta
 	return nil
 }
 
-func getSingleTagValue(commentTags map[string][]string, ftag fieldTag) (interface{}, bool, error) {
-	tags, ok := commentTags[ftag.tagName]
+func getSingleTagValue(commentTags map[string][]string, ftag valueValidation) (interface{}, bool, error) {
+	tags, ok := commentTags[ftag.idlTagName]
 	if !ok || len(tags) == 0 {
 		return 0, false, nil
 	}
@@ -974,11 +974,11 @@ func getSingleTagValue(commentTags map[string][]string, ftag fieldTag) (interfac
 			}
 		}
 		if err != nil {
-			return 0, false, fmt.Errorf("value must be an number for tag %s but was %s: %w", ftag.tagName, value, err)
+			return 0, false, fmt.Errorf("value must be an number for tag %s but was %s: %w", ftag.idlTagName, value, err)
 		}
 
 		return value, true, nil
 	default:
-		return 0, false, fmt.Errorf("multiple values are not allowed for tag %s", ftag.tagName)
+		return 0, false, fmt.Errorf("multiple values are not allowed for tag %s", ftag.idlTagName)
 	}
 }

@@ -151,7 +151,7 @@ type apiViolation struct {
 	packageName string
 	typeName    string
 
-	// Optional: name of field that violates API rule. Empty fieldName implies that
+	// Optional: name of field that violates API rule. Empty goFieldName implies that
 	// the entire type violates the rule.
 	field string
 }
