@@ -33,7 +33,7 @@ func TestSingleTagExtension(t *testing.T) {
 		extensionTag         string
 		extensionName        string
 		extensionValues      []string
-		extensionFieldValues []map[string]string
+		extensionFieldValues []fieldSet
 	}{
 		{
 			comments:        []string{"+patchMergeKey=name"},
@@ -89,13 +89,14 @@ func TestSingleTagExtension(t *testing.T) {
 			extensionValues: []string{"success"},
 		},
 		{
-			comments:      []string{"+validations='rule':'x > y','message':'This is a message'"},
+			comments:      []string{"+validations='rule':'x > y','message':'This is a message','messageExpression':'\"this is an expression\"'"},
 			extensionTag:  "validations",
 			extensionName: "x-kubernetes-validations",
-			extensionFieldValues: []map[string]string{
+			extensionFieldValues: []fieldSet{
 				{
-					"rule":    "x > y",
-					"message": "This is a message",
+					field{key: "rule", value: "x > y"},
+					field{key: "message", value: "This is a message"},
+					field{key: "messageExpression", value: "\"this is an expression\""},
 				},
 			},
 		},
