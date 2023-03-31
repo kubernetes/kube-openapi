@@ -909,12 +909,20 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 
 func (g openAPITypeWriter) generateValueValidations(m *types.Member, parent *types.Type) error {
 	tags := types.ExtractCommentTags("+", m.CommentLines)
+
 	for _, ftag := range []fieldTag{
 		tagMinimum,
 		tagExclusiveMinimum,
 		tagMaximum,
 		tagExclusiveMaximum,
 		tagMultipleOf,
+	} {
+		if err := g.generateFloatValueValidation(tags, ftag); err != nil {
+			return fmt.Errorf("%w in %v: %v", err, parent, m.Name)
+		}
+	}
+
+	for _, ftag := range []fieldTag{
 		tagMinLength,
 		tagMaxLength,
 		tagMinItems,
@@ -939,6 +947,44 @@ func (g openAPITypeWriter) generateValueValidations(m *types.Member, parent *typ
 		g.Do("Pattern: $.$,\n", strconv.Quote(unquoted))
 	}
 
+	return nil
+}
+
+func getSingleFloatTagValue(commentTags map[string][]string, tag string) (float64, bool, error) {
+	tags, ok := commentTags[tag]
+	if !ok || len(tags) == 0 {
+		return 0, false, nil
+	}
+	switch len(tags) {
+	case 0:
+		return 0, false, nil
+	case 1:
+		value := tags[0]
+		result, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return 0, false, fmt.Errorf("value must be an number for tag %s but was %s: %w", tag, value, err)
+		}
+		return result, true, nil
+	default:
+		return 0, false, fmt.Errorf("multiple values are not allowed for tag %s", tag)
+	}
+}
+
+func (g openAPITypeWriter) generateFloatValueValidation(tags map[string][]string, ftag fieldTag) error {
+	tagName := ftag.tagName
+	fieldName := ftag.fieldName
+	value, ok, err := getSingleFloatTagValue(tags, tagName)
+	if err != nil {
+		return err
+	}
+	args := generator.Args{
+		"Field":          fieldName,
+		"Value":          value,
+		"Float64Pointer": types.Ref(openAPICommonPackagePath, "Float64Pointer"),
+	}
+	if ok {
+		g.Do("$.Field$: $.Float64Pointer|raw$($.Value$),\n", args)
+	}
 	return nil
 }
 

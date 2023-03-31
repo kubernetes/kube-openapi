@@ -215,7 +215,7 @@ func parseExtensions(comments []string) ([]extension, []error) {
 			idlTag:      idlTag,       // listType
 			xName:       xAttrs.xName, // x-kubernetes-list-type
 			values:      values,       // [atomic]
-			fieldValues: fieldValues,
+			fieldValues: fieldValues,  // 'rule':'x<y','message':'x must be less than y'
 		}
 		extensions = append(extensions, e)
 	}
