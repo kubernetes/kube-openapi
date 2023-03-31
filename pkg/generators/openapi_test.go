@@ -1708,10 +1708,10 @@ type Blah struct {
 	StringValue string
 	// +maximum=99.5
     // +minimum=55.5
+	// +exclusiveMaximum=true
+    // +exclusiveMinimum=true
     // +optional
 	IntValue int64
-	// +exclusiveMaximum=16.25
-    // +exclusiveMinimum=32.125
     // +multipleOf=2.5
     // +optional
 	IntValueExclusive int64
@@ -1737,9 +1737,9 @@ Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "StringValue": {
 SchemaProps: spec.SchemaProps{
+Pattern: ".+-.+",
 MinLength: common.Int64Pointer(1),
 MaxLength: common.Int64Pointer(10),
-Pattern: ".+-.+",
 Default: "",
 Type: []string{"string"},
 Format: "dnssubdomain",
@@ -1748,7 +1748,9 @@ Format: "dnssubdomain",
 "IntValue": {
 SchemaProps: spec.SchemaProps{
 Minimum: common.Float64Pointer(55.5),
+ExclusiveMinimum: true,
 Maximum: common.Float64Pointer(99.5),
+ExclusiveMaximum: true,
 Default: 0,
 Type: []string{"integer"},
 Format: "int64",
@@ -1756,8 +1758,6 @@ Format: "int64",
 },
 "IntValueExclusive": {
 SchemaProps: spec.SchemaProps{
-ExclusiveMinimum: common.Float64Pointer(32.125),
-ExclusiveMaximum: common.Float64Pointer(16.25),
 MultipleOf: common.Float64Pointer(2.5),
 Default: 0,
 Type: []string{"integer"},

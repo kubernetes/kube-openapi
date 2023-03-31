@@ -56,24 +56,26 @@ var tempPatchTags = [...]string{
 
 type fieldTag struct {
 	fieldName, tagName string
+	kind               reflect.Kind
+	requiresQuotes     bool
 }
 
 // value validations
 var (
-	tagFormat           = fieldTag{fieldName: "Format", tagName: "format"}
-	tagPattern          = fieldTag{fieldName: "Pattern", tagName: "pattern"}
-	tagMaximum          = fieldTag{fieldName: "Maximum", tagName: "maximum"}
-	tagExclusiveMaximum = fieldTag{fieldName: "ExclusiveMaximum", tagName: "exclusiveMaximum"}
-	tagMinimum          = fieldTag{fieldName: "Minimum", tagName: "minimum"}
-	tagExclusiveMinimum = fieldTag{fieldName: "ExclusiveMinimum", tagName: "exclusiveMinimum"}
-	tagMaxLength        = fieldTag{fieldName: "MaxLength", tagName: "maxLength"}
-	tagMinLength        = fieldTag{fieldName: "MinLength", tagName: "minLength"}
-	tagMaxItems         = fieldTag{fieldName: "MaxItems", tagName: "maxItems"}
-	tagMinItems         = fieldTag{fieldName: "MinItems", tagName: "minItems"}
-	// uniqueItems intentionally left out since x-kuberenetes-list-type: set is currently our preferred approach
-	tagMultipleOf    = fieldTag{fieldName: "MultipleOf", tagName: "multipleOf"}
-	tagMaxProperties = fieldTag{fieldName: "MaxProperties", tagName: "maxProperties"}
-	tagMinProperties = fieldTag{fieldName: "MinProperties", tagName: "minProperties"}
+	tagFormat           = fieldTag{fieldName: "Format", tagName: "format", kind: reflect.String}
+	tagPattern          = fieldTag{fieldName: "Pattern", tagName: "pattern", kind: reflect.String, requiresQuotes: true}
+	tagMaximum          = fieldTag{fieldName: "Maximum", tagName: "maximum", kind: reflect.Float64}
+	tagExclusiveMaximum = fieldTag{fieldName: "ExclusiveMaximum", tagName: "exclusiveMaximum", kind: reflect.Bool}
+	tagMinimum          = fieldTag{fieldName: "Minimum", tagName: "minimum", kind: reflect.Float64}
+	tagExclusiveMinimum = fieldTag{fieldName: "ExclusiveMinimum", tagName: "exclusiveMinimum", kind: reflect.Bool}
+	tagUniqueItems      = fieldTag{fieldName: "UniqueItems", tagName: "uniqueItems", kind: reflect.Bool}
+	tagMultipleOf       = fieldTag{fieldName: "MultipleOf", tagName: "multipleOf", kind: reflect.Float64}
+	tagMaxLength        = fieldTag{fieldName: "MaxLength", tagName: "maxLength", kind: reflect.Int64}
+	tagMinLength        = fieldTag{fieldName: "MinLength", tagName: "minLength", kind: reflect.Int64}
+	tagMaxItems         = fieldTag{fieldName: "MaxItems", tagName: "maxItems", kind: reflect.Int64}
+	tagMinItems         = fieldTag{fieldName: "MinItems", tagName: "minItems", kind: reflect.Int64}
+	tagMaxProperties    = fieldTag{fieldName: "MaxProperties", tagName: "maxProperties", kind: reflect.Int64}
+	tagMinProperties    = fieldTag{fieldName: "MinProperties", tagName: "minProperties", kind: reflect.Int64}
 )
 
 func getOpenAPITagValue(comments []string) []string {
@@ -89,26 +91,6 @@ func getSingleTagsValue(comments []string, tag string) (string, error) {
 		return "", fmt.Errorf("multiple values are not allowed for tag %s", tag)
 	}
 	return tags[0], nil
-}
-
-func getSingleIntTagValue(commentTags map[string][]string, tag string) (int64, bool, error) {
-	tags, ok := commentTags[tag]
-	if !ok || len(tags) == 0 {
-		return 0, false, nil
-	}
-	switch len(tags) {
-	case 0:
-		return 0, false, nil
-	case 1:
-		value := tags[0]
-		result, err := strconv.Atoi(value)
-		if err != nil {
-			return 0, false, fmt.Errorf("value must be an integer for tag %s but was %s: %w", tag, value, err)
-		}
-		return int64(result), true, nil
-	default:
-		return 0, false, fmt.Errorf("multiple values are not allowed for tag %s", tag)
-	}
 }
 
 func hasOpenAPITagValue(comments []string, value string) bool {
@@ -911,18 +893,14 @@ func (g openAPITypeWriter) generateValueValidations(m *types.Member, parent *typ
 	tags := types.ExtractCommentTags("+", m.CommentLines)
 
 	for _, ftag := range []fieldTag{
+		// formats are not handled here since some types are paired with formats
+		tagPattern,
 		tagMinimum,
 		tagExclusiveMinimum,
 		tagMaximum,
 		tagExclusiveMaximum,
+		tagUniqueItems,
 		tagMultipleOf,
-	} {
-		if err := g.generateFloatValueValidation(tags, ftag); err != nil {
-			return fmt.Errorf("%w in %v: %v", err, parent, m.Name)
-		}
-	}
-
-	for _, ftag := range []fieldTag{
 		tagMinLength,
 		tagMaxLength,
 		tagMinItems,
@@ -930,28 +908,48 @@ func (g openAPITypeWriter) generateValueValidations(m *types.Member, parent *typ
 		tagMinProperties,
 		tagMaxProperties,
 	} {
-		if err := g.generateIntValueValidation(tags, ftag); err != nil {
+		if err := g.generateValueValidation(tags, ftag); err != nil {
 			return fmt.Errorf("%w in %v: %v", err, parent, m.Name)
 		}
-	}
-
-	pattern, err := getSingleTagsValue(m.CommentLines, tagPattern.tagName)
-	if err != nil {
-		return err
-	}
-	if len(pattern) > 0 {
-		unquoted, err := strconv.Unquote(pattern)
-		if err != nil {
-			return fmt.Errorf("pattern must be properly quoted in %v: %v: %w", parent, m.Name, err)
-		}
-		g.Do("Pattern: $.$,\n", strconv.Quote(unquoted))
 	}
 
 	return nil
 }
 
-func getSingleFloatTagValue(commentTags map[string][]string, tag string) (float64, bool, error) {
-	tags, ok := commentTags[tag]
+func (g openAPITypeWriter) generateValueValidation(tags map[string][]string, ftag fieldTag) error {
+	value, ok, err := getSingleTagValue(tags, ftag)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return nil
+	}
+
+	var pointerFn string
+	switch ftag.kind {
+	case reflect.Int64:
+		pointerFn = "Int64Pointer"
+	case reflect.Float64:
+		pointerFn = "Float64Pointer"
+	}
+
+	args := generator.Args{
+		"Field": ftag.fieldName,
+		"Value": value,
+	}
+	if len(pointerFn) == 0 {
+		g.Do("$.Field$: $.Value$,\n", args)
+	} else {
+		args = args.WithArgs(generator.Args{
+			"Converter": types.Ref(openAPICommonPackagePath, pointerFn),
+		})
+		g.Do("$.Field$: $.Converter|raw$($.Value$),\n", args)
+	}
+	return nil
+}
+
+func getSingleTagValue(commentTags map[string][]string, ftag fieldTag) (interface{}, bool, error) {
+	tags, ok := commentTags[ftag.tagName]
 	if !ok || len(tags) == 0 {
 		return 0, false, nil
 	}
@@ -960,48 +958,27 @@ func getSingleFloatTagValue(commentTags map[string][]string, tag string) (float6
 		return 0, false, nil
 	case 1:
 		value := tags[0]
-		result, err := strconv.ParseFloat(value, 64)
-		if err != nil {
-			return 0, false, fmt.Errorf("value must be an number for tag %s but was %s: %w", tag, value, err)
+
+		// parse to validate
+		var err error
+		switch ftag.kind {
+		case reflect.Int64:
+			_, err = strconv.ParseInt(value, 10, 64)
+		case reflect.Float64:
+			_, err = strconv.ParseFloat(value, 64)
+		case reflect.Bool:
+			_, err = strconv.ParseBool(value)
+		case reflect.String:
+			if ftag.requiresQuotes {
+				_, err = strconv.Unquote(value)
+			}
 		}
-		return result, true, nil
+		if err != nil {
+			return 0, false, fmt.Errorf("value must be an number for tag %s but was %s: %w", ftag.tagName, value, err)
+		}
+
+		return value, true, nil
 	default:
-		return 0, false, fmt.Errorf("multiple values are not allowed for tag %s", tag)
+		return 0, false, fmt.Errorf("multiple values are not allowed for tag %s", ftag.tagName)
 	}
-}
-
-func (g openAPITypeWriter) generateFloatValueValidation(tags map[string][]string, ftag fieldTag) error {
-	tagName := ftag.tagName
-	fieldName := ftag.fieldName
-	value, ok, err := getSingleFloatTagValue(tags, tagName)
-	if err != nil {
-		return err
-	}
-	args := generator.Args{
-		"Field":          fieldName,
-		"Value":          value,
-		"Float64Pointer": types.Ref(openAPICommonPackagePath, "Float64Pointer"),
-	}
-	if ok {
-		g.Do("$.Field$: $.Float64Pointer|raw$($.Value$),\n", args)
-	}
-	return nil
-}
-
-func (g openAPITypeWriter) generateIntValueValidation(tags map[string][]string, ftag fieldTag) error {
-	tagName := ftag.tagName
-	fieldName := ftag.fieldName
-	value, ok, err := getSingleIntTagValue(tags, tagName)
-	if err != nil {
-		return err
-	}
-	args := generator.Args{
-		"Field":        fieldName,
-		"Value":        value,
-		"Int64Pointer": types.Ref(openAPICommonPackagePath, "Int64Pointer"),
-	}
-	if ok {
-		g.Do("$.Field$: $.Int64Pointer|raw$($.Value$),\n", args)
-	}
-	return nil
 }
