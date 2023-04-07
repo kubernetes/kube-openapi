@@ -1819,7 +1819,7 @@ package foo
 // +k8s:openapi-gen=true
 // +k8s:openapi-gen=x-kubernetes-type-tag:validation_rule_test
 type Blah struct {
-	// +validations='rule':'a < b','message':'a must be less than b','messageExpression':'"a ("+string(a)+") must be less than b ("+string(b)+")"'
+	// +cel=rule:"a < b",message:"a must be less than b",messageExpression:"'a ('+string(a)+') must be less than b ('+string(b)+')'"
     // +optional
 	IntValue int64
 }`)
@@ -1841,9 +1841,9 @@ VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
 "x-kubernetes-validations": []interface{}{
 map[string]string {
-"rule": "a < b",
 "message": "a must be less than b",
-"messageExpression": "\"a (\"+string(a)+\") must be less than b (\"+string(b)+\")\"",
+"messageExpression": "'a ('+string(a)+') must be less than b ('+string(b)+')'",
+"rule": "a < b",
 },
 },
 },

@@ -91,8 +91,8 @@ func TestSingleTagExtension(t *testing.T) {
 			extensionValues: []string{"success"},
 		},
 		{
-			comments:      []string{`+validations=rule:"x > y",message:"This is a message",messageExpression:"'this is an expression'"`},
-			extensionTag:  "validations",
+			comments:      []string{`+cel=rule:"x > y",message:"This is a message",messageExpression:"'this is an expression'"`},
+			extensionTag:  "cel",
 			extensionName: "x-kubernetes-validations",
 			extensionFieldValues: []tags.FieldValue{
 				{

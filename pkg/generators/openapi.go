@@ -552,18 +552,18 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 				keys := make([]string, 0, len(fieldMap))
 				for k := range fieldMap {
 					keys = append(keys, k)
-					sort.Strings(keys) // output map into generated code in a consistent order
-					for _, k := range keys {
-						value := fieldMap[k]
-						var vStr string
-						switch v := value.(type) {
-						case string:
-							vStr = strconv.Quote(v)
-						default:
-							vStr = fmt.Sprintf("%v", value)
-						}
-						g.Do("$.key$: $.value$,\n", map[string]string{"key": strconv.Quote(k), "value": vStr})
+				}
+				sort.Strings(keys) // output map into generated code in a consistent order
+				for _, k := range keys {
+					value := fieldMap[k]
+					var vStr string
+					switch v := value.(type) {
+					case string:
+						vStr = strconv.Quote(v)
+					default:
+						vStr = fmt.Sprintf("%v", value)
 					}
+					g.Do("$.key$: $.value$,\n", map[string]string{"key": strconv.Quote(k), "value": vStr})
 				}
 
 				g.Do("},\n", nil)

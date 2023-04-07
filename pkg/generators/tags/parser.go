@@ -17,7 +17,6 @@ limitations under the License.
 package tags
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -55,13 +54,13 @@ func ParseFieldValues(in string) (FieldValue, error) {
 	s.Mode ^= scanner.SkipComments // disallow comments
 	s.Init(strings.NewReader(in))
 
-	var errs []error
+	var errs []string
 	s.Error = func(scanner *scanner.Scanner, msg string) {
-		errs = append(errs, fmt.Errorf("error parsing '%s' at %v: %s", in, scanner.Position, msg))
+		errs = append(errs, fmt.Errorf("error parsing '%s' at %v: %s", in, scanner.Position, msg).Error())
 	}
 	unexpectedTokenError := func(expected string, token string) (FieldValue, error) {
 		s.Error(&s, fmt.Sprintf("expected %s but got (%q)", expected, token))
-		return nil, errors.Join(errs...)
+		return nil, fmt.Errorf(strings.Join(errs, ", "))
 	}
 
 	for {
