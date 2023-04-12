@@ -308,6 +308,71 @@ func TestFormatBase64(t *testing.T) {
 	testInvalid(t, "byte", "ZWxpemFiZXRocG9zZXk") // missing pad char
 }
 
+func TestFormatDNS1123Subdomain(t *testing.T) {
+	goodValues := []string{
+		"a", "ab", "abc", "a1", "a-1", "a--1--2--b",
+		"0", "01", "012", "1a", "1-a", "1--a--b--2",
+		"a.a", "ab.a", "abc.a", "a1.a", "a-1.a", "a--1--2--b.a",
+		"a.1", "ab.1", "abc.1", "a1.1", "a-1.1", "a--1--2--b.1",
+		"0.a", "01.a", "012.a", "1a.a", "1-a.a", "1--a--b--2",
+		"0.1", "01.1", "012.1", "1a.1", "1-a.1", "1--a--b--2.1",
+		"a.b.c.d.e", "aa.bb.cc.dd.ee", "1.2.3.4.5", "11.22.33.44.55",
+		strings.Repeat("a", 253),
+	}
+	badValues := []string{
+		"", "A", "ABC", "aBc", "A1", "A-1", "1-A",
+		"-", "a-", "-a", "1-", "-1",
+		"_", "a_", "_a", "a_b", "1_", "_1", "1_2",
+		".", "a.", ".a", "a..b", "1.", ".1", "1..2",
+		" ", "a ", " a", "a b", "1 ", " 1", "1 2",
+		"A.a", "aB.a", "ab.A", "A1.a", "a1.A",
+		"A.1", "aB.1", "A1.1", "1A.1",
+		"0.A", "01.A", "012.A", "1A.a", "1a.A",
+		"A.B.C.D.E", "AA.BB.CC.DD.EE", "a.B.c.d.e", "aa.bB.cc.dd.ee",
+		"a@b", "a,b", "a_b", "a;b",
+		"a:b", "a%b", "a?b", "a$b",
+		strings.Repeat("a", 254),
+	}
+	v := DNS1123Subdomain("a")
+	testStringFormat(t, &v, "dns1123subdomain", "a", goodValues, badValues)
+}
+
+func TestIsDNS1123Label(t *testing.T) {
+	goodValues := []string{
+		"a", "ab", "abc", "a1", "a-1", "a--1--2--b",
+		"0", "01", "012", "1a", "1-a", "1--a--b--2",
+		strings.Repeat("a", 63),
+	}
+	badValues := []string{
+		"", "A", "ABC", "aBc", "A1", "A-1", "1-A",
+		"-", "a-", "-a", "1-", "-1",
+		"_", "a_", "_a", "a_b", "1_", "_1", "1_2",
+		".", "a.", ".a", "a.b", "1.", ".1", "1.2",
+		" ", "a ", " a", "a b", "1 ", " 1", "1 2",
+		strings.Repeat("a", 64),
+	}
+	v := DNS1123Label("a")
+	testStringFormat(t, &v, "dns1123label", "a", goodValues, badValues)
+}
+
+func TestIsDNS1035Label(t *testing.T) {
+	goodValues := []string{
+		"a", "ab", "abc", "a1", "a-1", "a--1--2--b",
+		strings.Repeat("a", 63),
+	}
+	badValues := []string{
+		"0", "01", "012", "1a", "1-a", "1--a--b--2",
+		"", "A", "ABC", "aBc", "A1", "A-1", "1-A",
+		"-", "a-", "-a", "1-", "-1",
+		"_", "a_", "_a", "a_b", "1_", "_1", "1_2",
+		".", "a.", ".a", "a.b", "1.", ".1", "1.2",
+		" ", "a ", " a", "a b", "1 ", " 1", "1 2",
+		strings.Repeat("a", 64),
+	}
+	v := DNS1035Label("a")
+	testStringFormat(t, &v, "dns1035label", "a", goodValues, badValues)
+}
+
 type testableFormat interface {
 	encoding.TextMarshaler
 	encoding.TextUnmarshaler

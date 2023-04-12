@@ -124,6 +124,69 @@ func IsEmail(str string) bool {
 	return e == nil && addr.Address != ""
 }
 
+const dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+
+// DNS1123LabelMaxLength is a label's max length in DNS (RFC 1123)
+const DNS1123LabelMaxLength int = 63
+
+var dns1123LabelRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
+
+// IsDNS1123Label tests for a string that conforms to the definition of a label in
+// DNS (RFC 1123).
+func IsDNS1123Label(value string) bool {
+	if len(value) > DNS1123LabelMaxLength {
+		return false
+	}
+	if !dns1123LabelRegexp.MatchString(value) {
+		if dns1123SubdomainRegexp.MatchString(value) {
+			// It was a valid subdomain and not a valid label.  Since we
+			// already checked length, it must be dots.
+			return false
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+const dns1123SubdomainFmt string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
+
+// DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123)
+const DNS1123SubdomainMaxLength int = 253
+
+var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")
+
+// IsDNS1123Subdomain tests for a string that conforms to the definition of a
+// subdomain in DNS (RFC 1123).
+func IsDNS1123Subdomain(value string) bool {
+	if len(value) > DNS1123SubdomainMaxLength {
+		return false
+	}
+	if !dns1123SubdomainRegexp.MatchString(value) {
+		return false
+	}
+	return true
+}
+
+const dns1035LabelFmt string = "[a-z]([-a-z0-9]*[a-z0-9])?"
+
+// DNS1035LabelMaxLength is a label's max length in DNS (RFC 1035)
+const DNS1035LabelMaxLength int = 63
+
+var dns1035LabelRegexp = regexp.MustCompile("^" + dns1035LabelFmt + "$")
+
+// IsDNS1035Label tests for a string that conforms to the definition of a label in
+// DNS (RFC 1035).
+func IsDNS1035Label(value string) bool {
+	if len(value) > DNS1035LabelMaxLength {
+		return false
+	}
+	if !dns1035LabelRegexp.MatchString(value) {
+		return false
+	}
+	return true
+}
+
 func init() {
 	// register formats in the default registry:
 	//   - byte
@@ -205,6 +268,15 @@ func init() {
 
 	pw := Password("")
 	Default.Add("password", &pw, func(_ string) bool { return true })
+
+	dns1123subdomain := DNS1123Subdomain("")
+	Default.Add("dns1123subdomain", &dns1123subdomain, IsDNS1123Subdomain)
+
+	dns1123label := DNS1123Label("")
+	Default.Add("dns1123label", &dns1123label, IsDNS1123Label)
+
+	dns1035label := DNS1035Label("")
+	Default.Add("dns1035label", &dns1035label, IsDNS1035Label)
 }
 
 // isIPv4 checks if the string is an IPv4 address, tolerating leading 0's for compatibility with go < 1.17.
@@ -1557,6 +1629,207 @@ func (r *Password) DeepCopy() *Password {
 		return nil
 	}
 	out := new(Password)
+	r.DeepCopyInto(out)
+	return out
+}
+
+// DNS1123Subdomain represents a DNS 1123 Subdomain.
+//
+// swagger:strfmt dns1123subdomain
+type DNS1123Subdomain string
+
+// MarshalText turns this instance into text
+func (r DNS1123Subdomain) MarshalText() ([]byte, error) {
+	return []byte(string(r)), nil
+}
+
+// UnmarshalText hydrates this instance from text
+func (r *DNS1123Subdomain) UnmarshalText(data []byte) error { // validation is performed later on
+	*r = DNS1123Subdomain(string(data))
+	return nil
+}
+
+// Scan read a value from a database driver
+func (r *DNS1123Subdomain) Scan(raw interface{}) error {
+	switch v := raw.(type) {
+	case []byte:
+		*r = DNS1123Subdomain(string(v))
+	case string:
+		*r = DNS1123Subdomain(v)
+	default:
+		return fmt.Errorf("cannot sql.Scan() strfmt.DNS1123Subdomain from: %#v", v)
+	}
+
+	return nil
+}
+
+func (r DNS1123Subdomain) String() string {
+	return string(r)
+}
+
+// MarshalJSON returns the DNS1123Subdomain as JSON
+func (r DNS1123Subdomain) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(r))
+}
+
+// UnmarshalJSON sets the DNS1123Subdomain from JSON
+func (r *DNS1123Subdomain) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
+	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*r = DNS1123Subdomain(ustr)
+	return nil
+}
+
+// DeepCopyInto copies the receiver and writes its value into out.
+func (r *DNS1123Subdomain) DeepCopyInto(out *DNS1123Subdomain) {
+	*out = *r
+}
+
+// DeepCopy copies the receiver into a new DNS1123Subdomain.
+func (r *DNS1123Subdomain) DeepCopy() *DNS1123Subdomain {
+	if r == nil {
+		return nil
+	}
+	out := new(DNS1123Subdomain)
+	r.DeepCopyInto(out)
+	return out
+}
+
+// DNS1123Label represents a DNS 1123 Label.
+//
+// swagger:strfmt dns1123label
+type DNS1123Label string
+
+// MarshalText turns this instance into text
+func (r DNS1123Label) MarshalText() ([]byte, error) {
+	return []byte(string(r)), nil
+}
+
+// UnmarshalText hydrates this instance from text
+func (r *DNS1123Label) UnmarshalText(data []byte) error { // validation is performed later on
+	*r = DNS1123Label(string(data))
+	return nil
+}
+
+// Scan read a value from a database driver
+func (r *DNS1123Label) Scan(raw interface{}) error {
+	switch v := raw.(type) {
+	case []byte:
+		*r = DNS1123Label(string(v))
+	case string:
+		*r = DNS1123Label(v)
+	default:
+		return fmt.Errorf("cannot sql.Scan() strfmt.DNS1123Label from: %#v", v)
+	}
+
+	return nil
+}
+
+func (r DNS1123Label) String() string {
+	return string(r)
+}
+
+// MarshalJSON returns the DNS1123Label as JSON
+func (r DNS1123Label) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(r))
+}
+
+// UnmarshalJSON sets the DNS1123Label from JSON
+func (r *DNS1123Label) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
+	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*r = DNS1123Label(ustr)
+	return nil
+}
+
+// DeepCopyInto copies the receiver and writes its value into out.
+func (r *DNS1123Label) DeepCopyInto(out *DNS1123Label) {
+	*out = *r
+}
+
+// DeepCopy copies the receiver into a new DNS1123Label.
+func (r *DNS1123Label) DeepCopy() *DNS1123Label {
+	if r == nil {
+		return nil
+	}
+	out := new(DNS1123Label)
+	r.DeepCopyInto(out)
+	return out
+}
+
+// DNS1035Label represents a DNS 1035 Label.
+//
+// swagger:strfmt dns1035label
+type DNS1035Label string
+
+// MarshalText turns this instance into text
+func (r DNS1035Label) MarshalText() ([]byte, error) {
+	return []byte(string(r)), nil
+}
+
+// UnmarshalText hydrates this instance from text
+func (r *DNS1035Label) UnmarshalText(data []byte) error { // validation is performed later on
+	*r = DNS1035Label(string(data))
+	return nil
+}
+
+// Scan read a value from a database driver
+func (r *DNS1035Label) Scan(raw interface{}) error {
+	switch v := raw.(type) {
+	case []byte:
+		*r = DNS1035Label(string(v))
+	case string:
+		*r = DNS1035Label(v)
+	default:
+		return fmt.Errorf("cannot sql.Scan() strfmt.DNS1035Label from: %#v", v)
+	}
+
+	return nil
+}
+
+func (r DNS1035Label) String() string {
+	return string(r)
+}
+
+// MarshalJSON returns the DNS1035Label as JSON
+func (r DNS1035Label) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(r))
+}
+
+// UnmarshalJSON sets the DNS1035Label from JSON
+func (r *DNS1035Label) UnmarshalJSON(data []byte) error {
+	if string(data) == jsonNull {
+		return nil
+	}
+	var ustr string
+	if err := json.Unmarshal(data, &ustr); err != nil {
+		return err
+	}
+	*r = DNS1035Label(ustr)
+	return nil
+}
+
+// DeepCopyInto copies the receiver and writes its value into out.
+func (r *DNS1035Label) DeepCopyInto(out *DNS1035Label) {
+	*out = *r
+}
+
+// DeepCopy copies the receiver into a new DNS1035Label.
+func (r *DNS1035Label) DeepCopy() *DNS1035Label {
+	if r == nil {
+		return nil
+	}
+	out := new(DNS1035Label)
 	r.DeepCopyInto(out)
 	return out
 }
