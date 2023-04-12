@@ -317,6 +317,10 @@ type testableFormat interface {
 }
 
 func testStringFormat(t *testing.T, what testableFormat, format, with string, validSamples, invalidSamples []string) {
+	testStringFormatWithRegistry(t, Default, what, format, with, validSamples, invalidSamples)
+}
+
+func testStringFormatWithRegistry(t *testing.T, registry Registry, what testableFormat, format, with string, validSamples, invalidSamples []string) {
 	// text encoding interface
 	b := []byte(with)
 	err := what.UnmarshalText(b)
@@ -348,22 +352,30 @@ func testStringFormat(t *testing.T, what testableFormat, format, with string, va
 
 	// validation with Registry
 	for _, valid := range append(validSamples, with) {
-		testValid(t, format, valid)
+		testValidWithRegistry(t, registry, format, valid)
 	}
 
 	for _, invalid := range invalidSamples {
-		testInvalid(t, format, invalid)
+		testInvalidWithRegistry(t, registry, format, invalid)
 	}
 }
 
 func testValid(t *testing.T, name, value string) {
-	ok := Default.Validates(name, value)
+	testValidWithRegistry(t, Default, name, value)
+}
+
+func testValidWithRegistry(t *testing.T, registry Registry, name, value string) {
+	ok := registry.Validates(name, value)
 	if !ok {
 		t.Errorf("expected %q of type %s to be valid", value, name)
 	}
 }
 
 func testInvalid(t *testing.T, name, value string) {
+	testInvalidWithRegistry(t, Default, name, value)
+}
+
+func testInvalidWithRegistry(t *testing.T, registry Registry, name, value string) {
 	ok := Default.Validates(name, value)
 	if ok {
 		t.Errorf("expected %q of type %s to be invalid", value, name)
