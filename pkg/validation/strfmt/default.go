@@ -134,19 +134,8 @@ var dns1123LabelRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
 // IsDNS1123Label tests for a string that conforms to the definition of a label in
 // DNS (RFC 1123).
 func IsDNS1123Label(value string) bool {
-	if len(value) > DNS1123LabelMaxLength {
-		return false
-	}
-	if !dns1123LabelRegexp.MatchString(value) {
-		if dns1123SubdomainRegexp.MatchString(value) {
-			// It was a valid subdomain and not a valid label.  Since we
-			// already checked length, it must be dots.
-			return false
-		} else {
-			return false
-		}
-	}
-	return true
+	return len(value) <= DNS1123LabelMaxLength &&
+		dns1123LabelRegexp.MatchString(value)
 }
 
 const dns1123SubdomainFmt string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
@@ -159,13 +148,8 @@ var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")
 // IsDNS1123Subdomain tests for a string that conforms to the definition of a
 // subdomain in DNS (RFC 1123).
 func IsDNS1123Subdomain(value string) bool {
-	if len(value) > DNS1123SubdomainMaxLength {
-		return false
-	}
-	if !dns1123SubdomainRegexp.MatchString(value) {
-		return false
-	}
-	return true
+	return len(value) <= DNS1123SubdomainMaxLength &&
+		dns1123SubdomainRegexp.MatchString(value)
 }
 
 const dns1035LabelFmt string = "[a-z]([-a-z0-9]*[a-z0-9])?"
@@ -178,13 +162,8 @@ var dns1035LabelRegexp = regexp.MustCompile("^" + dns1035LabelFmt + "$")
 // IsDNS1035Label tests for a string that conforms to the definition of a label in
 // DNS (RFC 1035).
 func IsDNS1035Label(value string) bool {
-	if len(value) > DNS1035LabelMaxLength {
-		return false
-	}
-	if !dns1035LabelRegexp.MatchString(value) {
-		return false
-	}
-	return true
+	return len(value) <= DNS1035LabelMaxLength &&
+		dns1035LabelRegexp.MatchString(value)
 }
 
 func init() {
