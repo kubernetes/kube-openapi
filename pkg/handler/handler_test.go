@@ -119,13 +119,21 @@ var updatedSwagger = []byte(`{
    "version": "v1.12.0"
   }}`)
 
-func getBodyOrDie(server *httptest.Server) string {
+func getJSONBodyOrDie(server *httptest.Server) []byte {
+	return getBodyOrDie(server, "application/json")
+}
+
+func getProtoBodyOrDie(server *httptest.Server) []byte {
+	return getBodyOrDie(server, "application/com.github.proto-openapi.spec.v2.v1.0+protobuf")
+}
+
+func getBodyOrDie(server *httptest.Server, acceptHeader string) []byte {
 	req, err := http.NewRequest("GET", server.URL+"/openapi/v2", nil)
 	if err != nil {
 		panic(fmt.Errorf("Unexpected error in creating new request: %v", err))
 	}
 
-	req.Header.Add("Accept", "application/json")
+	req.Header.Add("Accept", acceptHeader)
 	resp, err := server.Client().Do(req)
 	if err != nil {
 		panic(fmt.Errorf("Unexpected error in serving HTTP request: %v", err))
@@ -136,7 +144,7 @@ func getBodyOrDie(server *httptest.Server) string {
 	if err != nil {
 		panic(fmt.Errorf("Unexpected error in reading response body: %v", err))
 	}
-	return string(body)
+	return body
 }
 
 func normalizeSwaggerOrDie(j []byte) []byte {
@@ -168,7 +176,7 @@ func TestUpdateSpecLazy(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	body := getBodyOrDie(server)
+	body := string(getJSONBodyOrDie(server))
 	if body != string(returnedJSON) {
 		t.Errorf("Unexpected swagger received, got %q, expected %q", body, string(returnedSwagger))
 	}
@@ -183,7 +191,7 @@ func TestUpdateSpecLazy(t *testing.T) {
 	}))
 
 	updatedJSON := normalizeSwaggerOrDie(updatedSwagger)
-	body = getBodyOrDie(server)
+	body = string(getJSONBodyOrDie(server))
 
 	if body != string(updatedJSON) {
 		t.Errorf("Unexpected swagger received, got %q, expected %q", body, string(updatedJSON))
@@ -199,4 +207,49 @@ func TestToProtoBinary(t *testing.T) {
 		t.Fatal()
 	}
 	// TODO: add some kind of roundtrip test here
+}
+
+func TestConcurrentReadStaleCache(t *testing.T) {
+	// Number of requests sent in parallel
+	concurrency := 5
+
+	var s spec.Swagger
+	err := s.UnmarshalJSON(returnedSwagger)
+	if err != nil {
+		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
+	}
+
+	mux := http.NewServeMux()
+	o := NewOpenAPIService(&s)
+	if err := o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
+		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
+	}
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	returnedJSON := normalizeSwaggerOrDie(returnedSwagger)
+	returnedPb, err := ToProtoBinary(returnedJSON)
+	if err != nil {
+		t.Errorf("Unexpected error in preparing returnedPb: %v", err)
+	}
+
+	jsonResults := make(chan []byte)
+	protoResults := make(chan []byte)
+	for i := 0; i < concurrency; i++ {
+		go func() { jsonResults <- getJSONBodyOrDie(server) }()
+		go func() { protoResults <- getProtoBodyOrDie(server) }()
+	}
+	for i := 0; i < concurrency; i++ {
+		r := <-jsonResults
+		if !reflect.DeepEqual(r, returnedJSON) {
+			t.Errorf("Returned and expected JSON do not match: got %v, want %v", string(r), string(returnedJSON))
+		}
+	}
+	for i := 0; i < concurrency; i++ {
+		r := <-protoResults
+		if !reflect.DeepEqual(r, returnedPb) {
+			t.Errorf("Returned and expected pb do not match: got %v, want %v", r, returnedPb)
+		}
+	}
+
 }
