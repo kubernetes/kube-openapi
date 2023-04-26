@@ -98,16 +98,6 @@ func NewOpenAPIServiceLazy(swagger cached.Data[*spec.Swagger]) *OpenAPIService {
 	return o
 }
 
-func (o *OpenAPIService) getSwaggerBytes() (timedSpec, string, error) {
-	result := o.jsonCache.Get()
-	return result.Data, result.Etag, result.Err
-}
-
-func (o *OpenAPIService) getSwaggerPbBytes() (timedSpec, string, error) {
-	result := o.protoCache.Get()
-	return result.Data, result.Etag, result.Err
-}
-
 func (o *OpenAPIService) UpdateSpec(swagger *spec.Swagger) error {
 	o.UpdateSpecLazy(cached.NewResultOK(swagger, uuid.New().String()))
 	return nil
