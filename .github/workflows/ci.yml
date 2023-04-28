@@ -31,7 +31,7 @@ jobs:
         if [[ -n "${diff}" ]]; then echo "${diff}"; exit 1; fi
     - name: Test
       run: |
-        go test ./cmd/... ./pkg/...
+        go test -race ./cmd/... ./pkg/...
     - name: Run integration tests
       run: |
         cd test/integration
