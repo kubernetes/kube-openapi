@@ -268,7 +268,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 		}
 		_, _, err = mime.ParseMediaType(responseContentType)
 		if err != nil {
-			t.Errorf("Unexpected error in prarsing response content type: %v, err: %v", responseContentType, err)
+			t.Errorf("Unexpected error in parsing response content type: %v, err: %v", responseContentType, err)
 		}
 
 		gotETag := resp.Header.Get("ETag")
@@ -284,6 +284,20 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 			t.Errorf("Accept: %v: Response body mismatches, \nwant: %s, \ngot:  %s", tc.acceptHeader, string(tc.respBody), string(body))
 		}
 	}
+}
+func normalizeOpenAPIOrDie(o []byte) []byte {
+	var s *spec3.OpenAPI
+	buffer := new(bytes.Buffer)
+	if err := json.Compact(buffer, returnedOpenAPI); err != nil {
+		panic(fmt.Errorf("Unexpected error in json Compact: %v", err))
+	}
+	b := buffer.Bytes()
+	json.Unmarshal(b, &s)
+	returnedJSON, err := json.Marshal(s)
+	if err != nil {
+		panic(fmt.Errorf("Unexpected error in preparing returnedJSON: %v", err))
+	}
+	return returnedJSON
 }
 
 func TestCacheBusting(t *testing.T) {
@@ -538,4 +552,81 @@ func TestUpdateGroupVersion(t *testing.T) {
 	if len(discovery.Paths) != 1 {
 		t.Fatalf("Invalid number of Paths, expected 2: %v", discovery.Paths)
 	}
+}
+
+func TestConcurrentReadStaleCache(t *testing.T) {
+	concurrency := 5
+	var s spec3.OpenAPI
+	err := s.UnmarshalJSON(returnedOpenAPI)
+	if err != nil {
+		t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
+	}
+	returnedJSON := normalizeOpenAPIOrDie(returnedOpenAPI)
+	returnedPb, err := ToV3ProtoBinary(returnedJSON)
+	if err != nil {
+		t.Fatalf("Unexpected error in preparing returnedPb: %v", err)
+	}
+	mux := http.NewServeMux()
+	o := NewOpenAPIService()
+	mux.Handle("/openapi/v3", http.HandlerFunc(o.HandleDiscovery))
+	mux.Handle("/openapi/v3/apis/apps/v1", http.HandlerFunc(o.HandleGroupVersion))
+	o.UpdateGroupVersion("apis/apps/v1", &s)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	client := server.Client()
+
+	results := make(chan []byte)
+	pbResults := make(chan []byte)
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			req, err := http.NewRequest("GET", server.URL+"/openapi/v3/apis/apps/v1", nil)
+			if err != nil {
+				t.Error(err)
+			}
+			req.Header.Add("Accept", "application/json")
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Errorf("Unexpected error in serving HTTP request: %v", err)
+			}
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("Unexpected error in reading response body: %v", err)
+			}
+			results <- body
+		}()
+	}
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			req, err := http.NewRequest("GET", server.URL+"/openapi/v3/apis/apps/v1", nil)
+			if err != nil {
+				t.Error(err)
+			}
+			req.Header.Add("Accept", "application/com.github.proto-openapi.spec.v3.v1.0+protobuf")
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Errorf("Unexpected error in serving HTTP request: %v", err)
+			}
+			defer resp.Body.Close()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Errorf("Unexpected error in reading response body: %v", err)
+			}
+			pbResults <- body
+		}()
+	}
+
+	for i := 0; i < concurrency; i++ {
+		r := <-results
+		if !reflect.DeepEqual(r, returnedJSON) {
+			t.Errorf("Returned and expected JSON do not match: got %v, want %v", string(r), string(returnedJSON))
+		}
+	}
+	for i := 0; i < concurrency; i++ {
+		r := <-pbResults
+		if !reflect.DeepEqual(r, returnedPb) {
+			t.Errorf("Returned and expected JSON do not match: got %v, want %v", r, returnedPb)
+		}
+	}
+
 }
