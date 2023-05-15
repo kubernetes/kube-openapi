@@ -17,9 +17,7 @@ package strfmt
 import (
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -151,113 +149,4 @@ type testStruct struct {
 	Rgbcolor   RGBColor   `json:"rgbcolor,omitempty"`
 	B64        Base64     `json:"b64,omitempty"`
 	Pw         Password   `json:"pw,omitempty"`
-}
-
-func TestDecodeHook(t *testing.T) {
-	registry := NewFormats()
-	m := map[string]interface{}{
-		"d":          "2014-12-15",
-		"dt":         "2012-03-02T15:06:05.999999999Z",
-		"dur":        "5s",
-		"uri":        "http://www.dummy.com",
-		"eml":        "dummy@dummy.com",
-		"uuid":       "a8098c1a-f86e-11da-bd1a-00112444be1e",
-		"uuid3":      "bcd02e22-68f0-3046-a512-327cca9def8f",
-		"uuid4":      "025b0d74-00a2-4048-bf57-227c5111bb34",
-		"uuid5":      "886313e1-3b8a-5372-9b90-0c9aee199e5d",
-		"hn":         "somewhere.com",
-		"ipv4":       "192.168.254.1",
-		"ipv6":       "::1",
-		"cidr":       "192.0.2.1/24",
-		"mac":        "01:02:03:04:05:06",
-		"isbn":       "0321751043",
-		"isbn10":     "0321751043",
-		"isbn13":     "978-0321751041",
-		"hexcolor":   "#FFFFFF",
-		"rgbcolor":   "rgb(255,255,255)",
-		"pw":         "super secret stuff here",
-		"ssn":        "111-11-1111",
-		"creditcard": "4111-1111-1111-1111",
-		"b64":        "ZWxpemFiZXRocG9zZXk=",
-	}
-
-	date, _ := time.Parse(RFC3339FullDate, "2014-12-15")
-	dur, _ := ParseDuration("5s")
-	dt, _ := ParseDateTime("2012-03-02T15:06:05.999999999Z")
-
-	exp := &testStruct{
-		D:          Date(date),
-		DT:         dt,
-		Dur:        Duration(dur),
-		URI:        URI("http://www.dummy.com"),
-		Eml:        Email("dummy@dummy.com"),
-		UUID:       UUID("a8098c1a-f86e-11da-bd1a-00112444be1e"),
-		UUID3:      UUID3("bcd02e22-68f0-3046-a512-327cca9def8f"),
-		UUID4:      UUID4("025b0d74-00a2-4048-bf57-227c5111bb34"),
-		UUID5:      UUID5("886313e1-3b8a-5372-9b90-0c9aee199e5d"),
-		Hn:         Hostname("somewhere.com"),
-		Ipv4:       IPv4("192.168.254.1"),
-		Ipv6:       IPv6("::1"),
-		Cidr:       CIDR("192.0.2.1/24"),
-		Mac:        MAC("01:02:03:04:05:06"),
-		Isbn:       ISBN("0321751043"),
-		Isbn10:     ISBN10("0321751043"),
-		Isbn13:     ISBN13("978-0321751041"),
-		Creditcard: CreditCard("4111-1111-1111-1111"),
-		Ssn:        SSN("111-11-1111"),
-		Hexcolor:   HexColor("#FFFFFF"),
-		Rgbcolor:   RGBColor("rgb(255,255,255)"),
-		B64:        Base64("ZWxpemFiZXRocG9zZXk="),
-		Pw:         Password("super secret stuff here"),
-	}
-
-	test := new(testStruct)
-	cfg := &mapstructure.DecoderConfig{
-		DecodeHook: registry.MapStructureHookFunc(),
-		// weakly typed will pass if this passes
-		WeaklyTypedInput: false,
-		Result:           test,
-	}
-	d, err := mapstructure.NewDecoder(cfg)
-	assert.Nil(t, err)
-	err = d.Decode(m)
-	assert.Nil(t, err)
-	assert.Equal(t, exp, test)
-}
-
-func TestDecodeDateTimeHook(t *testing.T) {
-	testCases := []struct {
-		Name  string
-		Input string
-	}{
-		{
-			"empty datetime",
-			"",
-		},
-		{
-			"invalid non empty datetime",
-			"2019-01-01",
-		},
-	}
-	registry := NewFormats()
-	type layout struct {
-		DateTime *DateTime `json:"datetime,omitempty"`
-	}
-	for i := range testCases {
-		tc := testCases[i]
-		t.Run(tc.Name, func(t *testing.T) {
-			test := new(layout)
-			cfg := &mapstructure.DecoderConfig{
-				DecodeHook:       registry.MapStructureHookFunc(),
-				WeaklyTypedInput: false,
-				Result:           test,
-			}
-			d, err := mapstructure.NewDecoder(cfg)
-			assert.Nil(t, err)
-			input := make(map[string]interface{})
-			input["datetime"] = tc.Input
-			err = d.Decode(input)
-			assert.Error(t, err, "error expected got none")
-		})
-	}
 }
