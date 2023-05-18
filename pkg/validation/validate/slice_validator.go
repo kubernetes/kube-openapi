@@ -23,15 +23,14 @@ import (
 )
 
 type schemaSliceValidator struct {
-	Path            string
-	In              string
-	MaxItems        *int64
-	MinItems        *int64
-	UniqueItems     bool
-	AdditionalItems *spec.SchemaOrBool
-	Items           *spec.SchemaOrArray
-	KnownFormats    strfmt.Registry
-	Options         SchemaValidatorOptions
+	Path         string
+	In           string
+	MaxItems     *int64
+	MinItems     *int64
+	UniqueItems  bool
+	Items        *spec.Schema
+	KnownFormats strfmt.Registry
+	Options      SchemaValidatorOptions
 }
 
 func (s *schemaSliceValidator) SetPath(path string) {
@@ -52,35 +51,12 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	val := reflect.ValueOf(data)
 	size := val.Len()
 
-	if s.Items != nil && s.Items.Schema != nil {
-		validator := NewSchemaValidator(s.Items.Schema, s.Path, s.KnownFormats, s.Options.Options()...)
+	if s.Items != nil {
+		validator := NewSchemaValidator(s.Items, s.Path, s.KnownFormats, s.Options.Options()...)
 		for i := 0; i < size; i++ {
 			validator.SetPath(fmt.Sprintf("%s[%d]", s.Path, i))
 			value := val.Index(i)
 			result.Merge(validator.Validate(value.Interface()))
-		}
-	}
-
-	itemsSize := 0
-	if s.Items != nil && len(s.Items.Schemas) > 0 {
-		itemsSize = len(s.Items.Schemas)
-		for i := 0; i < itemsSize; i++ {
-			validator := NewSchemaValidator(&s.Items.Schemas[i], fmt.Sprintf("%s[%d]", s.Path, i), s.KnownFormats, s.Options.Options()...)
-			if val.Len() <= i {
-				break
-			}
-			result.Merge(validator.Validate(val.Index(i).Interface()))
-		}
-	}
-	if s.AdditionalItems != nil && itemsSize < size {
-		if s.Items != nil && len(s.Items.Schemas) > 0 && !s.AdditionalItems.Allows {
-			result.AddErrors(arrayDoesNotAllowAdditionalItemsMsg())
-		}
-		if s.AdditionalItems.Schema != nil {
-			for i := itemsSize; i < size-itemsSize+1; i++ {
-				validator := NewSchemaValidator(s.AdditionalItems.Schema, fmt.Sprintf("%s[%d]", s.Path, i), s.KnownFormats, s.Options.Options()...)
-				result.Merge(validator.Validate(val.Index(i).Interface()))
-			}
 		}
 	}
 

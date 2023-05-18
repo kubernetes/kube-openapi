@@ -181,16 +181,26 @@ func (s *SchemaValidator) commonValidator() valueValidator {
 }
 
 func (s *SchemaValidator) sliceValidator() valueValidator {
+	var itemsSchema *spec.Schema
+	if s.Schema.Items != nil {
+		if s.Schema.Items.Schema != nil {
+			itemsSchema = s.Schema.Items.Schema
+		} else if len(s.Schema.Items.Schemas) == 1 {
+			itemsSchema = &s.Schema.Items.Schemas[0]
+		} else if len(s.Schema.Items.Schemas) > 1 {
+			itemsSchema = nil
+		}
+	}
+
 	return &schemaSliceValidator{
-		Path:            s.Path,
-		In:              s.in,
-		MaxItems:        s.Schema.MaxItems,
-		MinItems:        s.Schema.MinItems,
-		UniqueItems:     s.Schema.UniqueItems,
-		AdditionalItems: s.Schema.AdditionalItems,
-		Items:           s.Schema.Items,
-		KnownFormats:    s.KnownFormats,
-		Options:         s.Options,
+		Path:         s.Path,
+		In:           s.in,
+		MaxItems:     s.Schema.MaxItems,
+		MinItems:     s.Schema.MinItems,
+		UniqueItems:  s.Schema.UniqueItems,
+		Items:        itemsSchema,
+		KnownFormats: s.KnownFormats,
+		Options:      s.Options,
 	}
 }
 
