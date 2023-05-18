@@ -224,7 +224,7 @@ func doTestSchemaSuite(t *testing.T, doc []byte) {
 		tmpFile.Close()
 		defer func() { _ = os.Remove(tmpFile.Name()) }()
 
-		validator := NewSchemaValidator(testDescription.Schema, nil, "data", strfmt.Default)
+		validator := NewSchemaValidator(testDescription.Schema, "data", strfmt.Default)
 		for _, test := range testDescription.Tests {
 			result := validator.Validate(test.Data)
 			assert.NotNil(t, result, test.Description+" should validate")

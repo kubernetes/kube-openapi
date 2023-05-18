@@ -137,7 +137,7 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 	assert.NotNil(t, res)
 	assert.True(t, res.IsValid())
 
-	s = NewSchemaValidator(nil, nil, "", strfmt.Default)
+	s = NewSchemaValidator(nil, "", strfmt.Default)
 	assert.Nil(t, s)
 
 	v := "ABC"
@@ -150,7 +150,7 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 
 	spp := spec.Float64Property()
 
-	s = NewSchemaValidator(spp, nil, "", strfmt.Default)
+	s = NewSchemaValidator(spp, "", strfmt.Default)
 
 	s.SetPath("path")
 	assert.Equal(t, "path", s.Path)
@@ -166,7 +166,7 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 
 	// Validating json.Number data against integer|int32
 	spp = spec.Int32Property()
-	s = NewSchemaValidator(spp, nil, "", strfmt.Default)
+	s = NewSchemaValidator(spp, "", strfmt.Default)
 	j = json.Number("123")
 	r = s.Validate(j)
 	assert.True(t, r.IsValid())
@@ -178,7 +178,7 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 
 	// Validating incorrect json.Number data
 	spp = spec.Float64Property()
-	s = NewSchemaValidator(spp, nil, "", strfmt.Default)
+	s = NewSchemaValidator(spp, "", strfmt.Default)
 	j = json.Number("AXF")
 	r = s.Validate(j)
 	assert.False(t, r.IsValid())
