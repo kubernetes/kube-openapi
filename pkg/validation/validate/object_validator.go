@@ -88,18 +88,16 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 			_, regularProperty := o.Properties[key]
 
 			// Validates property against "patternProperties" if applicable
-			// BUG(fredbi): succeededOnce is always false
-
 			// NOTE: how about regular properties which do not match patternProperties?
-			matched, succeededOnce, _ := o.validatePatternProperty(key, value, res)
+			matched, _ := o.validatePatternProperty(key, value, res)
 
-			if !(regularProperty || matched || succeededOnce) {
+			if !(regularProperty || matched) {
 
 				// Cases: properties which are not regular properties and have not been matched by the PatternProperties validator
 				if o.AdditionalProperties != nil && o.AdditionalProperties.Schema != nil {
 					// AdditionalProperties as Schema
 					res.Merge(NewSchemaValidator(o.AdditionalProperties.Schema, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value))
-				} else if regularProperty && !(matched || succeededOnce) {
+				} else if regularProperty && !(matched) {
 					// TODO: this is dead code since regularProperty=false here
 					res.AddErrors(errors.FailedAllPatternProperties(o.Path, o.In, key))
 				}
@@ -107,8 +105,6 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 		}
 		// Valid cases: additionalProperties: true or undefined
 	}
-
-	createdFromDefaults := map[string]bool{}
 
 	// Property types:
 	// - regular Property
@@ -128,7 +124,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	// Check required properties
 	if len(o.Required) > 0 {
 		for _, k := range o.Required {
-			if _, ok := val[k]; !ok && !createdFromDefaults[k] {
+			if _, ok := val[k]; !ok {
 				res.AddErrors(errors.Required(o.Path+"."+k, o.In))
 				continue
 			}
@@ -139,8 +135,8 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	// TODO: it looks like we have done that twice in many cases
 	for key, value := range val {
 		_, regularProperty := o.Properties[key]
-		matched, _ /*succeededOnce*/, patterns := o.validatePatternProperty(key, value, res)
-		if !regularProperty && (matched /*|| succeededOnce*/) {
+		matched, patterns := o.validatePatternProperty(key, value, res)
+		if !regularProperty && matched {
 			for _, pName := range patterns {
 				if v, ok := o.PatternProperties[pName]; ok {
 					res.Merge(NewSchemaValidator(&v, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value))
@@ -152,9 +148,8 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 }
 
 // TODO: succeededOnce is not used anywhere
-func (o *objectValidator) validatePatternProperty(key string, value interface{}, result *Result) (bool, bool, []string) {
+func (o *objectValidator) validatePatternProperty(key string, value interface{}, result *Result) (bool, []string) {
 	matched := false
-	succeededOnce := false
 	var patterns []string
 
 	for k, schema := range o.PatternProperties {
@@ -169,11 +164,5 @@ func (o *objectValidator) validatePatternProperty(key string, value interface{},
 		}
 	}
 
-	// BUG(fredbi): can't get to here. Should remove dead code (commented out).
-
-	//if succeededOnce {
-	//	result.Inc()
-	//}
-
-	return matched, succeededOnce, patterns
+	return matched, patterns
 }
