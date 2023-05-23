@@ -135,6 +135,10 @@ type merger[K comparable, T, V any] struct {
 // function will remerge all the dependencies together everytime. Since
 // the list of dependencies is constant, there is no way to save some
 // partial merge information either.
+
+// Also note that Golang map iteration is not stable. If the mergeFn
+// depends on the order iteration to be stable, it will need to
+// implement its own sorting or iteration order.
 func NewMerger[K comparable, T, V any](mergeFn func(results map[K]Result[T]) Result[V], caches map[K]Data[T]) Data[V] {
 	return &merger[K, T, V]{
 		mergeFn: mergeFn,
@@ -187,7 +191,71 @@ func (c *merger[K, T, V]) Get() Result[V] {
 	return c.result
 }
 
-type transformerCacheKeyType struct{}
+// NewListMerger creates a new merge cache that merges the results of
+// other caches in list form. The function only gets called if any of
+// the dependency has changed.
+
+// The benefit of ListMerger over the basic Merger is that caches are
+// stored in a list and the iteration order will be deterministic. The
+// caller is not forced to sort before calling the mergeFn on the
+// cache.
+
+// If any of the dependency returned an error before, or any of the
+// dependency returned an error this time, or if the mergeFn failed
+// before, then the function is reran.
+
+// Note that this assumes there is no "partial" merge, the merge
+// function will remerge all the dependencies together everytime. Since
+// the list of dependencies is constant, there is no way to save some
+// partial merge information either.
+type listMerger[T, V any] struct {
+	mergeFn      func([]Result[T]) Result[V]
+	caches       []Data[T]
+	cacheResults []Result[T]
+	result       Result[V]
+}
+
+func NewListMerger[T, V any](mergeFn func(results []Result[T]) Result[V], caches []Data[T]) Data[V] {
+	return &listMerger[T, V]{
+		mergeFn: mergeFn,
+		caches:  caches,
+	}
+}
+func (c *listMerger[T, V]) prepareResults() []Result[T] {
+	cacheResults := []Result[T]{}
+	for _, cache := range c.caches {
+		cacheResults = append(cacheResults, cache.Get())
+	}
+	return cacheResults
+}
+
+func (c *listMerger[T, V]) needsRunning(results []Result[T]) bool {
+	if len(c.cacheResults) == 0 {
+		return true
+	}
+	if c.result.Err != nil {
+		return true
+	}
+	if len(results) != len(c.cacheResults) {
+		panic(fmt.Errorf("invalid number of results: %v (expected %v)", len(results), len(c.cacheResults)))
+	}
+	for i, oldResult := range c.cacheResults {
+		newResult := results[i]
+		if newResult.Etag != oldResult.Etag || newResult.Err != nil || oldResult.Err != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *listMerger[T, V]) Get() Result[V] {
+	cacheResults := c.prepareResults()
+	if c.needsRunning(cacheResults) {
+		c.cacheResults = cacheResults
+		c.result = c.mergeFn(c.cacheResults)
+	}
+	return c.result
+}
 
 // NewTransformer creates a new cache that transforms the result of
 // another cache. The transformFn will only be called if the source
@@ -198,15 +266,12 @@ type transformerCacheKeyType struct{}
 // this time, or if the transformerFn failed before, the function is
 // reran.
 func NewTransformer[T, V any](transformerFn func(Result[T]) Result[V], source Data[T]) Data[V] {
-	return NewMerger(func(caches map[transformerCacheKeyType]Result[T]) Result[V] {
-		cache, ok := caches[transformerCacheKeyType{}]
-		if len(caches) != 1 || !ok {
+	return NewListMerger(func(caches []Result[T]) Result[V] {
+		if len(caches) != 1 {
 			panic(fmt.Errorf("invalid cache for transformer cache: %v", caches))
 		}
-		return transformerFn(cache)
-	}, map[transformerCacheKeyType]Data[T]{
-		{}: source,
-	})
+		return transformerFn(caches[0])
+	}, []Data[T]{source})
 }
 
 // NewSource creates a new cache that generates some data. This

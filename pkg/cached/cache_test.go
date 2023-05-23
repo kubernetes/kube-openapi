@@ -846,3 +846,173 @@ func Example() {
 		"replaceable": &replaceable,
 	}))
 }
+
+func TestListMerger(t *testing.T) {
+	source1Count := 0
+	source1 := cached.NewSource(func() cached.Result[[]byte] {
+		source1Count += 1
+		return cached.NewResultOK([]byte("source1"), "source1")
+	})
+	source2Count := 0
+	source2 := cached.NewSource(func() cached.Result[[]byte] {
+		source2Count += 1
+		return cached.NewResultOK([]byte("source2"), "source2")
+	})
+	mergerCount := 0
+	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+		mergerCount += 1
+		d := []string{}
+		e := []string{}
+		for _, result := range results {
+			if result.Err != nil {
+				return cached.NewResultErr[[]byte](result.Err)
+			}
+			d = append(d, string(result.Data))
+			e = append(e, result.Etag)
+		}
+		sort.Strings(d)
+		sort.Strings(e)
+		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
+	}, []cached.Data[[]byte]{
+		source1, source2,
+	})
+	if err := merger.Get().Err; err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	result := merger.Get()
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	if want := "merged source1 and source2"; string(result.Data) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	}
+	if want := "merged source1 and source2"; result.Etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	}
+
+	if source1Count != 2 {
+		t.Fatalf("Expected source function called twice, called: %v", source1Count)
+	}
+	if source2Count != 2 {
+		t.Fatalf("Expected source function called twice, called: %v", source2Count)
+	}
+	if mergerCount != 1 {
+		t.Fatalf("Expected merger function called once, called: %v", mergerCount)
+	}
+}
+
+func TestListMergerSourceError(t *testing.T) {
+	source1Count := 0
+	source1 := cached.NewSource(func() cached.Result[[]byte] {
+		source1Count += 1
+		return cached.NewResultErr[[]byte](errors.New("source1 error"))
+	})
+	source2Count := 0
+	source2 := cached.NewSource(func() cached.Result[[]byte] {
+		source2Count += 1
+		return cached.NewResultOK([]byte("source2"), "source2")
+	})
+	mergerCount := 0
+	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+		mergerCount += 1
+		d := []string{}
+		e := []string{}
+		for _, result := range results {
+			if result.Err != nil {
+				return cached.NewResultErr[[]byte](result.Err)
+			}
+			d = append(d, string(result.Data))
+			e = append(e, result.Etag)
+		}
+		sort.Strings(d)
+		sort.Strings(e)
+		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
+	}, []cached.Data[[]byte]{
+		source1, source2,
+	})
+	if err := merger.Get().Err; err == nil {
+		t.Fatalf("expected error, none found")
+	}
+	if err := merger.Get().Err; err == nil {
+		t.Fatalf("expected error, none found")
+	}
+	if source1Count != 2 {
+		t.Fatalf("Expected source function called twice, called: %v", source1Count)
+	}
+	if source2Count != 2 {
+		t.Fatalf("Expected source function called twice, called: %v", source2Count)
+	}
+	if mergerCount != 2 {
+		t.Fatalf("Expected merger function called twice, called: %v", mergerCount)
+	}
+}
+
+func TestListMergerAlternateSourceError(t *testing.T) {
+	source1Count := 0
+	source1 := cached.NewSource(func() cached.Result[[]byte] {
+		source1Count += 1
+		if source1Count%2 == 0 {
+			return cached.NewResultErr[[]byte](errors.New("source1 error"))
+		} else {
+			return cached.NewResultOK([]byte("source1"), "source1")
+		}
+	})
+	source2Count := 0
+	source2 := cached.NewSource(func() cached.Result[[]byte] {
+		source2Count += 1
+		return cached.NewResultOK([]byte("source2"), "source2")
+	})
+	mergerCount := 0
+	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+		mergerCount += 1
+		d := []string{}
+		e := []string{}
+		for _, result := range results {
+			if result.Err != nil {
+				return cached.NewResultErr[[]byte](result.Err)
+			}
+			d = append(d, string(result.Data))
+			e = append(e, result.Etag)
+		}
+		sort.Strings(d)
+		sort.Strings(e)
+		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
+	}, []cached.Data[[]byte]{
+		source1, source2,
+	})
+	result := merger.Get()
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	if want := "merged source1 and source2"; string(result.Data) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	}
+	if want := "merged source1 and source2"; result.Etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	}
+	if err := merger.Get().Err; err == nil {
+		t.Fatalf("expected error, none found")
+	}
+	result = merger.Get()
+	if result.Err != nil {
+		t.Fatalf("unexpected error: %v", result.Err)
+	}
+	if want := "merged source1 and source2"; string(result.Data) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	}
+	if want := "merged source1 and source2"; result.Etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	}
+	if err := merger.Get().Err; err == nil {
+		t.Fatalf("expected error, none found")
+	}
+	if source1Count != 4 {
+		t.Fatalf("Expected source function called 4x, called: %v", source1Count)
+	}
+	if source2Count != 4 {
+		t.Fatalf("Expected source function called 4x, called: %v", source2Count)
+	}
+	if mergerCount != 4 {
+		t.Fatalf("Expected merger function called 4x, called: %v", mergerCount)
+	}
+}
