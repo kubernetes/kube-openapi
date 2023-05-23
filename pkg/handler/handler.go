@@ -203,5 +203,5 @@ func BuildAndRegisterOpenAPIVersionedServiceFromRoutes(servePath string, routeCo
 	}
 	o := NewOpenAPIService(spec)
 	o.RegisterOpenAPIVersionedService(servePath, handler)
-	return nil, o
+	return o, nil
 }
