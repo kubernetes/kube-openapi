@@ -168,9 +168,7 @@ func TestUpdateSpecLazy(t *testing.T) {
 
 	mux := http.NewServeMux()
 	o := NewOpenAPIService(&s)
-	if err := o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
-		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
-	}
+	o.RegisterOpenAPIVersionedService("/openapi/v2", mux)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
@@ -219,9 +217,7 @@ func TestConcurrentReadStaleCache(t *testing.T) {
 
 	mux := http.NewServeMux()
 	o := NewOpenAPIService(&s)
-	if err := o.RegisterOpenAPIVersionedService("/openapi/v2", mux); err != nil {
-		t.Errorf("Unexpected error in register OpenAPI versioned service: %v", err)
-	}
+	o.RegisterOpenAPIVersionedService("/openapi/v2", mux)
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
