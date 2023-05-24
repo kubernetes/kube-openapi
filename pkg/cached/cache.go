@@ -135,7 +135,7 @@ type merger[K comparable, T, V any] struct {
 // function will remerge all the dependencies together everytime. Since
 // the list of dependencies is constant, there is no way to save some
 // partial merge information either.
-
+//
 // Also note that Golang map iteration is not stable. If the mergeFn
 // depends on the order iteration to be stable, it will need to
 // implement its own sorting or iteration order.
@@ -194,16 +194,15 @@ func (c *merger[K, T, V]) Get() Result[V] {
 // NewListMerger creates a new merge cache that merges the results of
 // other caches in list form. The function only gets called if any of
 // the dependency has changed.
-
+//
 // The benefit of ListMerger over the basic Merger is that caches are
-// stored in a list and the iteration order will be deterministic. The
-// caller is not forced to sort before calling the mergeFn on the
-// cache.
-
+// stored in an ordered list so the order of the cache will be
+// preserved in the order of the results passed to the mergeFn.
+//
 // If any of the dependency returned an error before, or any of the
 // dependency returned an error this time, or if the mergeFn failed
 // before, then the function is reran.
-
+//
 // Note that this assumes there is no "partial" merge, the merge
 // function will remerge all the dependencies together everytime. Since
 // the list of dependencies is constant, there is no way to save some
