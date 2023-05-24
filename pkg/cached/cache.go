@@ -183,10 +183,27 @@ func NewListMerger[T, V any](mergeFn func(results []Result[T]) Result[V], caches
 		caches:  caches,
 	}
 }
+
 func (c *listMerger[T, V]) prepareResults() []Result[T] {
-	cacheResults := make([]Result[T], 0, len(c.caches))
-	for _, cache := range c.caches {
-		cacheResults = append(cacheResults, cache.Get())
+	cacheResults := make([]Result[T], len(c.caches))
+	ch := make(chan struct {
+		int
+		Result[T]
+	}, len(c.caches))
+	for i := range c.caches {
+		go func(index int) {
+			ch <- struct {
+				int
+				Result[T]
+			}{
+				index,
+				c.caches[index].Get(),
+			}
+		}(i)
+	}
+	for i := 0; i < len(c.caches); i++ {
+		res := <-ch
+		cacheResults[res.int] = res.Result
 	}
 	return cacheResults
 }
