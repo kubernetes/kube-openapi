@@ -184,7 +184,7 @@ func NewListMerger[T, V any](mergeFn func(results []Result[T]) Result[V], caches
 	}
 }
 func (c *listMerger[T, V]) prepareResults() []Result[T] {
-	cacheResults := []Result[T]{}
+	cacheResults := make([]Result[T], 0, len(c.caches))
 	for _, cache := range c.caches {
 		cacheResults = append(cacheResults, cache.Get())
 	}
@@ -192,7 +192,7 @@ func (c *listMerger[T, V]) prepareResults() []Result[T] {
 }
 
 func (c *listMerger[T, V]) needsRunning(results []Result[T]) bool {
-	if len(c.cacheResults) == 0 {
+	if c.cacheResults == nil {
 		return true
 	}
 	if c.result.Err != nil {
