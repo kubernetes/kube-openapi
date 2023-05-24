@@ -110,14 +110,6 @@ type Data[T any] interface {
 	Get() Result[T]
 }
 
-// T is the source type, V is the destination type.
-type merger[K comparable, T, V any] struct {
-	mergeFn      func(map[K]Result[T]) Result[V]
-	caches       map[K]Data[T]
-	cacheResults map[K]Result[T]
-	result       Result[V]
-}
-
 // NewMerger creates a new merge cache, a cache that merges the result
 // of other caches. The function only gets called if any of the
 // dependency has changed.
@@ -140,55 +132,33 @@ type merger[K comparable, T, V any] struct {
 // depends on the order iteration to be stable, it will need to
 // implement its own sorting or iteration order.
 func NewMerger[K comparable, T, V any](mergeFn func(results map[K]Result[T]) Result[V], caches map[K]Data[T]) Data[V] {
-	return &merger[K, T, V]{
-		mergeFn: mergeFn,
-		caches:  caches,
+	listCaches := make([]Data[T], 0, len(caches))
+	// maps from index to key
+	indexes := make(map[int]K, len(caches))
+	i := 0
+	for k := range caches {
+		listCaches = append(listCaches, caches[k])
+		indexes[i] = k
+		i++
 	}
-}
 
-func (c *merger[K, T, V]) prepareResults() map[K]Result[T] {
-	cacheResults := make(map[K]Result[T], len(c.caches))
-	for key, cache := range c.caches {
-		cacheResults[key] = cache.Get()
-	}
-	return cacheResults
-}
-
-// Rerun if:
-//   - The last run resulted in an error
-//   - Any of the dependency previously returned an error
-//   - Any of the dependency just returned an error
-//   - Any of the dependency's etag changed
-func (c *merger[K, T, V]) needsRunning(results map[K]Result[T]) bool {
-	if c.cacheResults == nil {
-		return true
-	}
-	if c.result.Err != nil {
-		return true
-	}
-	if len(results) != len(c.cacheResults) {
-		panic(fmt.Errorf("invalid number of results: %v (expected %v)", len(results), len(c.cacheResults)))
-	}
-	for key, oldResult := range c.cacheResults {
-		newResult, ok := results[key]
-		if !ok {
-			panic(fmt.Errorf("unknown cache entry: %v", key))
+	return NewListMerger(func(results []Result[T]) Result[V] {
+		if len(results) != len(indexes) {
+			panic(fmt.Errorf("invalid result length %d, expected %d", len(results), len(indexes)))
 		}
-
-		if newResult.Etag != oldResult.Etag || newResult.Err != nil || oldResult.Err != nil {
-			return true
+		m := make(map[K]Result[T], len(results))
+		for i := range results {
+			m[indexes[i]] = results[i]
 		}
-	}
-	return false
+		return mergeFn(m)
+	}, listCaches)
 }
 
-func (c *merger[K, T, V]) Get() Result[V] {
-	cacheResults := c.prepareResults()
-	if c.needsRunning(cacheResults) {
-		c.cacheResults = cacheResults
-		c.result = c.mergeFn(c.cacheResults)
-	}
-	return c.result
+type listMerger[T, V any] struct {
+	mergeFn      func([]Result[T]) Result[V]
+	caches       []Data[T]
+	cacheResults []Result[T]
+	result       Result[V]
 }
 
 // NewListMerger creates a new merge cache that merges the results of
@@ -207,13 +177,6 @@ func (c *merger[K, T, V]) Get() Result[V] {
 // function will remerge all the dependencies together everytime. Since
 // the list of dependencies is constant, there is no way to save some
 // partial merge information either.
-type listMerger[T, V any] struct {
-	mergeFn      func([]Result[T]) Result[V]
-	caches       []Data[T]
-	cacheResults []Result[T]
-	result       Result[V]
-}
-
 func NewListMerger[T, V any](mergeFn func(results []Result[T]) Result[V], caches []Data[T]) Data[V] {
 	return &listMerger[T, V]{
 		mergeFn: mergeFn,
