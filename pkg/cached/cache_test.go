@@ -870,8 +870,6 @@ func TestListMerger(t *testing.T) {
 			d = append(d, string(result.Data))
 			e = append(e, result.Etag)
 		}
-		sort.Strings(d)
-		sort.Strings(e)
 		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
 	}, []cached.Data[[]byte]{
 		source1, source2,
@@ -924,8 +922,6 @@ func TestListMergerSourceError(t *testing.T) {
 			d = append(d, string(result.Data))
 			e = append(e, result.Etag)
 		}
-		sort.Strings(d)
-		sort.Strings(e)
 		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
 	}, []cached.Data[[]byte]{
 		source1, source2,
@@ -974,8 +970,6 @@ func TestListMergerAlternateSourceError(t *testing.T) {
 			d = append(d, string(result.Data))
 			e = append(e, result.Etag)
 		}
-		sort.Strings(d)
-		sort.Strings(e)
 		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
 	}, []cached.Data[[]byte]{
 		source1, source2,
