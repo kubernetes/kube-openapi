@@ -19,7 +19,7 @@ package proto_test
 import (
 	"path/filepath"
 
-	openapi_v3 "github.com/google/gnostic/openapiv3"
+	openapi_v3 "github.com/google/gnostic-models/openapiv3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
