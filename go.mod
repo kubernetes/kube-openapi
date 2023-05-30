@@ -8,7 +8,6 @@ require (
 	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/go-openapi/jsonreference v0.20.1
 	github.com/go-openapi/swag v0.22.3
-	github.com/golang/protobuf v1.5.2
 	github.com/google/gnostic-models v0.6.8
 	github.com/google/go-cmp v0.5.5
 	github.com/google/gofuzz v1.1.0
@@ -33,6 +32,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-logr/logr v0.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
