@@ -1010,3 +1010,47 @@ func TestListMergerAlternateSourceError(t *testing.T) {
 		t.Fatalf("Expected merger function called 4x, called: %v", mergerCount)
 	}
 }
+
+func TestListDAG(t *testing.T) {
+	count := 0
+	source := cached.NewSource(func() cached.Result[[]byte] {
+		count += 1
+		return cached.NewResultOK([]byte("source"), "source")
+	})
+	transformer1 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+		if result.Err != nil {
+			return cached.NewResultErr[[]byte](result.Err)
+		}
+		return cached.NewResultOK([]byte("transformed1 "+string(result.Data)), "transformed1 "+result.Etag)
+	}, source)
+	transformer2 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+		if result.Err != nil {
+			return cached.NewResultErr[[]byte](result.Err)
+		}
+		return cached.NewResultOK([]byte("transformed2 "+string(result.Data)), "transformed2 "+result.Etag)
+	}, source)
+	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+		d := []string{}
+		e := []string{}
+		for _, result := range results {
+			if result.Err != nil {
+				return cached.NewResultErr[[]byte](result.Err)
+			}
+			d = append(d, string(result.Data))
+			e = append(e, result.Etag)
+		}
+		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
+	}, []cached.Data[[]byte]{
+		transformer1, transformer2,
+	})
+	result := merger.Get()
+	if result.Err != nil {
+		t.Fatalf("Unexpected error: %v", result.Err)
+	}
+	if want := "merged transformed1 source and transformed2 source"; string(result.Data) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	}
+	if want := "merged transformed1 source and transformed2 source"; result.Etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	}
+}
