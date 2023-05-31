@@ -24,7 +24,7 @@ import (
 	"strings"
 	"testing"
 
-	openapi_v2 "github.com/google/gnostic/openapiv2"
+	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	"github.com/stretchr/testify/require"
 
 	"k8s.io/kube-openapi/pkg/schemaconv"
