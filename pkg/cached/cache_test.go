@@ -21,9 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"k8s.io/kube-openapi/pkg/cached"
 )
@@ -1012,9 +1015,7 @@ func TestListMergerAlternateSourceError(t *testing.T) {
 }
 
 func TestListDAG(t *testing.T) {
-	count := 0
 	source := cached.NewSource(func() cached.Result[[]byte] {
-		count += 1
 		return cached.NewResultOK([]byte("source"), "source")
 	})
 	transformer1 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
@@ -1053,4 +1054,77 @@ func TestListDAG(t *testing.T) {
 	if want := "merged transformed1 source and transformed2 source"; result.Etag != want {
 		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
 	}
+}
+
+func randomString(length uint) string {
+	bytes := make([]byte, 6)
+	rand.Read(bytes)
+	return string(bytes)
+
+}
+
+func NewRandomSource() cached.Data[int64] {
+	return cached.NewStaticSource(func() cached.Result[int64] {
+		bytes := make([]byte, 6)
+		rand.Read(bytes)
+		return cached.NewResultOK(rand.Int63(), randomString(10))
+	})
+}
+
+func repeatedGet(data cached.Data[int64], end time.Time, wg *sync.WaitGroup) {
+	for time.Now().Before(end) {
+		_ = data.Get()
+	}
+	wg.Done()
+}
+
+func TestThreadSafe(t *testing.T) {
+	end := time.Now().Add(time.Second)
+	wg := sync.WaitGroup{}
+	static := NewRandomSource()
+	wg.Add(1)
+	go repeatedGet(static, end, &wg)
+	result := cached.NewResultOK(rand.Int63(), randomString(10))
+	wg.Add(1)
+	go repeatedGet(result, end, &wg)
+	replaceable := cached.Replaceable[int64]{}
+	replaceable.Replace(NewRandomSource())
+	wg.Add(1)
+	go repeatedGet(&replaceable, end, &wg)
+	wg.Add(1)
+	go func(r *cached.Replaceable[int64], end time.Time, wg *sync.WaitGroup) {
+		for time.Now().Before(end) {
+			r.Replace(NewRandomSource())
+		}
+		wg.Done()
+	}(&replaceable, end, &wg)
+	merger := cached.NewMerger(func(results map[string]cached.Result[int64]) cached.Result[int64] {
+		sum := int64(0)
+		for _, result := range results {
+			sum += result.Data
+		}
+		return cached.NewResultOK(sum, randomString(10))
+	}, map[string]cached.Data[int64]{
+		"one": NewRandomSource(),
+		"two": NewRandomSource(),
+	})
+	wg.Add(1)
+	go repeatedGet(merger, end, &wg)
+	transformer := cached.NewTransformer(func(result cached.Result[int64]) cached.Result[int64] {
+		return cached.NewResultOK(result.Data+5, randomString(10))
+	}, NewRandomSource())
+	wg.Add(1)
+	go repeatedGet(transformer, end, &wg)
+
+	listmerger := cached.NewListMerger(func(results []cached.Result[int64]) cached.Result[int64] {
+		sum := int64(0)
+		for i := range results {
+			sum += results[i].Data
+		}
+		return cached.NewResultOK(sum, randomString(10))
+	}, []cached.Data[int64]{static, result, &replaceable, merger, transformer})
+	wg.Add(1)
+	go repeatedGet(listmerger, end, &wg)
+
+	wg.Wait()
 }
