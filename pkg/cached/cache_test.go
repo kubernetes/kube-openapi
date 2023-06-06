@@ -31,16 +31,16 @@ import (
 	"k8s.io/kube-openapi/pkg/cached"
 )
 
-func TestSource(t *testing.T) {
+func TestDataFunc(t *testing.T) {
 	count := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		count += 1
-		return cached.NewResultOK([]byte("source"), "source")
+		return []byte("source"), "source", nil
 	})
-	if err := source.Get().Err; err != nil {
+	if _, _, err := source.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := source.Get().Err; err != nil {
+	if _, _, err := source.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if count != 2 {
@@ -48,16 +48,16 @@ func TestSource(t *testing.T) {
 	}
 }
 
-func TestSourceError(t *testing.T) {
+func TestDataFuncError(t *testing.T) {
 	count := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		count += 1
-		return cached.NewResultErr[[]byte](errors.New("source error"))
+		return nil, "", errors.New("source error")
 	})
-	if err := source.Get().Err; err == nil {
+	if _, _, err := source.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
-	if err := source.Get().Err; err == nil {
+	if _, _, err := source.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
 	if count != 2 {
@@ -65,26 +65,25 @@ func TestSourceError(t *testing.T) {
 	}
 }
 
-func TestSourceAlternate(t *testing.T) {
+func TestDataFuncAlternate(t *testing.T) {
 	count := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		count += 1
 		if count%2 == 0 {
-			return cached.NewResultErr[[]byte](errors.New("source error"))
-		} else {
-			return cached.NewResultOK([]byte("source"), "source")
+			return nil, "", errors.New("source error")
 		}
+		return []byte("source"), "source", nil
 	})
-	if err := source.Get().Err; err != nil {
+	if _, _, err := source.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := source.Get().Err; err == nil {
+	if _, _, err := source.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
-	if err := source.Get().Err; err != nil {
+	if _, _, err := source.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := source.Get().Err; err == nil {
+	if _, _, err := source.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
 	if count != 4 {
@@ -92,16 +91,16 @@ func TestSourceAlternate(t *testing.T) {
 	}
 }
 
-func TestStaticSource(t *testing.T) {
+func TestOnce(t *testing.T) {
 	count := 0
-	source := cached.NewStaticSource(func() cached.Result[[]byte] {
+	source := cached.Once(cached.Func(func() ([]byte, string, error) {
 		count += 1
-		return cached.NewResultOK([]byte("source"), "source")
-	})
-	if err := source.Get().Err; err != nil {
+		return []byte("source"), "source", nil
+	}))
+	if _, _, err := source.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := source.Get().Err; err != nil {
+	if _, _, err := source.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if count != 1 {
@@ -109,16 +108,16 @@ func TestStaticSource(t *testing.T) {
 	}
 }
 
-func TestStaticSourceError(t *testing.T) {
+func TestOnceError(t *testing.T) {
 	count := 0
-	source := cached.NewStaticSource(func() cached.Result[[]byte] {
+	source := cached.Once(cached.Func(func() ([]byte, string, error) {
 		count += 1
-		return cached.NewResultErr[[]byte](errors.New("source error"))
-	})
-	if err := source.Get().Err; err == nil {
+		return nil, "", errors.New("source error")
+	}))
+	if _, _, err := source.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
-	if err := source.Get().Err; err == nil {
+	if _, _, err := source.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
 	if count != 1 {
@@ -126,44 +125,52 @@ func TestStaticSourceError(t *testing.T) {
 	}
 }
 
-func TestResultData(t *testing.T) {
-	source := cached.NewResultOK([]byte("source"), "source")
-	if err := source.Get().Err; err != nil {
+func TestResultGet(t *testing.T) {
+	source := cached.Static([]byte("source"), "etag")
+	value, etag, err := source.Get()
+	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := source.Get().Err; err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if want := "source"; string(value) != want {
+		t.Fatalf("expected value %q, got %q", want, string(value))
+	}
+	if want := "etag"; etag != want {
+		t.Fatalf("expected etag %q, got %q", want, etag)
 	}
 }
 
-func TestResultError(t *testing.T) {
-	source := cached.NewResultErr[[]byte](errors.New("source error"))
-	if err := source.Get().Err; err == nil {
+func TestResultGetError(t *testing.T) {
+	source := cached.Result[[]byte]{Err: errors.New("source error")}
+	value, etag, err := source.Get()
+	if err == nil {
 		t.Fatalf("expected error, found none")
 	}
-	if err := source.Get().Err; err == nil {
-		t.Fatalf("expected error, found none")
+	if value != nil {
+		t.Fatalf("expected nil value, got %v", value)
+	}
+	if etag != "" {
+		t.Fatalf("expected empty etag, got %q", etag)
 	}
 }
 
-func TestTransformer(t *testing.T) {
+func TestTransform(t *testing.T) {
 	sourceCount := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		sourceCount += 1
-		return cached.NewResultOK([]byte("source"), "source")
+		return []byte("source"), "source", nil
 	})
 	transformerCount := 0
-	transformer := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformerCount += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), "transformed "+result.Etag)
+		return []byte("transformed " + string(value)), "transformed " + etag, nil
 	}, source)
-	if err := transformer.Get().Err; err != nil {
+	if _, _, err := transformer.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := transformer.Get().Err; err != nil {
+	if _, _, err := transformer.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if sourceCount != 2 {
@@ -174,48 +181,48 @@ func TestTransformer(t *testing.T) {
 	}
 }
 
-func TestTransformerChained(t *testing.T) {
+func TestTransformChained(t *testing.T) {
 	sourceCount := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		sourceCount += 1
-		return cached.NewResultOK([]byte("source"), "source")
+		return []byte("source"), "source", nil
 	})
 	transformer1Count := 0
-	transformer1 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer1 := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformer1Count += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), result.Etag)
+		return []byte("transformed " + string(value)), etag, nil
 	}, source)
 	transformer2Count := 0
-	transformer2 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer2 := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformer2Count += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), result.Etag)
+		return []byte("transformed " + string(value)), etag, nil
 	}, transformer1)
 	transformer3Count := 0
-	transformer3 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer3 := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformer3Count += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), result.Etag)
+		return []byte("transformed " + string(value)), etag, nil
 	}, transformer2)
-	if err := transformer3.Get().Err; err != nil {
+	if _, _, err := transformer3.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	result := transformer3.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err := transformer3.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "transformed transformed transformed source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "transformed transformed transformed source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 	if sourceCount != 2 {
 		t.Fatalf("Expected source function called twice, called: %v", sourceCount)
@@ -231,21 +238,21 @@ func TestTransformerChained(t *testing.T) {
 	}
 }
 
-func TestTransformerError(t *testing.T) {
+func TestTransformError(t *testing.T) {
 	sourceCount := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		sourceCount += 1
-		return cached.NewResultOK([]byte("source"), "source")
+		return []byte("source"), "source", nil
 	})
 	transformerCount := 0
-	transformer := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformerCount += 1
-		return cached.NewResultErr[[]byte](errors.New("transformer error"))
+		return nil, "", errors.New("transformer error")
 	}, source)
-	if err := transformer.Get().Err; err == nil {
+	if _, _, err := transformer.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	if err := transformer.Get().Err; err == nil {
+	if _, _, err := transformer.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if sourceCount != 2 {
@@ -256,24 +263,24 @@ func TestTransformerError(t *testing.T) {
 	}
 }
 
-func TestTransformerSourceError(t *testing.T) {
+func TestTransformSourceError(t *testing.T) {
 	sourceCount := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		sourceCount += 1
-		return cached.NewResultErr[[]byte](errors.New("source error"))
+		return nil, "", errors.New("source error")
 	})
 	transformerCount := 0
-	transformer := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformerCount += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), "transformed "+result.Etag)
+		return []byte("transformed " + string(value)), "transformed " + etag, nil
 	}, source)
-	if err := transformer.Get().Err; err == nil {
+	if _, _, err := transformer.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	if err := transformer.Get().Err; err == nil {
+	if _, _, err := transformer.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if sourceCount != 2 {
@@ -284,48 +291,47 @@ func TestTransformerSourceError(t *testing.T) {
 	}
 }
 
-func TestTransformerAlternateSourceError(t *testing.T) {
+func TestTransformAlternateSourceError(t *testing.T) {
 	sourceCount := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		sourceCount += 1
 		if sourceCount%2 == 0 {
-			return cached.NewResultErr[[]byte](errors.New("source error"))
-		} else {
-			return cached.NewResultOK([]byte("source"), "source")
+			return nil, "", errors.New("source error")
 		}
+		return []byte("source"), "source", nil
 	})
 	transformerCount := 0
-	transformer := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformer := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformerCount += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), "transformed "+result.Etag)
+		return []byte("transformed " + string(value)), "transformed " + etag, err
 	}, source)
-	result := transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err := transformer.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "transformed source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "transformed source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "transformed source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "transformed source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	if err := transformer.Get().Err; err == nil {
+	if _, _, err := transformer.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	result = transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = transformer.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "transformed source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "transformed source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "transformed source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "transformed source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	if err := transformer.Get().Err; err == nil {
+	if _, _, err := transformer.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if sourceCount != 4 {
@@ -337,48 +343,48 @@ func TestTransformerAlternateSourceError(t *testing.T) {
 
 }
 
-func TestMerger(t *testing.T) {
+func TestMerge(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
-		return cached.NewResultOK([]byte("source1"), "source1")
+		return []byte("source1"), "source1", nil
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewMerger(func(results map[string]cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.Merge(func(results map[string]cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
 		sort.Strings(d)
 		sort.Strings(e)
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, map[string]cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, map[string]cached.Value[[]byte]{
 		"source1": source1,
 		"source2": source2,
 	})
-	if err := merger.Get().Err; err != nil {
+	if _, _, err := merger.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	result := merger.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err := merger.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "merged source1 and source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged source1 and source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged source1 and source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged source1 and source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 
 	if source1Count != 2 {
@@ -392,29 +398,29 @@ func TestMerger(t *testing.T) {
 	}
 }
 
-func TestMergerError(t *testing.T) {
+func TestMergeError(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
-		return cached.NewResultOK([]byte("source1"), "source1")
+		return []byte("source1"), "source1", nil
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewMerger(func(results map[string]cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.Merge(func(results map[string]cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
-		return cached.NewResultErr[[]byte](errors.New("merger error"))
-	}, map[string]cached.Data[[]byte]{
+		return nil, "", errors.New("merger error")
+	}, map[string]cached.Value[[]byte]{
 		"source1": source1,
 		"source2": source2,
 	})
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if source1Count != 2 {
@@ -428,40 +434,40 @@ func TestMergerError(t *testing.T) {
 	}
 }
 
-func TestMergerSourceError(t *testing.T) {
+func TestMergeSourceError(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
-		return cached.NewResultErr[[]byte](errors.New("source1 error"))
+		return nil, "", errors.New("source1 error")
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewMerger(func(results map[string]cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.Merge(func(results map[string]cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
 		sort.Strings(d)
 		sort.Strings(e)
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, map[string]cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, map[string]cached.Value[[]byte]{
 		"source1": source1,
 		"source2": source2,
 	})
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if source1Count != 2 {
@@ -475,64 +481,64 @@ func TestMergerSourceError(t *testing.T) {
 	}
 }
 
-func TestMergerAlternateSourceError(t *testing.T) {
+func TestMergeAlternateSourceError(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
 		if source1Count%2 == 0 {
-			return cached.NewResultErr[[]byte](errors.New("source1 error"))
+			return nil, "", errors.New("source1 error")
 		} else {
-			return cached.NewResultOK([]byte("source1"), "source1")
+			return []byte("source1"), "source1", nil
 		}
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewMerger(func(results map[string]cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.Merge(func(results map[string]cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
 		sort.Strings(d)
 		sort.Strings(e)
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, map[string]cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, map[string]cached.Value[[]byte]{
 		"source1": source1,
 		"source2": source2,
 	})
-	result := merger.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err := merger.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "merged source1 and source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged source1 and source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged source1 and source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged source1 and source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	result = merger.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = merger.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "merged source1 and source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged source1 and source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged source1 and source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged source1 and source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if source1Count != 4 {
@@ -546,73 +552,71 @@ func TestMergerAlternateSourceError(t *testing.T) {
 	}
 }
 
-func TestReplaceable(t *testing.T) {
+func TestAtomic(t *testing.T) {
 	sourceDataCount := 0
-	sourceData := cached.NewSource(func() cached.Result[[]byte] {
+	sourceData := cached.Func(func() ([]byte, string, error) {
 		sourceDataCount += 1
-		return cached.NewResultOK([]byte("source"), "source")
+		return []byte("source"), "source", nil
 	})
 	sourceData2Count := 0
-	sourceData2 := cached.NewSource(func() cached.Result[[]byte] {
+	sourceData2 := cached.Func(func() ([]byte, string, error) {
 		sourceData2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
+	})
+	sourceErrCount := 0
+	sourceErr := cached.Func(func() ([]byte, string, error) {
+		sourceErrCount += 1
+		return nil, "", errors.New("source error")
 	})
 
-	sourceErrCount := 0
-	sourceErr := cached.NewSource(func() cached.Result[[]byte] {
-		sourceErrCount += 1
-		return cached.NewResultErr[[]byte](errors.New("source error"))
-	})
-	replaceable := cached.Replaceable[[]byte]{}
-	replaceable.Replace(sourceErr)
-	if err := replaceable.Get().Err; err == nil {
+	replaceable := &cached.Atomic[[]byte]{}
+	replaceable.Store(sourceErr)
+	if _, _, err := replaceable.Get(); err == nil {
 		t.Fatalf("expected error, found none")
 	}
-	replaceable.Replace(sourceData)
-	result := replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+
+	replaceable.Store(sourceData)
+	result, etag, err := replaceable.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
+
 	// replace with the same thing, shouldn't change anything
-	replaceable.Replace(sourceData)
-	result = replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	replaceable.Store(sourceData)
+	result, etag, err = replaceable.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	// Even if we replace with something that fails, we continue to return the success.
-	replaceable.Replace(sourceErr)
-	result = replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+
+	// when replacing with an error source, we see the error again
+	replaceable.Store(sourceErr)
+	result, etag, err = replaceable.Get()
+	if err == nil {
+		t.Fatalf("unexpected success")
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+
+	replaceable.Store(sourceData2)
+	result, etag, err = replaceable.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	replaceable.Replace(sourceData2)
-	result = replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
-	}
-	if want := "source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
-	}
-	if want := "source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 	if sourceDataCount != 2 {
 		t.Fatalf("Expected sourceData function called twice, called: %v", sourceDataCount)
@@ -625,134 +629,213 @@ func TestReplaceable(t *testing.T) {
 	}
 }
 
-func TestReplaceableDifferentType(t *testing.T) {
-	replaceable := cached.Replaceable[bool]{}
-	replaceable.Replace(cached.NewSource(func() cached.Result[bool] {
-		return cached.NewResultOK(false, "hash")
+func TestLastSuccess(t *testing.T) {
+	sourceDataCount := 0
+	sourceData := cached.Func(func() ([]byte, string, error) {
+		sourceDataCount += 1
+		return []byte("source"), "source", nil
+	})
+	sourceData2Count := 0
+	sourceData2 := cached.Func(func() ([]byte, string, error) {
+		sourceData2Count += 1
+		return []byte("source2"), "source2", nil
+	})
+
+	sourceErrCount := 0
+	sourceErr := cached.Func(func() ([]byte, string, error) {
+		sourceErrCount += 1
+		return nil, "", errors.New("source error")
+	})
+	lastSuccess := &cached.LastSuccess[[]byte]{}
+	lastSuccess.Store(sourceErr)
+	if _, _, err := lastSuccess.Get(); err == nil {
+		t.Fatalf("expected error, found none")
+	}
+	lastSuccess.Store(sourceData)
+	result, etag, err := lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
+	}
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
+	}
+	// replace with the same thing, shouldn't change anything
+	lastSuccess.Store(sourceData)
+	result, etag, err = lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
+	}
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
+	}
+	// Even if we replace with something that fails, we continue to return the success.
+	lastSuccess.Store(sourceErr)
+	result, etag, err = lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
+	}
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
+	}
+	lastSuccess.Store(sourceData2)
+	result, etag, err = lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := "source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
+	}
+	if want := "source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
+	}
+	if sourceDataCount != 2 {
+		t.Fatalf("Expected sourceData function called twice, called: %v", sourceDataCount)
+	}
+	if sourceData2Count != 1 {
+		t.Fatalf("Expected sourceData2 function called once, called: %v", sourceData2Count)
+	}
+	if sourceErrCount != 2 {
+		t.Fatalf("Expected error source function called once, called: %v", sourceErrCount)
+	}
+}
+
+func TestLastSuccessEtag(t *testing.T) {
+	lastSuccess := &cached.LastSuccess[bool]{}
+	lastSuccess.Store(cached.Func(func() (bool, string, error) {
+		return false, "hash", nil
 	}))
-	replaceable.Replace(cached.NewResultOK(true, "hash2"))
-	result := replaceable.Get()
-	if actual := result.Etag; actual != "hash2" {
+	lastSuccess.Store(cached.Static(true, "hash2"))
+	result, etag, _ := lastSuccess.Get()
+	if actual := etag; actual != "hash2" {
 		t.Fatalf(`expected "hash2", got %q`, actual)
 	}
-	if result.Data != true {
+	if result != true {
 		t.Fatal(`expected "true", got "false"`)
 	}
 }
 
-func TestReplaceableAlternateError(t *testing.T) {
+func TestLastSuccessAlternateError(t *testing.T) {
 	sourceCount := 0
-	source := cached.NewSource(func() cached.Result[[]byte] {
+	source := cached.Func(func() ([]byte, string, error) {
 		sourceCount += 1
 		if sourceCount%2 == 0 {
-			return cached.NewResultErr[[]byte](errors.New("source error"))
+			return nil, "", errors.New("source error")
 		} else {
-			return cached.NewResultOK([]byte("source"), "source")
+			return []byte("source"), "source", nil
 		}
 	})
-	replaceable := cached.Replaceable[[]byte]{}
-	replaceable.Replace(source)
-	result := replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	lastSuccess := &cached.LastSuccess[[]byte]{}
+	lastSuccess.Store(source)
+	result, etag, err := lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	result = replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	result = replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	result = replaceable.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = lastSuccess.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 	if sourceCount != 4 {
 		t.Fatalf("Expected sourceData function called 4x, called: %v", sourceCount)
 	}
 }
 
-func TestReplaceableWithTransformer(t *testing.T) {
-	replaceable := cached.Replaceable[[]byte]{}
-	replaceable.Replace(cached.NewResultOK([]byte("source"), "source"))
+func TestLastSuccessWithTransformer(t *testing.T) {
+	lastSuccess := &cached.LastSuccess[[]byte]{}
+	lastSuccess.Store(cached.Static([]byte("source"), "source"))
 	transformerCount := 0
-	transformer := cached.NewTransformer[[]byte](func(result cached.Result[[]byte]) cached.Result[[]byte] {
+	transformed := cached.Transform[[]byte](func(value []byte, etag string, err error) ([]byte, string, error) {
 		transformerCount += 1
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed "+string(result.Data)), "transformed "+result.Etag)
-	}, &replaceable)
-	result := transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+		return []byte("transformed " + string(value)), "transformed " + etag, nil
+	}, lastSuccess)
+	result, etag, err := transformed.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	result = transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = transformed.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "transformed source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "transformed source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "transformed source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "transformed source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 	// replace with new cache, transformer shouldn't be affected (or called)
-	replaceable.Replace(cached.NewResultOK([]byte("source"), "source"))
-	result = transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	lastSuccess.Store(cached.Static([]byte("source"), "source"))
+	result, etag, err = transformed.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	result = transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = transformed.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "transformed source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "transformed source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "transformed source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "transformed source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 	// replace with failing cache, transformer should still not be affected (or called)
-	replaceable.Replace(cached.NewResultErr[[]byte](errors.New("source error")))
-	result = transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	lastSuccess.Store(cached.Result[[]byte]{Err: errors.New("source error")})
+	result, etag, err = transformed.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	result = transformer.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = transformed.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "transformed source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "transformed source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "transformed source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "transformed source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 
 	if transformerCount != 1 {
@@ -765,130 +848,131 @@ func TestReplaceableWithTransformer(t *testing.T) {
 func Example() {
 	// Merge Json is a replaceable cache, since we'll want it to
 	// change a few times.
-	mergeJson := cached.Replaceable[[]byte]{}
+	mergeJson := &cached.LastSuccess[[]byte]{}
 
-	one := cached.NewStaticSource(func() cached.Result[[]byte] {
+	one := cached.Once(cached.Func(func() ([]byte, string, error) {
 		// This one is computed lazily, only when requested, and only once.
-		return cached.NewResultOK([]byte("one"), "one")
-	})
-	two := cached.NewSource(func() cached.Result[[]byte] {
+		return []byte("one"), "one", nil
+	}))
+	two := cached.Func(func() ([]byte, string, error) {
 		// This cache is re-computed every time.
-		return cached.NewResultOK([]byte("two"), "two")
+		return []byte("two"), "two", nil
 	})
 	// This cache is computed once, and is not lazy at all.
-	three := cached.NewResultOK([]byte("three"), "three")
+	three := cached.Static([]byte("three"), "three")
 
 	// This cache will allow us to replace a branch of the tree
 	// efficiently.
-	replaceable := cached.Replaceable[[]byte]{}
-	replaceable.Replace(cached.NewResultOK([]byte("four"), "four"))
 
-	merger := func(results map[string]cached.Result[[]byte]) cached.Result[[]byte] {
+	lastSuccess := &cached.LastSuccess[[]byte]{}
+	lastSuccess.Store(cached.Static([]byte("four"), "four"))
+
+	merger := func(results map[string]cached.Result[[]byte]) ([]byte, string, error) {
 		var out = []json.RawMessage{}
 		var resultEtag string
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
 			resultEtag += result.Etag
-			out = append(out, result.Data)
+			out = append(out, result.Value)
 		}
 		data, err := json.Marshal(out)
 		if err != nil {
-			return cached.NewResultErr[[]byte](err)
+			return nil, "", err
 		}
-		return cached.NewResultOK(data, resultEtag)
+		return data, resultEtag, nil
 	}
 
-	mergeJson.Replace(cached.NewMerger(merger, map[string]cached.Data[[]byte]{
+	mergeJson.Store(cached.Merge(merger, map[string]cached.Value[[]byte]{
 		"one":         one,
 		"two":         two,
 		"three":       three,
-		"replaceable": &replaceable,
+		"replaceable": lastSuccess,
 	}))
 
 	// Create a new cache that indents a buffer. This should only be
 	// called if the buffer has changed.
-	indented := cached.NewTransformer[[]byte](func(js cached.Result[[]byte]) cached.Result[[]byte] {
+	indented := cached.Transform[[]byte](func(js []byte, etag string, err error) ([]byte, string, error) {
 		// Get the json from the previous layer of cache, before
 		// we indent.
-		if js.Err != nil {
-			return cached.NewResultErr[[]byte](js.Err)
+		if err != nil {
+			return nil, "", err
 		}
 		var out bytes.Buffer
-		json.Indent(&out, js.Data, "", "\t")
-		return cached.NewResultOK(out.Bytes(), js.Etag)
-	}, &mergeJson)
+		json.Indent(&out, js, "", "\t")
+		return out.Bytes(), etag, nil
+	}, mergeJson)
 
 	// We have "clients" that constantly pulls the indented format.
 	go func() {
 		for {
-			if err := indented.Get().Err; err != nil {
+			if _, _, err := indented.Get(); err != nil {
 				panic(fmt.Errorf("invalid error: %v", err))
 			}
 		}
 	}()
 
-	failure := cached.NewResultErr[[]byte](errors.New("Invalid cache!"))
+	failure := cached.Result[[]byte]{Err: errors.New("Invalid cache!")}
 	// Insert a new sub-cache that fails, it should just be ignored.
-	mergeJson.Replace(cached.NewMerger(merger, map[string]cached.Data[[]byte]{
+	mergeJson.Store(cached.Merge(merger, map[string]cached.Value[[]byte]{
 		"one":         one,
 		"two":         two,
 		"three":       three,
-		"replaceable": &replaceable,
+		"replaceable": lastSuccess,
 		"failure":     failure,
 	}))
 
 	// We can replace just a branch of the dependency tree.
-	replaceable.Replace(cached.NewResultOK([]byte("five"), "five"))
+	lastSuccess.Store(cached.Static([]byte("five"), "five"))
 
 	// We can replace to remove the failure and one of the sub-cached.
-	mergeJson.Replace(cached.NewMerger(merger, map[string]cached.Data[[]byte]{
+	mergeJson.Store(cached.Merge(merger, map[string]cached.Value[[]byte]{
 		"one":         one,
 		"two":         two,
-		"replaceable": &replaceable,
+		"replaceable": lastSuccess,
 	}))
 }
 
 func TestListMerger(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
-		return cached.NewResultOK([]byte("source1"), "source1")
+		return []byte("source1"), "source1", nil
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.MergeList(func(results []cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, []cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, []cached.Value[[]byte]{
 		source1, source2,
 	})
-	if err := merger.Get().Err; err != nil {
+	if _, _, err := merger.Get(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	result := merger.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err := merger.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "merged source1 and source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged source1 and source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged source1 and source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged source1 and source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 
 	if source1Count != 2 {
@@ -902,37 +986,37 @@ func TestListMerger(t *testing.T) {
 	}
 }
 
-func TestListMergerSourceError(t *testing.T) {
+func TestMergeListSourceError(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
-		return cached.NewResultErr[[]byte](errors.New("source1 error"))
+		return nil, "", errors.New("source1 error")
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.MergeList(func(results []cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, []cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, []cached.Value[[]byte]{
 		source1, source2,
 	})
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if source1Count != 2 {
@@ -946,61 +1030,61 @@ func TestListMergerSourceError(t *testing.T) {
 	}
 }
 
-func TestListMergerAlternateSourceError(t *testing.T) {
+func TestMergeListAlternateSourceError(t *testing.T) {
 	source1Count := 0
-	source1 := cached.NewSource(func() cached.Result[[]byte] {
+	source1 := cached.Func(func() ([]byte, string, error) {
 		source1Count += 1
 		if source1Count%2 == 0 {
-			return cached.NewResultErr[[]byte](errors.New("source1 error"))
+			return nil, "", errors.New("source1 error")
 		} else {
-			return cached.NewResultOK([]byte("source1"), "source1")
+			return []byte("source1"), "source1", nil
 		}
 	})
 	source2Count := 0
-	source2 := cached.NewSource(func() cached.Result[[]byte] {
+	source2 := cached.Func(func() ([]byte, string, error) {
 		source2Count += 1
-		return cached.NewResultOK([]byte("source2"), "source2")
+		return []byte("source2"), "source2", nil
 	})
 	mergerCount := 0
-	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.MergeList(func(results []cached.Result[[]byte]) ([]byte, string, error) {
 		mergerCount += 1
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, []cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, []cached.Value[[]byte]{
 		source1, source2,
 	})
-	result := merger.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err := merger.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "merged source1 and source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged source1 and source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged source1 and source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged source1 and source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
-	result = merger.Get()
-	if result.Err != nil {
-		t.Fatalf("unexpected error: %v", result.Err)
+	result, etag, err = merger.Get()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if want := "merged source1 and source2"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged source1 and source2"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged source1 and source2"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged source1 and source2"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
-	if err := merger.Get().Err; err == nil {
+	if _, _, err := merger.Get(); err == nil {
 		t.Fatalf("expected error, none found")
 	}
 	if source1Count != 4 {
@@ -1015,44 +1099,44 @@ func TestListMergerAlternateSourceError(t *testing.T) {
 }
 
 func TestListDAG(t *testing.T) {
-	source := cached.NewSource(func() cached.Result[[]byte] {
-		return cached.NewResultOK([]byte("source"), "source")
+	source := cached.Func(func() ([]byte, string, error) {
+		return []byte("source"), "source", nil
 	})
-	transformer1 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+	transformer1 := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed1 "+string(result.Data)), "transformed1 "+result.Etag)
+		return []byte("transformed1 " + string(value)), "transformed1 " + etag, nil
 	}, source)
-	transformer2 := cached.NewTransformer(func(result cached.Result[[]byte]) cached.Result[[]byte] {
-		if result.Err != nil {
-			return cached.NewResultErr[[]byte](result.Err)
+	transformer2 := cached.Transform(func(value []byte, etag string, err error) ([]byte, string, error) {
+		if err != nil {
+			return nil, "", err
 		}
-		return cached.NewResultOK([]byte("transformed2 "+string(result.Data)), "transformed2 "+result.Etag)
+		return []byte("transformed2 " + string(value)), "transformed2 " + etag, nil
 	}, source)
-	merger := cached.NewListMerger(func(results []cached.Result[[]byte]) cached.Result[[]byte] {
+	merger := cached.MergeList(func(results []cached.Result[[]byte]) ([]byte, string, error) {
 		d := []string{}
 		e := []string{}
 		for _, result := range results {
 			if result.Err != nil {
-				return cached.NewResultErr[[]byte](result.Err)
+				return nil, "", result.Err
 			}
-			d = append(d, string(result.Data))
+			d = append(d, string(result.Value))
 			e = append(e, result.Etag)
 		}
-		return cached.NewResultOK([]byte("merged "+strings.Join(d, " and ")), "merged "+strings.Join(e, " and "))
-	}, []cached.Data[[]byte]{
+		return []byte("merged " + strings.Join(d, " and ")), "merged " + strings.Join(e, " and "), nil
+	}, []cached.Value[[]byte]{
 		transformer1, transformer2,
 	})
-	result := merger.Get()
-	if result.Err != nil {
-		t.Fatalf("Unexpected error: %v", result.Err)
+	result, etag, err := merger.Get()
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
 	}
-	if want := "merged transformed1 source and transformed2 source"; string(result.Data) != want {
-		t.Fatalf("expected data = %v, got %v", want, string(result.Data))
+	if want := "merged transformed1 source and transformed2 source"; string(result) != want {
+		t.Fatalf("expected data = %v, got %v", want, string(result))
 	}
-	if want := "merged transformed1 source and transformed2 source"; result.Etag != want {
-		t.Fatalf("expected etag = %v, got %v", want, result.Etag)
+	if want := "merged transformed1 source and transformed2 source"; etag != want {
+		t.Fatalf("expected etag = %v, got %v", want, etag)
 	}
 }
 
@@ -1063,17 +1147,17 @@ func randomString(length uint) string {
 
 }
 
-func NewRandomSource() cached.Data[int64] {
-	return cached.NewStaticSource(func() cached.Result[int64] {
+func NewRandomSource() cached.Value[int64] {
+	return cached.Once(cached.Func(func() (int64, string, error) {
 		bytes := make([]byte, 6)
 		rand.Read(bytes)
-		return cached.NewResultOK(rand.Int63(), randomString(10))
-	})
+		return rand.Int63(), randomString(10), nil
+	}))
 }
 
-func repeatedGet(data cached.Data[int64], end time.Time, wg *sync.WaitGroup) {
+func repeatedGet(data cached.Value[int64], end time.Time, wg *sync.WaitGroup) {
 	for time.Now().Before(end) {
-		_ = data.Get()
+		_, _, _ = data.Get()
 	}
 	wg.Done()
 }
@@ -1084,45 +1168,45 @@ func TestThreadSafe(t *testing.T) {
 	static := NewRandomSource()
 	wg.Add(1)
 	go repeatedGet(static, end, &wg)
-	result := cached.NewResultOK(rand.Int63(), randomString(10))
+	result := cached.Static(rand.Int63(), randomString(10))
 	wg.Add(1)
 	go repeatedGet(result, end, &wg)
-	replaceable := cached.Replaceable[int64]{}
-	replaceable.Replace(NewRandomSource())
+	replaceable := &cached.LastSuccess[int64]{}
+	replaceable.Store(NewRandomSource())
 	wg.Add(1)
-	go repeatedGet(&replaceable, end, &wg)
+	go repeatedGet(replaceable, end, &wg)
 	wg.Add(1)
-	go func(r *cached.Replaceable[int64], end time.Time, wg *sync.WaitGroup) {
+	go func(r cached.Replaceable[int64], end time.Time, wg *sync.WaitGroup) {
 		for time.Now().Before(end) {
-			r.Replace(NewRandomSource())
+			r.Store(NewRandomSource())
 		}
 		wg.Done()
-	}(&replaceable, end, &wg)
-	merger := cached.NewMerger(func(results map[string]cached.Result[int64]) cached.Result[int64] {
+	}(replaceable, end, &wg)
+	merger := cached.Merge(func(results map[string]cached.Result[int64]) (int64, string, error) {
 		sum := int64(0)
 		for _, result := range results {
-			sum += result.Data
+			sum += result.Value
 		}
-		return cached.NewResultOK(sum, randomString(10))
-	}, map[string]cached.Data[int64]{
+		return sum, randomString(10), nil
+	}, map[string]cached.Value[int64]{
 		"one": NewRandomSource(),
 		"two": NewRandomSource(),
 	})
 	wg.Add(1)
 	go repeatedGet(merger, end, &wg)
-	transformer := cached.NewTransformer(func(result cached.Result[int64]) cached.Result[int64] {
-		return cached.NewResultOK(result.Data+5, randomString(10))
+	transformer := cached.Transform(func(value int64, etag string, err error) (int64, string, error) {
+		return value + 5, randomString(10), nil
 	}, NewRandomSource())
 	wg.Add(1)
 	go repeatedGet(transformer, end, &wg)
 
-	listmerger := cached.NewListMerger(func(results []cached.Result[int64]) cached.Result[int64] {
+	listmerger := cached.MergeList(func(results []cached.Result[int64]) (int64, string, error) {
 		sum := int64(0)
 		for i := range results {
-			sum += results[i].Data
+			sum += results[i].Value
 		}
-		return cached.NewResultOK(sum, randomString(10))
-	}, []cached.Data[int64]{static, result, &replaceable, merger, transformer})
+		return sum, randomString(10), nil
+	}, []cached.Value[int64]{static, result, replaceable, merger, transformer})
 	wg.Add(1)
 	go repeatedGet(listmerger, end, &wg)
 
