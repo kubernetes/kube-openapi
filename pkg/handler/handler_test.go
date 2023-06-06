@@ -227,23 +227,31 @@ func TestConcurrentReadStaleCache(t *testing.T) {
 		t.Errorf("Unexpected error in preparing returnedPb: %v", err)
 	}
 
-	jsonResults := make(chan []byte)
-	protoResults := make(chan []byte)
+	jsonResultsChan := make(chan []byte)
+	protoResultsChan := make(chan []byte)
+	updateSpecChan := make(chan struct{})
 	for i := 0; i < concurrency; i++ {
-		go func() { jsonResults <- getJSONBodyOrDie(server) }()
-		go func() { protoResults <- getProtoBodyOrDie(server) }()
+		go func() {
+			sc := s
+			o.UpdateSpec(&sc)
+			updateSpecChan <- struct{}{}
+		}()
+		go func() { jsonResultsChan <- getJSONBodyOrDie(server) }()
+		go func() { protoResultsChan <- getProtoBodyOrDie(server) }()
 	}
 	for i := 0; i < concurrency; i++ {
-		r := <-jsonResults
+		r := <-jsonResultsChan
 		if !reflect.DeepEqual(r, returnedJSON) {
 			t.Errorf("Returned and expected JSON do not match: got %v, want %v", string(r), string(returnedJSON))
 		}
 	}
 	for i := 0; i < concurrency; i++ {
-		r := <-protoResults
+		r := <-protoResultsChan
 		if !reflect.DeepEqual(r, returnedPb) {
 			t.Errorf("Returned and expected pb do not match: got %v, want %v", r, returnedPb)
 		}
 	}
-
+	for i := 0; i < concurrency; i++ {
+		<-updateSpecChan
+	}
 }
