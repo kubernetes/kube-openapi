@@ -78,6 +78,12 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 	for _, o := range options {
 		o(&s.Options)
 	}
+
+	if s.Options.subIndexValidator == nil {
+		s.Options.subPropertyValidator = s.SubPropertyValidator
+		s.Options.subIndexValidator = s.SubIndexValidator
+	}
+
 	s.validators = []valueValidator{
 		s.typeValidator(),
 		s.schemaPropsValidator(),
@@ -89,6 +95,14 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 		s.objectValidator(),
 	}
 	return &s
+}
+
+func (s *SchemaValidator) SubPropertyValidator(field string, sch *spec.Schema) valueValidator {
+	return NewSchemaValidator(sch, s.Root, s.Path+"."+field, s.KnownFormats, s.Options.Options()...)
+}
+
+func (s *SchemaValidator) SubIndexValidator(index int, sch *spec.Schema) valueValidator {
+	return NewSchemaValidator(sch, s.Root, fmt.Sprintf("%s[%d]", s.Path, index), s.KnownFormats, s.Options.Options()...)
 }
 
 // SetPath sets the path for this schema validator

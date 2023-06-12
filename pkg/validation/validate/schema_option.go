@@ -14,9 +14,15 @@
 
 package validate
 
+import (
+	"k8s.io/kube-openapi/pkg/validation/spec"
+)
+
 // SchemaValidatorOptions defines optional rules for schema validation
 type SchemaValidatorOptions struct {
 	validationRulesEnabled bool
+	subIndexValidator      func(index int, sch *spec.Schema) valueValidator
+	subPropertyValidator   func(field string, sch *spec.Schema) valueValidator
 }
 
 // Option sets optional rules for schema validation
