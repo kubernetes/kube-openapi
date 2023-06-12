@@ -93,7 +93,8 @@ func (r ratchetThunk) SubPropertyValidator(field string, sch *spec.Schema) value
 }
 
 func (r ratchetThunk) SubIndexValidator(index int, sch *spec.Schema) valueValidator {
-
+	//!TODO: implement slice ratcheting which considers the x-kubernetes extensions
+	// Some notes
 	// 1. Check if this schema uses map-keys
 	// 2. If it does not, use index
 	// 3. If it does, find other entry with map
