@@ -114,14 +114,9 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	// Property types:
 	// - regular Property
 	for pName, pSchema := range o.Properties {
-		rName := pName
-		if o.Path != "" {
-			rName = o.Path + "." + pName
-		}
-
 		// Recursively validates each property against its schema
 		if v, ok := val[pName]; ok {
-			r := o.Options.subPropertyValidator(rName, &pSchema).Validate(v)
+			r := o.Options.subPropertyValidator(pName, &pSchema).Validate(v)
 			res.Merge(r)
 		}
 	}
