@@ -1633,8 +1633,8 @@ const EnumB EnumType = "b"
 // +k8s:openapi-gen=x-kubernetes-type-tag:type_test
 type Blah struct {
 	// Value is the value.
-	Value EnumType
-	NoCommentEnum EnumType
+	// +default="b"
+	Value *EnumType
 	// +optional
 	OptionalEnum *EnumType
 }`)
@@ -1655,16 +1655,7 @@ Properties: map[string]spec.Schema{
 "Value": {
 SchemaProps: spec.SchemaProps{
 Description: "Value is the value.\n\nPossible enum values:\n - `+"`"+`\"a\"`+"`"+` is a.\n - `+"`"+`\"b\"`+"`"+` is b.",
-Default: "",
-Type: []string{"string"},
-Format: "",
-Enum: []interface{}{"a", "b"},
-},
-},
-"NoCommentEnum": {
-SchemaProps: spec.SchemaProps{
-Description: "Possible enum values:\n - `+"`"+`\"a\"`+"`"+` is a.\n - `+"`"+`\"b\"`+"`"+` is b.",
-Default: "",
+Default: "b",
 Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"},
@@ -1679,7 +1670,7 @@ Enum: []interface{}{"a", "b"},
 },
 },
 },
-Required: []string{"Value","NoCommentEnum"},
+Required: []string{"Value"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
