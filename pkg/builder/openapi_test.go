@@ -25,6 +25,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/stretchr/testify/assert"
+
 	openapi "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -243,23 +244,23 @@ func getTestPathItem(allMethods bool, opPrefix string) spec.PathItem {
 	ret := spec.PathItem{
 		PathItemProps: spec.PathItemProps{
 			Get:        getTestOperation("get", opPrefix),
-			Parameters: getTestCommonParameters(),
+			Parameters: getTestCommonParameterReferences(),
 		},
 	}
-	ret.Get.Parameters = getAdditionalTestParameters()
+	ret.Get.Parameters = getAdditionalTestParameterReferences()
 	if allMethods {
 		ret.Put = getTestOperation("put", opPrefix)
-		ret.Put.Parameters = getTestParameters()
+		ret.Put.Parameters = getTestParameterReferences()
 		ret.Post = getTestOperation("post", opPrefix)
-		ret.Post.Parameters = getTestParameters()
+		ret.Post.Parameters = getTestParameterReferences()
 		ret.Head = getTestOperation("head", opPrefix)
-		ret.Head.Parameters = getTestParameters()
+		ret.Head.Parameters = getTestParameterReferences()
 		ret.Patch = getTestOperation("patch", opPrefix)
-		ret.Patch.Parameters = getTestParameters()
+		ret.Patch.Parameters = getTestParameterReferences()
 		ret.Delete = getTestOperation("delete", opPrefix)
-		ret.Delete.Parameters = getTestParameters()
+		ret.Delete.Parameters = getTestParameterReferences()
 		ret.Options = getTestOperation("options", opPrefix)
-		ret.Options.Parameters = getTestParameters()
+		ret.Options.Parameters = getTestParameterReferences()
 	}
 	return ret
 }
@@ -287,86 +288,141 @@ func getTestResponses() *spec.Responses {
 	return &ret
 }
 
-func getTestCommonParameters() []spec.Parameter {
+func getTestCommonParameters() map[string]spec.Parameter {
+	return map[string]spec.Parameter{
+		"path": {
+			SimpleSchema: spec.SimpleSchema{
+				Type: "string",
+			},
+			ParamProps: spec.ParamProps{
+				Description: "path to the resource",
+				Name:        "path",
+				In:          "path",
+				Required:    true,
+			},
+			CommonValidations: spec.CommonValidations{
+				UniqueItems: true,
+			},
+		},
+		"query-pretty": {
+			SimpleSchema: spec.SimpleSchema{
+				Type: "string",
+			},
+			ParamProps: spec.ParamProps{
+				Description: "If 'true', then the output is pretty printed.",
+				Name:        "pretty",
+				In:          "query",
+			},
+			CommonValidations: spec.CommonValidations{
+				UniqueItems: true,
+			},
+		},
+	}
+}
+
+func getTestCommonParameterReferences() []spec.Parameter {
 	ret := make([]spec.Parameter, 2)
 	ret[0] = spec.Parameter{
-		SimpleSchema: spec.SimpleSchema{
-			Type: "string",
-		},
-		ParamProps: spec.ParamProps{
-			Description: "path to the resource",
-			Name:        "path",
-			In:          "path",
-			Required:    true,
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/path"),
 		},
 	}
 	ret[1] = spec.Parameter{
-		SimpleSchema: spec.SimpleSchema{
-			Type: "string",
-		},
-		ParamProps: spec.ParamProps{
-			Description: "If 'true', then the output is pretty printed.",
-			Name:        "pretty",
-			In:          "query",
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/query-pretty"),
 		},
 	}
 	return ret
 }
 
-func getTestParameters() []spec.Parameter {
+func getTestParameters() map[string]spec.Parameter {
+	return map[string]spec.Parameter{
+		"body": {
+			ParamProps: spec.ParamProps{
+				Name:     "body",
+				In:       "body",
+				Required: true,
+				Schema:   getRefSchema("#/definitions/builder.TestInput"),
+			},
+		},
+	}
+}
+
+func getTestParameterReferences() []spec.Parameter {
 	ret := make([]spec.Parameter, 1)
 	ret[0] = spec.Parameter{
-		ParamProps: spec.ParamProps{
-			Name:     "body",
-			In:       "body",
-			Required: true,
-			Schema:   getRefSchema("#/definitions/builder.TestInput"),
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/body"),
 		},
 	}
 	return ret
 }
 
-func getAdditionalTestParameters() []spec.Parameter {
+func getAdditionalTestParameters() map[string]spec.Parameter {
+	return map[string]spec.Parameter{
+		"body": {
+			ParamProps: spec.ParamProps{
+				Name:     "body",
+				In:       "body",
+				Required: true,
+				Schema:   getRefSchema("#/definitions/builder.TestInput"),
+			},
+		},
+		"formData-fparam": {
+			ParamProps: spec.ParamProps{
+				Name:        "fparam",
+				Description: "a test form parameter",
+				In:          "formData",
+			},
+			SimpleSchema: spec.SimpleSchema{
+				Type: "number",
+			},
+			CommonValidations: spec.CommonValidations{
+				UniqueItems: true,
+			},
+		},
+		"header-hparam": {
+			SimpleSchema: spec.SimpleSchema{
+				Type: "integer",
+			},
+			ParamProps: spec.ParamProps{
+				Description: "a test head parameter",
+				Name:        "hparam",
+				In:          "header",
+			},
+			CommonValidations: spec.CommonValidations{
+				UniqueItems: true,
+			},
+		},
+	}
+}
+
+func getAdditionalTestParameterReferences() []spec.Parameter {
 	ret := make([]spec.Parameter, 3)
 	ret[0] = spec.Parameter{
-		ParamProps: spec.ParamProps{
-			Name:     "body",
-			In:       "body",
-			Required: true,
-			Schema:   getRefSchema("#/definitions/builder.TestInput"),
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/body"),
 		},
 	}
 	ret[1] = spec.Parameter{
-		ParamProps: spec.ParamProps{
-			Name:        "fparam",
-			Description: "a test form parameter",
-			In:          "formData",
-		},
-		SimpleSchema: spec.SimpleSchema{
-			Type: "number",
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/formData-fparam"),
 		},
 	}
 	ret[2] = spec.Parameter{
-		SimpleSchema: spec.SimpleSchema{
-			Type: "integer",
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/header-hparam"),
 		},
-		ParamProps: spec.ParamProps{
-			Description: "a test head parameter",
-			Name:        "hparam",
-			In:          "header",
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
-		},
+	}
+	return ret
+}
+
+func mergeParameters(paramLists ...map[string]spec.Parameter) map[string]spec.Parameter {
+	ret := make(map[string]spec.Parameter)
+	for _, paramList := range paramLists {
+		for k, v := range paramList {
+			ret[k] = v
+		}
 	}
 	return ret
 }
@@ -462,6 +518,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				"builder.TestInput":  getTestInputDefinition(),
 				"builder.TestOutput": getTestOutputDefinition(),
 			},
+			Parameters: mergeParameters(getTestCommonParameters(), getTestParameters(), getAdditionalTestParameters()),
 		},
 	}
 	swagger, err := BuildOpenAPISpec(container.RegisteredWebServices(), config)

@@ -24,6 +24,7 @@ import (
 
 	restful "github.com/emicklei/go-restful/v3"
 
+	"k8s.io/klog/v2"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/util"
@@ -35,10 +36,11 @@ const (
 )
 
 type openAPI struct {
-	config       *common.Config
-	swagger      *spec.Swagger
-	protocolList []string
-	definitions  map[string]common.OpenAPIDefinition
+	config                 *common.Config
+	swagger                *spec.Swagger
+	protocolList           []string
+	definitions            map[string]common.OpenAPIDefinition
+	sharedParametersByJSON map[string]string
 }
 
 // BuildOpenAPISpec builds OpenAPI spec given a list of route containers and common.Config to customize it.
@@ -100,6 +102,7 @@ func newOpenAPI(config *common.Config) openAPI {
 				Responses:   config.ResponseDefinitions,
 				Paths:       &spec.Paths{Paths: map[string]spec.PathItem{}},
 				Info:        config.Info,
+				Parameters:  config.SharedParameters,
 			},
 		},
 	}
@@ -134,6 +137,18 @@ func newOpenAPI(config *common.Config) openAPI {
 	if o.config.CommonResponses == nil {
 		o.config.CommonResponses = map[int]spec.Response{}
 	}
+	for k, v := range config.SharedParameters {
+		if o.sharedParametersByJSON == nil {
+			o.sharedParametersByJSON = make(map[string]string)
+		}
+		marshalled, err := json.Marshal(v)
+		if err != nil {
+			klog.Warningf("Failed to marshal shared parameter %s, ignoring: %v", k, err)
+			continue
+		}
+		o.sharedParametersByJSON[string(marshalled)] = k
+	}
+
 	return o
 }
 
@@ -229,6 +244,7 @@ func (o *openAPI) buildPaths(routeContainers []common.RouteContainer) error {
 			if err != nil {
 				return err
 			}
+
 			pathItem, exists := o.swagger.Paths.Paths[path]
 			if exists {
 				return fmt.Errorf("duplicate webservice route has been found for path: %v", path)
@@ -338,6 +354,10 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 			if err != nil {
 				return ret, err
 			}
+			openAPIParam, err = o.referenceParameter(openAPIParam)
+			if err != nil {
+				return ret, err
+			}
 			ret.Parameters = append(ret.Parameters, openAPIParam)
 		}
 	}
@@ -382,6 +402,10 @@ func (o *openAPI) findCommonParameters(routes []common.Route) (map[interface{}]s
 		paramData := paramNameKindToDataMap[key]
 		if count == len(routes) && paramData.Kind() != common.BodyParameterKind {
 			openAPIParam, err := o.buildParameter(paramData, nil)
+			if err != nil {
+				return commonParamsMap, err
+			}
+			openAPIParam, err = o.referenceParameter(openAPIParam)
 			if err != nil {
 				return commonParamsMap, err
 			}
@@ -453,16 +477,57 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 	ret.Type = openAPIType
 	ret.Format = openAPIFormat
 	ret.UniqueItems = !restParam.AllowMultiple()
+
+	marshalled, err := json.Marshal(ret)
+	if err != nil {
+		return ret, err
+	}
+	if name, shared := o.sharedParametersByJSON[string(marshalled)]; shared {
+		return spec.Parameter{Refable: spec.Refable{Ref: spec.MustCreateRef("#/parameters/" + name)}}, nil
+	}
+
 	return ret, nil
 }
 
 func (o *openAPI) buildParameters(restParam []common.Parameter) (ret []spec.Parameter, err error) {
 	ret = make([]spec.Parameter, len(restParam))
 	for i, v := range restParam {
-		ret[i], err = o.buildParameter(v, nil)
+		param, err := o.buildParameter(v, nil)
 		if err != nil {
 			return ret, err
 		}
+		param, err = o.referenceParameter(param)
+		if err != nil {
+			return ret, err
+		}
+		ret[i] = param
 	}
 	return ret, nil
+}
+
+func (o *openAPI) referenceParameter(param spec.Parameter) (ret spec.Parameter, err error) {
+	if param.Ref.String() != "" {
+		return param, nil
+	}
+
+	bs, err := json.Marshal(param)
+	if err != nil {
+		return ret, err
+	}
+	name, found := o.sharedParametersByJSON[string(bs)]
+	if !found {
+		if o.sharedParametersByJSON == nil {
+			o.sharedParametersByJSON = make(map[string]string)
+		}
+		name := param.Name
+		if param.In != "" && param.Name != name {
+			name = fmt.Sprintf("%s-%s", param.In, param.Name)
+		}
+		o.sharedParametersByJSON[string(bs)] = name
+		if o.swagger.Parameters == nil {
+			o.swagger.Parameters = make(map[string]spec.Parameter)
+		}
+		o.swagger.Parameters[name] = param
+	}
+	return spec.Parameter{Refable: spec.Refable{Ref: spec.MustCreateRef("#/parameters/" + name)}}, nil
 }
