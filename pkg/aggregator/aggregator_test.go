@@ -25,6 +25,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"k8s.io/kube-openapi/pkg/handler"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/yaml"
@@ -253,7 +255,7 @@ definitions:
 
 func TestMergeSpecsSimple(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -269,6 +271,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
       responses:
         405:
           description: "Invalid input"
@@ -286,9 +289,15 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &spec1)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec1))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /othertest:
@@ -308,6 +317,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test2"
+      - $ref: "#/parameters/b"
 definitions:
   Test2:
     type: "object"
@@ -316,9 +326,15 @@ definitions:
         $ref: "#/definitions/Other"
   Other:
     type: "string"
-`), &spec2)
+parameters:
+  b:
+    in: query
+    name: b
+    schema:
+      $ref: "#/definitions/Test2"
+`), &spec2))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -334,6 +350,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
       responses:
         405:
           description: "Invalid input"
@@ -355,6 +372,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test2"
+      - $ref: "#/parameters/b"
 definitions:
   Test:
     type: "object"
@@ -375,20 +393,31 @@ definitions:
         $ref: "#/definitions/Other"
   Other:
     type: "string"
-`), &expected)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+      $ref: "#/definitions/Test"
+  b:
+    in: query
+    name: b
+    schema:
+      $ref: "#/definitions/Test2"
+`), &expected))
 
 	ast := assert.New(t)
 	orig_spec2, _ := cloneSpec(spec2)
 	if !ast.NoError(MergeSpecs(spec1, spec2)) {
 		return
 	}
-	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
-	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
+	ast.Equal(DebugSpec{expected}.String(), DebugSpec{spec1}.String())
+	ast.Equal(DebugSpec{orig_spec2}.String(), DebugSpec{spec2}.String(), "unexpected mutation of input")
 }
 
 func TestMergeSpecsEmptyDefinitions(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -405,9 +434,9 @@ paths:
       responses:
         405:
           description: "Invalid input"
-`), &spec1)
+`), &spec1))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /othertest:
@@ -435,9 +464,9 @@ definitions:
         $ref: "#/definitions/Other"
   Other:
     type: "string"
-`), &spec2)
+`), &spec2))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -479,7 +508,7 @@ definitions:
         $ref: "#/definitions/Other"
   Other:
     type: "string"
-`), &expected)
+`), &expected))
 
 	ast := assert.New(t)
 	orig_spec2, _ := cloneSpec(spec2)
@@ -592,7 +621,7 @@ definitions:
 
 func TestMergeSpecsReuseModel(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -608,6 +637,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
       responses:
         405:
           description: "Invalid input"
@@ -625,9 +655,15 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &spec1)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec1))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /othertest:
@@ -647,6 +683,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
 definitions:
   Test:
     type: "object"
@@ -660,9 +697,15 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &spec2)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec2))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -678,6 +721,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
       responses:
         405:
           description: "Invalid input"
@@ -699,6 +743,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
 definitions:
   Test:
     type: "object"
@@ -712,7 +757,13 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &expected)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &expected))
 
 	ast := assert.New(t)
 	orig_spec2, _ := cloneSpec(spec2)
@@ -725,7 +776,7 @@ definitions:
 
 func TestMergeSpecsRenameModel(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -741,6 +792,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
       responses:
         405:
           description: "Invalid input"
@@ -758,9 +810,15 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &spec1)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec1))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /othertest:
@@ -780,6 +838,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
 definitions:
   Test:
     description: "This Test has a description"
@@ -791,9 +850,15 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &spec2)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec2))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -809,6 +874,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
       responses:
         405:
           description: "Invalid input"
@@ -830,6 +896,7 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
 definitions:
   Test:
     type: "object"
@@ -850,7 +917,18 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
-`), &expected)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v2"
+`), &expected))
 
 	ast := assert.New(t)
 	orig_spec2, _ := cloneSpec(spec2)
@@ -863,7 +941,7 @@ definitions:
 
 func TestMergeSpecsRenameModelWithExistingV2InDestination(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -872,21 +950,34 @@ paths:
       - name: "body"
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
   /testv2:
     post:
       parameters:
       - name: "body"
         schema:
           $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
 definitions:
   Test:
     type: "object"
   Test_v2:
     description: "This is an existing Test_v2 in destination schema"
     type: "object"
-`), &spec1)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v2"
+`), &spec1))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /othertest:
@@ -895,13 +986,20 @@ paths:
       - name: "body"
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
 definitions:
   Test:
     description: "This Test has a description"
     type: "object"
-`), &spec2)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec2))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -910,18 +1008,21 @@ paths:
       - name: "body"
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
   /testv2:
     post:
       parameters:
       - name: "body"
         schema:
           $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
   /othertest:
     post:
       parameters:
       - name: "body"
         schema:
           $ref: "#/definitions/Test_v3"
+      - $ref: "#/parameters/a_v3"
 definitions:
   Test:
     type: "object"
@@ -931,7 +1032,23 @@ definitions:
   Test_v3:
     description: "This Test has a description"
     type: "object"
-`), &expected)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v2"
+  a_v3:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v3"
+`), &expected))
 
 	ast := assert.New(t)
 	orig_spec2, _ := cloneSpec(spec2)
@@ -944,7 +1061,7 @@ definitions:
 
 func TestMergeSpecsRenameModelWithExistingV2InSource(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -953,12 +1070,19 @@ paths:
       - name: "body"
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
 definitions:
   Test:
     type: "object"
-`), &spec1)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+`), &spec1))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /othertest:
@@ -967,12 +1091,14 @@ paths:
       - name: "body"
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
   /testv2:
     post:
       parameters:
       - name: "body"
         schema:
           $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
 definitions:
   Test:
     description: "This Test has a description"
@@ -980,9 +1106,20 @@ definitions:
   Test_v2:
     description: "This is an existing Test_v2 in source schema"
     type: "object"
-`), &spec2)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+      $ref: "#/definitions/Test_v2"
+`), &spec2))
 
-	yaml.Unmarshal([]byte(`
+	require.NoError(t, yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -991,18 +1128,21 @@ paths:
       - name: "body"
         schema:
           $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
   /testv2:
     post:
       parameters:
       - name: "body"
         schema:
           $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
   /othertest:
     post:
       parameters:
       - name: "body"
         schema:
           $ref: "#/definitions/Test_v3"
+      - $ref: "#/parameters/a_v3"
 definitions:
   Test:
     type: "object"
@@ -1012,7 +1152,23 @@ definitions:
   Test_v3:
     description: "This Test has a description"
     type: "object"
-`), &expected)
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+      $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+      $ref: "#/definitions/Test_v2"
+  a_v3:
+    in: query
+    name: a
+    schema:
+      $ref: "#/definitions/Test_v3"
+`), &expected))
 
 	ast := assert.New(t)
 	orig_spec2, _ := cloneSpec(spec2)
