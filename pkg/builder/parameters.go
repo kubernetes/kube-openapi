@@ -39,6 +39,10 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 	var keys []string
 
 	collect := func(p *spec.Parameter) error {
+		if p.In == "query" && p.Name == "name" {
+			return nil // ignore name parameter as they are never shared with the Kind in the description
+		}
+
 		bs, err := json.Marshal(p)
 		if err != nil {
 			return err
