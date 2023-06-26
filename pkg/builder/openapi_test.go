@@ -306,8 +306,11 @@ func getTestCommonParameters() []spec.Parameter {
 func getTestParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 1)
 	ret[0] = spec.Parameter{
-		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/body-GU9eI1QU"),
+		ParamProps: spec.ParamProps{
+			In:       "body",
+			Name:     "body",
+			Required: true,
+			Schema:   getRefSchema("#/definitions/builder.TestInput"),
 		},
 	}
 	return ret
@@ -316,8 +319,11 @@ func getTestParameters() []spec.Parameter {
 func getAdditionalTestParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 3)
 	ret[0] = spec.Parameter{
-		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/body-GU9eI1QU"),
+		ParamProps: spec.ParamProps{
+			In:       "body",
+			Name:     "body",
+			Required: true,
+			Schema:   getRefSchema("#/definitions/builder.TestInput"),
 		},
 	}
 	ret[1] = spec.Parameter{
@@ -425,14 +431,6 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				"builder.TestOutput": getTestOutputDefinition(),
 			},
 			Parameters: map[string]spec.Parameter{
-				"body-GU9eI1QU": {
-					ParamProps: spec.ParamProps{
-						In:       "body",
-						Name:     "body",
-						Required: true,
-						Schema:   getRefSchema("#/definitions/builder.TestInput"),
-					},
-				},
 				"fparam-5GSylsE3": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,

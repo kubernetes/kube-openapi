@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -39,8 +40,11 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 	var keys []string
 
 	collect := func(p *spec.Parameter) error {
-		if p.In == "query" && p.Name == "name" {
+		if (p.In == "query" || p.In == "path") && p.Name == "name" {
 			return nil // ignore name parameter as they are never shared with the Kind in the description
+		}
+		if p.In == "body" && p.Name == "body" && !strings.HasPrefix(p.Ref.String(), "#/definitions/io.k8s.apimachinery") {
+			return nil // ignore body parameter as they are never shared with the custom schema for each kind
 		}
 
 		bs, err := json.Marshal(p)
