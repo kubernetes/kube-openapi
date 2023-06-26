@@ -25,6 +25,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/stretchr/testify/assert"
+
 	openapi "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -291,12 +292,12 @@ func getTestCommonParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 2)
 	ret[0] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/path"),
+			Ref: spec.MustCreateRef("#/parameters/path-Xf6bMocQ"),
 		},
 	}
 	ret[1] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/pretty"),
+			Ref: spec.MustCreateRef("#/parameters/pretty-QYJ-1x8O"),
 		},
 	}
 	return ret
@@ -306,7 +307,7 @@ func getTestParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 1)
 	ret[0] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/body"),
+			Ref: spec.MustCreateRef("#/parameters/body-GU9eI1QU"),
 		},
 	}
 	return ret
@@ -316,17 +317,17 @@ func getAdditionalTestParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 3)
 	ret[0] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/body"),
+			Ref: spec.MustCreateRef("#/parameters/body-GU9eI1QU"),
 		},
 	}
 	ret[1] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/fparam"),
+			Ref: spec.MustCreateRef("#/parameters/fparam-5GSylsE3"),
 		},
 	}
 	ret[2] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/hparam"),
+			Ref: spec.MustCreateRef("#/parameters/hparam-XbFNLzps"),
 		},
 	}
 	return ret
@@ -424,7 +425,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				"builder.TestOutput": getTestOutputDefinition(),
 			},
 			Parameters: map[string]spec.Parameter{
-				"body": {
+				"body-GU9eI1QU": {
 					ParamProps: spec.ParamProps{
 						In:       "body",
 						Name:     "body",
@@ -432,7 +433,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Schema:   getRefSchema("#/definitions/builder.TestInput"),
 					},
 				},
-				"fparam": {
+				"fparam-5GSylsE3": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
@@ -445,7 +446,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Description: "a test form parameter",
 					},
 				},
-				"hparam": {
+				"hparam-XbFNLzps": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
@@ -458,7 +459,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Description: "a test head parameter",
 					},
 				},
-				"path": {
+				"path-Xf6bMocQ": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
@@ -472,7 +473,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Required:    true,
 					},
 				},
-				"pretty": {
+				"pretty-QYJ-1x8O": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},

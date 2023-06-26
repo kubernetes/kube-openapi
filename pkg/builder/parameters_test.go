@@ -25,10 +25,6 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-func init() {
-	minimumSharedParameterCount = 2
-}
-
 func TestCollectSharedParameters(t *testing.T) {
 	tests := []struct {
 		name string
@@ -61,7 +57,14 @@ func TestCollectSharedParameters(t *testing.T) {
     ]}}
   }
 }`,
-			want: map[string]string{},
+			want: map[string]string{
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`:  "x-Z2Xub4DK",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`:  "y-y7usp1yI",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`:  "z-zZJItIuA",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x2","in":"query"}`: "x2-c9T21SCy",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y2","in":"query"}`: "y2-DvN7hOA8",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z2","in":"query"}`: "z2-nF5ahw6l",
+			},
 		},
 		{
 			name: "shared per operation",
@@ -85,9 +88,9 @@ func TestCollectSharedParameters(t *testing.T) {
   }
 }`,
 			want: map[string]string{
-				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x",
-				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y",
-				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x-Z2Xub4DK",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y-y7usp1yI",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z-zZJItIuA",
 			},
 		},
 		{
@@ -116,9 +119,9 @@ func TestCollectSharedParameters(t *testing.T) {
   }
 }`,
 			want: map[string]string{
-				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x",
-				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y",
-				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x-Z2Xub4DK",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y-y7usp1yI",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z-zZJItIuA",
 			},
 		},
 	}

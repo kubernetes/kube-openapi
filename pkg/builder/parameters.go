@@ -17,14 +17,14 @@ limitations under the License.
 package builder
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"sort"
 	"strconv"
 
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
-
-var minimumSharedParameterCount = 10 // should be more than number of verbs
 
 // collectSharedParameters finds those parameters that show up often and hence can be
 // shared across all the paths to save space.
@@ -38,27 +38,34 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 	shared := map[string]spec.Parameter{}
 	var keys []string
 
+	collect := func(p *spec.Parameter) error {
+		bs, err := json.Marshal(p)
+		if err != nil {
+			return err
+		}
+
+		countsByJSON[string(bs)]++
+		if count := countsByJSON[string(bs)]; count == 1 {
+			shared[string(bs)] = *p
+			keys = append(keys, string(bs))
+		}
+
+		return nil
+	}
+
 	for _, path := range sp.Paths.Paths {
 		// per operation parameters
 		for _, op := range []*spec.Operation{path.Get, path.Put, path.Post, path.Delete, path.Options, path.Head, path.Patch} {
 			if op == nil {
-				continue
+				continue // shouldn't happen, but ignore if it does
 			}
 			for _, p := range op.Parameters {
 				if p.Ref.String() != "" {
 					// shouldn't happen, but ignore if it does
 					continue
 				}
-
-				bs, err := json.Marshal(p)
-				if err != nil {
+				if err := collect(&p); err != nil {
 					return nil, nil, err
-				}
-
-				countsByJSON[string(bs)]++
-				if count := countsByJSON[string(bs)]; count == minimumSharedParameterCount {
-					shared[string(bs)] = p
-					keys = append(keys, string(bs))
 				}
 			}
 		}
@@ -66,19 +73,10 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 		// per path parameters
 		for _, p := range path.Parameters {
 			if p.Ref.String() != "" {
-				// shouldn't happen, but ignore if it does
-				continue
+				continue // shouldn't happen, but ignore if it does
 			}
-
-			bs, err := json.Marshal(p)
-			if err != nil {
+			if err := collect(&p); err != nil {
 				return nil, nil, err
-			}
-
-			countsByJSON[string(bs)]++
-			if count := countsByJSON[string(bs)]; count == minimumSharedParameterCount {
-				shared[string(bs)] = p
-				keys = append(keys, string(bs))
 			}
 		}
 	}
@@ -92,6 +90,7 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 		if name == "" {
 			name = "param"
 		}
+		name += "-" + base64Hash(k)
 		i := 0
 		for {
 			if _, ok := ret[name]; !ok {
@@ -99,12 +98,17 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 				namesByJSON[k] = name
 				break
 			}
-			i++
+			i++ // only on hash conflict, unlikely with our few variants
 			name = shared[k].Name + "-" + strconv.Itoa(i)
 		}
 	}
 
 	return namesByJSON, ret, nil
+}
+
+func base64Hash(s string) string {
+	hash := sha256.Sum224([]byte(s))
+	return base64.URLEncoding.EncodeToString(hash[:6]) // 8 characters
 }
 
 func replaceSharedParameters(sharedParameterNamesByJSON map[string]string, sp *spec.Swagger) (*spec.Swagger, error) {
