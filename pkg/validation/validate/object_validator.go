@@ -99,7 +99,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 				// Cases: properties which are not regular properties and have not been matched by the PatternProperties validator
 				if o.AdditionalProperties != nil && o.AdditionalProperties.Schema != nil {
 					// AdditionalProperties as Schema
-					res.Merge(o.Options.subPropertyValidator(key, o.AdditionalProperties.Schema).Validate(value))
+					res.Merge(o.Options.NewValidatorForField(key, o.AdditionalProperties.Schema, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value))
 				} else if regularProperty && !(matched || succeededOnce) {
 					// TODO: this is dead code since regularProperty=false here
 					res.AddErrors(errors.FailedAllPatternProperties(o.Path, o.In, key))
@@ -114,9 +114,14 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	// Property types:
 	// - regular Property
 	for pName, pSchema := range o.Properties {
+		rName := pName
+		if o.Path != "" {
+			rName = o.Path + "." + pName
+		}
+
 		// Recursively validates each property against its schema
 		if v, ok := val[pName]; ok {
-			r := o.Options.subPropertyValidator(pName, &pSchema).Validate(v)
+			r := o.Options.NewValidatorForField(pName, &pSchema, o.Root, rName, o.KnownFormats, o.Options.Options()...).Validate(v)
 			res.Merge(r)
 		}
 	}
@@ -139,7 +144,7 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 		if !regularProperty && (matched /*|| succeededOnce*/) {
 			for _, pName := range patterns {
 				if v, ok := o.PatternProperties[pName]; ok {
-					res.Merge(o.Options.subPropertyValidator(key, &v).Validate(value))
+					res.Merge(o.Options.NewValidatorForField(key, &v, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...).Validate(value))
 				}
 			}
 		}
@@ -158,7 +163,7 @@ func (o *objectValidator) validatePatternProperty(key string, value interface{},
 		if match, _ := regexp.MatchString(k, key); match {
 			patterns = append(patterns, k)
 			matched = true
-			validator := o.Options.subPropertyValidator(key, &sch)
+			validator := o.Options.NewValidatorForField(key, &sch, o.Root, o.Path+"."+key, o.KnownFormats, o.Options.Options()...)
 
 			res := validator.Validate(value)
 			result.Merge(res)

@@ -27,7 +27,7 @@ func itemsFixture() map[string]interface{} {
 	}
 }
 
-func expectAllValid(t *testing.T, ov valueValidator, dataValid, dataInvalid map[string]interface{}) {
+func expectAllValid(t *testing.T, ov ValueValidator, dataValid, dataInvalid map[string]interface{}) {
 	res := ov.Validate(dataValid)
 	assert.Equal(t, 0, len(res.Errors))
 
@@ -35,7 +35,7 @@ func expectAllValid(t *testing.T, ov valueValidator, dataValid, dataInvalid map[
 	assert.Equal(t, 0, len(res.Errors))
 }
 
-func expectOnlyInvalid(t *testing.T, ov valueValidator, dataValid, dataInvalid map[string]interface{}) {
+func expectOnlyInvalid(t *testing.T, ov ValueValidator, dataValid, dataInvalid map[string]interface{}) {
 	res := ov.Validate(dataValid)
 	assert.Equal(t, 0, len(res.Errors))
 
