@@ -80,8 +80,10 @@ func NewSchemaValidator(schema *spec.Schema, rootSchema interface{}, root string
 	}
 
 	if s.Options.NewValidatorForIndex == nil {
-		s.Options.NewValidatorForField = s.NewValidatorForField
 		s.Options.NewValidatorForIndex = s.NewValidatorForIndex
+	}
+	if s.Options.NewValidatorForField == nil {
+		s.Options.NewValidatorForField = s.NewValidatorForField
 	}
 
 	s.validators = []ValueValidator{
