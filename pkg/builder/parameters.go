@@ -20,6 +20,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,10 +28,30 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
-// collectSharedParameters finds those parameters that show up often and hence can be
-// shared across all the paths to save space.
-func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, ret map[string]spec.Parameter, err error) {
+// deduplicateParameters finds parameters that are shared across multiple endpoints and replace them with
+// references to the shared parameters in order to avoid repetition.
+//
+// deduplicateParameters does not mutate the source.
+func deduplicateParameters(sp *spec.Swagger) (*spec.Swagger, error) {
+	names, parameters, err := collectSharedParameters(sp)
+	if err != nil {
+		return nil, err
+	}
 
+	if sp.Parameters != nil {
+		return nil, fmt.Errorf("shared parameters already exist") // should not happen with the builder, but to be sure
+	}
+
+	clone := *sp
+	clone.Parameters = parameters
+	return replaceSharedParameters(names, &clone)
+}
+
+// collectSharedParameters finds parameters that show up for many endpoints. These
+// are basically all parameters with the exceptions of those where we know they are
+// endpoint specific, e.g. because they reference the schema of the kind, or have
+// the kind or resource name in the description.
+func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, ret map[string]spec.Parameter, err error) {
 	if sp == nil || sp.Paths == nil {
 		return nil, nil, nil
 	}
@@ -43,8 +64,8 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 		if (p.In == "query" || p.In == "path") && p.Name == "name" {
 			return nil // ignore name parameter as they are never shared with the Kind in the description
 		}
-		if p.In == "body" && p.Name == "body" && !strings.HasPrefix(p.Ref.String(), "#/definitions/io.k8s.apimachinery") {
-			return nil // ignore body parameter as they are never shared with the custom schema for each kind
+		if p.Schema != nil && p.In == "body" && p.Name == "body" && !strings.HasPrefix(p.Schema.Ref.String(), "#/definitions/io.k8s.apimachinery") {
+			return nil // ignore non-generic body parameters as they reference the custom schema of the kind
 		}
 
 		bs, err := json.Marshal(p)
@@ -52,10 +73,11 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 			return err
 		}
 
-		countsByJSON[string(bs)]++
-		if count := countsByJSON[string(bs)]; count == 1 {
-			shared[string(bs)] = *p
-			keys = append(keys, string(bs))
+		k := string(bs)
+		countsByJSON[k]++
+		if count := countsByJSON[k]; count == 1 {
+			shared[k] = *p
+			keys = append(keys, k)
 		}
 
 		return nil
@@ -63,9 +85,9 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 
 	for _, path := range sp.Paths.Paths {
 		// per operation parameters
-		for _, op := range []*spec.Operation{path.Get, path.Put, path.Post, path.Delete, path.Options, path.Head, path.Patch} {
+		for _, op := range operations(&path) {
 			if op == nil {
-				continue // shouldn't happen, but ignore if it does
+				continue // shouldn't happen, but ignore if it does; tested through unit test
 			}
 			for _, p := range op.Parameters {
 				if p.Ref.String() != "" {
@@ -112,6 +134,10 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 	}
 
 	return namesByJSON, ret, nil
+}
+
+func operations(path *spec.PathItem) []*spec.Operation {
+	return []*spec.Operation{path.Get, path.Put, path.Post, path.Delete, path.Options, path.Head, path.Patch}
 }
 
 func base64Hash(s string) string {

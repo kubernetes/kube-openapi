@@ -18,6 +18,7 @@ package builder
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -237,4 +238,19 @@ func normalizeJSON(t *testing.T, j string) string {
 	err := json.Unmarshal([]byte(j), &obj)
 	require.NoError(t, err)
 	return toJSON(t, obj)
+}
+
+func TestOperations(t *testing.T) {
+	t.Log("Ensuring that operations() returns all operations in spec.PathItemProps")
+	path := spec.PathItem{}
+	v := reflect.ValueOf(path.PathItemProps)
+	var rOps []any
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).Kind() == reflect.Ptr {
+			rOps = append(rOps, v.Field(i).Interface())
+		}
+	}
+
+	ops := operations(&path)
+	require.Equal(t, len(rOps), len(ops), "operations() should return all operations in spec.PathItemProps")
 }

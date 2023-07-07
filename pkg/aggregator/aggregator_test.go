@@ -1059,6 +1059,158 @@ parameters:
 	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
 }
 
+func TestMergeSpecsMultipleRenamesOfModelsAndLateConflict(t *testing.T) {
+	var spec1, spec2, expected *spec.Swagger
+	require.NoError(t, yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
+  /test3:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test_v3"
+      - $ref: "#/parameters/a_v3"
+definitions:
+  Test:
+    description: "I used to be Test in destination"
+    type: "object"
+  Test_v3:
+    description: "I used to be Test_v3 in destination"
+    type: "object"
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v3:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v3"
+`), &spec1))
+
+	require.NoError(t, yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /othertest:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
+  /othertest2:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
+definitions:
+  Test:
+    description: "I used to be Test in source"
+    type: "object"
+  Test_v2:
+    description: "I used to be Test_v2 in source"
+    type: "object"
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v2"
+`), &spec2))
+
+	require.NoError(t, yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /test:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test"
+      - $ref: "#/parameters/a"
+  /test3:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test_v3"
+      - $ref: "#/parameters/a_v3"
+  /othertest2:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test_v2"
+      - $ref: "#/parameters/a_v2"
+  /othertest:
+    post:
+      parameters:
+      - name: "body"
+        schema:
+          $ref: "#/definitions/Test_v4"
+      - $ref: "#/parameters/a_v4"
+definitions:
+  Test:
+    description: "I used to be Test in destination"
+    type: "object"
+  Test_v2:
+    description: "I used to be Test_v2 in source"
+    type: "object"
+  Test_v3:
+    description: "I used to be Test_v3 in destination"
+    type: "object"
+  Test_v4:
+    description: "I used to be Test in source"
+    type: "object"
+parameters:
+  a:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test"
+  a_v2:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v2"
+  a_v3:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v3"
+  a_v4:
+    in: query
+    name: a
+    schema:
+       $ref: "#/definitions/Test_v4"
+`), &expected))
+
+	ast := assert.New(t)
+	orig_spec2, _ := cloneSpec(spec2)
+	if !ast.NoError(MergeSpecs(spec1, spec2)) {
+		return
+	}
+	ast.Equal(DebugSpec{expected}, DebugSpec{spec1})
+	ast.Equal(DebugSpec{orig_spec2}, DebugSpec{spec2}, "unexpected mutation of input")
+}
+
 func TestMergeSpecsRenameModelWithExistingV2InSource(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
 	require.NoError(t, yaml.Unmarshal([]byte(`
@@ -1823,7 +1975,7 @@ definitions:
 	ast.Equal(DebugSpec{orig_barSpec}, DebugSpec{barSpec}, "unexpected mutation of input")
 
 	actual, _ = cloneSpec(fooSpec)
-	if !ast.NoError(MergeSpecsIgnorePathConflict(actual, barSpec)) {
+	if !ast.NoError(MergeSpecsIgnorePathConflictDeprecated(actual, barSpec)) {
 		return
 	}
 	ast.Equal(DebugSpec{expected}, DebugSpec{actual})
@@ -1861,7 +2013,7 @@ definitions:
 	ast := assert.New(t)
 	foo2Spec, _ := cloneSpec(fooSpec)
 	actual, _ := cloneSpec(fooSpec)
-	if !ast.NoError(MergeSpecsIgnorePathConflict(actual, foo2Spec)) {
+	if !ast.NoError(MergeSpecsIgnorePathConflictRenamingDefinitionsAndParameters(actual, foo2Spec)) {
 		return
 	}
 	ast.Equal(DebugSpec{fooSpec}, DebugSpec{actual})
@@ -1885,7 +2037,7 @@ func TestMergeSpecsIgnorePathConflictsWithKubeSpec(t *testing.T) {
 	}
 
 	for i := range specs {
-		if err := MergeSpecsIgnorePathConflict(sp, specs[i]); err != nil {
+		if err := MergeSpecsIgnorePathConflictRenamingDefinitionsAndParameters(sp, specs[i]); err != nil {
 			t.Fatalf("merging spec %d failed: %v", i, err)
 		}
 	}
@@ -1913,7 +2065,7 @@ func BenchmarkMergeSpecsIgnorePathConflictsWithKubeSpec(b *testing.B) {
 
 		b.StartTimer()
 		for i := range specs {
-			if err := MergeSpecsIgnorePathConflict(sp, specs[i]); err != nil {
+			if err := MergeSpecsIgnorePathConflictRenamingDefinitionsAndParameters(sp, specs[i]); err != nil {
 				panic(err)
 			}
 		}

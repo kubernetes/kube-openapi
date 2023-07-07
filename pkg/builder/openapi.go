@@ -152,17 +152,7 @@ func (o *openAPI) finalizeSwagger() (*spec.Swagger, error) {
 		}
 	}
 
-	sp := o.swagger
-	names, parameters, err := collectSharedParameters(sp)
-	if err != nil {
-		return nil, err
-	}
-
-	if sp.Parameters != nil {
-		return nil, fmt.Errorf("shared parameters already exist") // should not happen with the builder, but to be sure
-	}
-	sp.Parameters = parameters
-	return replaceSharedParameters(names, sp)
+	return deduplicateParameters(o.swagger)
 }
 
 func (o *openAPI) buildDefinitionRecursively(name string) error {

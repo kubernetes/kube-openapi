@@ -22,10 +22,9 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/kube-openapi/pkg/validation/spec"
-
 	"k8s.io/kube-openapi/pkg/schemamutation"
 	"k8s.io/kube-openapi/pkg/util"
+	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
 const gvkKey = "x-kubernetes-group-version-kind"
@@ -93,10 +92,10 @@ func FilterSpecByPathsWithoutSideEffects(sp *spec.Swagger, keepPathPrefixes []st
 
 // renameDefinitions renames definition references, without mutating the input.
 // The output might share data structures with the input.
-func renameDefinitions(s *spec.Swagger, defRenames map[string]string) *spec.Swagger {
-	refRenames := make(map[string]string, len(defRenames))
+func renameDefinitions(s *spec.Swagger, renames map[string]string) *spec.Swagger {
+	refRenames := make(map[string]string, len(renames))
 	foundOne := false
-	for k, v := range defRenames {
+	for k, v := range renames {
 		refRenames[definitionPrefix+k] = definitionPrefix + v
 		if _, ok := s.Definitions[k]; ok {
 			foundOne = true
@@ -121,7 +120,7 @@ func renameDefinitions(s *spec.Swagger, defRenames map[string]string) *spec.Swag
 
 	renamedDefinitions := make(spec.Definitions, len(ret.Definitions))
 	for k, v := range ret.Definitions {
-		if newRef, found := defRenames[k]; found {
+		if newRef, found := renames[k]; found {
 			k = newRef
 		}
 		renamedDefinitions[k] = v
@@ -131,7 +130,7 @@ func renameDefinitions(s *spec.Swagger, defRenames map[string]string) *spec.Swag
 	return ret
 }
 
-// renameDefinitions renames parameter references, without mutating the input.
+// renameParameters renames parameter references, without mutating the input.
 // The output might share data structures with the input.
 func renameParameters(s *spec.Swagger, renames map[string]string) *spec.Swagger {
 	refRenames := make(map[string]string, len(renames))
@@ -171,23 +170,30 @@ func renameParameters(s *spec.Swagger, renames map[string]string) *spec.Swagger 
 	return ret
 }
 
-// MergeSpecsIgnorePathConflict is the same as MergeSpecs except it will ignore any path
-// conflicts by keeping the paths of destination. It will rename definition conflicts.
-// The source is not mutated.
-func MergeSpecsIgnorePathConflict(dest, source *spec.Swagger) error {
+// MergeSpecsIgnorePathConflictRenamingDefinitionsAndParameters is the same as
+// MergeSpecs except it will ignore any path conflicts by keeping the paths of
+// destination. It will rename definition and parameter conflicts.
+func MergeSpecsIgnorePathConflictRenamingDefinitionsAndParameters(dest, source *spec.Swagger) error {
 	return mergeSpecs(dest, source, true, true, true)
 }
 
-// MergeSpecsFailOnDefinitionConflict is differ from MergeSpecs as it fails if there is
-// a definition conflict.
-// The source is not mutated.
-func MergeSpecsFailOnDefinitionConflict(dest, source *spec.Swagger) error {
-	return mergeSpecs(dest, source, false, true, false)
+// MergeSpecsIgnorePathConflictDeprecated is the same as MergeSpecs except it will ignore any path
+// conflicts by keeping the paths of destination. It will rename definition and
+// parameter conflicts.
+func MergeSpecsIgnorePathConflictDeprecated(dest, source *spec.Swagger) error {
+	return mergeSpecs(dest, source, true, false, true)
 }
 
-// MergeSpecs copies paths and definitions from source to dest, rename definitions if needed.
-// dest will be mutated, and source will not be changed. It will fail on path conflicts.
-// The source is not mutated.
+// MergeSpecsFailOnDefinitionConflict is different from MergeSpecs as it fails if there is
+// a definition or parameter conflict.
+func MergeSpecsFailOnDefinitionConflict(dest, source *spec.Swagger) error {
+	return mergeSpecs(dest, source, false, false, false)
+}
+
+// MergeSpecs copies paths, definitions and parameters from source to dest, rename
+// definitions if needed. It will fail on path conflicts.
+//
+// The destination is mutated, the source is not.
 func MergeSpecs(dest, source *spec.Swagger) error {
 	return mergeSpecs(dest, source, true, true, false)
 }
@@ -267,7 +273,7 @@ DEFINITIONLOOP:
 
 	// Check for parameter conflicts and rename to make parameters conflict-free
 	usedNames = map[string]bool{}
-	for k := range dest.Definitions {
+	for k := range dest.Parameters {
 		usedNames[k] = true
 	}
 	renames = map[string]string{}
