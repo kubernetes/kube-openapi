@@ -54,9 +54,8 @@ func (s *schemaSliceValidator) Validate(data interface{}) *Result {
 	size := val.Len()
 
 	if s.Items != nil && s.Items.Schema != nil {
-		validator := s.Options.NewValidatorForIndex(0, s.Items.Schema, s.Root, s.Path, s.KnownFormats, s.Options.Options()...)
 		for i := 0; i < size; i++ {
-			validator.SetPath(fmt.Sprintf("%s[%d]", s.Path, i))
+			validator := s.Options.NewValidatorForIndex(i, s.Items.Schema, s.Root, fmt.Sprintf("%s[%d]", s.Path, i), s.KnownFormats, s.Options.Options()...)
 			value := val.Index(i)
 			result.Merge(validator.Validate(value.Interface()))
 		}
