@@ -25,6 +25,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/stretchr/testify/assert"
+
 	openapi "k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -290,30 +291,13 @@ func getTestResponses() *spec.Responses {
 func getTestCommonParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 2)
 	ret[0] = spec.Parameter{
-		SimpleSchema: spec.SimpleSchema{
-			Type: "string",
-		},
-		ParamProps: spec.ParamProps{
-			Description: "path to the resource",
-			Name:        "path",
-			In:          "path",
-			Required:    true,
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/path-Xf6bMocQ"),
 		},
 	}
 	ret[1] = spec.Parameter{
-		SimpleSchema: spec.SimpleSchema{
-			Type: "string",
-		},
-		ParamProps: spec.ParamProps{
-			Description: "If 'true', then the output is pretty printed.",
-			Name:        "pretty",
-			In:          "query",
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/pretty-QYJ-1x8O"),
 		},
 	}
 	return ret
@@ -323,8 +307,8 @@ func getTestParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 1)
 	ret[0] = spec.Parameter{
 		ParamProps: spec.ParamProps{
-			Name:     "body",
 			In:       "body",
+			Name:     "body",
 			Required: true,
 			Schema:   getRefSchema("#/definitions/builder.TestInput"),
 		},
@@ -336,36 +320,20 @@ func getAdditionalTestParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 3)
 	ret[0] = spec.Parameter{
 		ParamProps: spec.ParamProps{
-			Name:     "body",
 			In:       "body",
+			Name:     "body",
 			Required: true,
 			Schema:   getRefSchema("#/definitions/builder.TestInput"),
 		},
 	}
 	ret[1] = spec.Parameter{
-		ParamProps: spec.ParamProps{
-			Name:        "fparam",
-			Description: "a test form parameter",
-			In:          "formData",
-		},
-		SimpleSchema: spec.SimpleSchema{
-			Type: "number",
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/fparam-5GSylsE3"),
 		},
 	}
 	ret[2] = spec.Parameter{
-		SimpleSchema: spec.SimpleSchema{
-			Type: "integer",
-		},
-		ParamProps: spec.ParamProps{
-			Description: "a test head parameter",
-			Name:        "hparam",
-			In:          "header",
-		},
-		CommonValidations: spec.CommonValidations{
-			UniqueItems: true,
+		Refable: spec.Refable{
+			Ref: spec.MustCreateRef("#/parameters/hparam-XbFNLzps"),
 		},
 	}
 	return ret
@@ -461,6 +429,61 @@ func TestBuildOpenAPISpec(t *testing.T) {
 			Definitions: spec.Definitions{
 				"builder.TestInput":  getTestInputDefinition(),
 				"builder.TestOutput": getTestOutputDefinition(),
+			},
+			Parameters: map[string]spec.Parameter{
+				"fparam-5GSylsE3": {
+					CommonValidations: spec.CommonValidations{
+						UniqueItems: true,
+					},
+					SimpleSchema: spec.SimpleSchema{
+						Type: "number",
+					},
+					ParamProps: spec.ParamProps{
+						In:          "formData",
+						Name:        "fparam",
+						Description: "a test form parameter",
+					},
+				},
+				"hparam-XbFNLzps": {
+					CommonValidations: spec.CommonValidations{
+						UniqueItems: true,
+					},
+					SimpleSchema: spec.SimpleSchema{
+						Type: "integer",
+					},
+					ParamProps: spec.ParamProps{
+						In:          "header",
+						Name:        "hparam",
+						Description: "a test head parameter",
+					},
+				},
+				"path-Xf6bMocQ": {
+					CommonValidations: spec.CommonValidations{
+						UniqueItems: true,
+					},
+					SimpleSchema: spec.SimpleSchema{
+						Type: "string",
+					},
+					ParamProps: spec.ParamProps{
+						In:          "path",
+						Name:        "path",
+						Description: "path to the resource",
+						Required:    true,
+					},
+				},
+				"pretty-QYJ-1x8O": {
+					CommonValidations: spec.CommonValidations{
+						UniqueItems: true,
+					},
+					SimpleSchema: spec.SimpleSchema{
+						Type: "string",
+					},
+					ParamProps: spec.ParamProps{
+						In:          "query",
+						Name:        "pretty",
+						Description: "If 'true', then the output is pretty printed.",
+					},
+				},
 			},
 		},
 	}
