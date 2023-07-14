@@ -55,14 +55,14 @@ func (o *objectValidator) Validate(data interface{}) *Result {
 	// TODO: guard against nil data
 	numKeys := int64(len(val))
 
+	res := new(Result)
+
 	if o.MinProperties != nil && numKeys < *o.MinProperties {
-		return errorHelp.sErr(errors.TooFewProperties(o.Path, o.In, *o.MinProperties, numKeys))
+		res.AddErrors(errors.TooFewProperties(o.Path, o.In, *o.MinProperties, numKeys))
 	}
 	if o.MaxProperties != nil && numKeys > *o.MaxProperties {
-		return errorHelp.sErr(errors.TooManyProperties(o.Path, o.In, *o.MaxProperties, numKeys))
+		res.AddErrors(errors.TooManyProperties(o.Path, o.In, *o.MaxProperties, numKeys))
 	}
-
-	res := new(Result)
 
 	// check validity of field names
 	if o.AdditionalProperties != nil && !o.AdditionalProperties.Allows {
