@@ -113,6 +113,14 @@ func TestMinPropertiesMaxPropertiesDontShortCircuit(t *testing.T) {
 				},
 			},
 		},
+		Options: SchemaValidatorOptions{
+			NewValidatorForIndex: func(index int, schema *spec.Schema, rootSchema interface{}, root string, formats strfmt.Registry, opts ...Option) ValueValidator {
+				return NewSchemaValidator(schema, rootSchema, root, formats, opts...)
+			},
+			NewValidatorForField: func(field string, schema *spec.Schema, rootSchema interface{}, root string, formats strfmt.Registry, opts ...Option) ValueValidator {
+				return NewSchemaValidator(schema, rootSchema, root, formats, opts...)
+			},
+		},
 	}
 
 	obj := map[string]interface{}{
