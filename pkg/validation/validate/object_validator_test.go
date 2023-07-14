@@ -18,6 +18,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	kubeopenapierrors "k8s.io/kube-openapi/pkg/validation/errors"
+	"k8s.io/kube-openapi/pkg/validation/spec"
+	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
 func itemsFixture() map[string]interface{} {
@@ -79,4 +82,70 @@ func TestObjectValidator_EdgeCases(t *testing.T) {
 	s := objectValidator{}
 	s.SetPath("path")
 	assert.Equal(t, "path", s.Path)
+}
+
+func TestMinPropertiesMaxPropertiesDontShortCircuit(t *testing.T) {
+	s := objectValidator{
+		In:            "body",
+		Path:          "some.path[5]",
+		KnownFormats:  strfmt.Default,
+		MinProperties: ptr(int64(20)),
+		MaxProperties: ptr(int64(0)),
+		Properties: map[string]spec.Schema{
+			"intField": {
+				SchemaProps: spec.SchemaProps{
+					Type: spec.StringOrArray{"integer"},
+				},
+			},
+			"requiredField": {
+				SchemaProps: spec.SchemaProps{
+					Type: spec.StringOrArray{"string"},
+				},
+			},
+		},
+		Required: []string{"requiredField"},
+		AdditionalProperties: &spec.SchemaOrBool{
+			Allows: true,
+			Schema: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type:    spec.StringOrArray{"string"},
+					Pattern: "^20[0-9][0-9]",
+				},
+			},
+		},
+	}
+
+	obj := map[string]interface{}{
+		"field": "hello, world",
+	}
+	res := s.Validate(obj)
+
+	assert.ElementsMatch(t, []*kubeopenapierrors.Validation{
+		kubeopenapierrors.TooFewProperties(s.Path, s.In, *s.MinProperties, int64(len(obj))),
+		kubeopenapierrors.TooManyProperties(s.Path, s.In, *s.MaxProperties, int64(len(obj))),
+		kubeopenapierrors.FailedPattern(s.Path+"."+"field", s.In, s.AdditionalProperties.Schema.Pattern, "hello, world"),
+		kubeopenapierrors.Required(s.Path+"."+"requiredField", s.In),
+	}, res.Errors)
+
+	obj = map[string]interface{}{
+		"field":    "hello, world",
+		"field2":   "hello, other world",
+		"field3":   "hello, third world",
+		"intField": "a string",
+	}
+	res = s.Validate(obj)
+
+	assert.ElementsMatch(t, []*kubeopenapierrors.Validation{
+		kubeopenapierrors.TooFewProperties(s.Path, s.In, *s.MinProperties, int64(len(obj))),
+		kubeopenapierrors.TooManyProperties(s.Path, s.In, *s.MaxProperties, int64(len(obj))),
+		kubeopenapierrors.FailedPattern(s.Path+"."+"field", s.In, s.AdditionalProperties.Schema.Pattern, "hello, world"),
+		kubeopenapierrors.FailedPattern(s.Path+"."+"field2", s.In, s.AdditionalProperties.Schema.Pattern, "hello, other world"),
+		kubeopenapierrors.FailedPattern(s.Path+"."+"field3", s.In, s.AdditionalProperties.Schema.Pattern, "hello, third world"),
+		kubeopenapierrors.InvalidType(s.Path+"."+"intField", s.In, "integer", "string"),
+		kubeopenapierrors.Required(s.Path+"."+"requiredField", s.In),
+	}, res.Errors)
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
