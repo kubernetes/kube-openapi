@@ -53,11 +53,16 @@ func (e Extensions) GetBool(key string) (bool, bool) {
 // GetStringSlice gets a string value from the extensions
 func (e Extensions) GetStringSlice(key string) ([]string, bool) {
 	if v, ok := e[strings.ToLower(key)]; ok {
+		var strs []string
+		if stringSlice, isStringSlice := v.([]string); isStringSlice {
+			strs = make([]string, len(stringSlice))
+			copy(strs, stringSlice)
+			return strs, true
+		}
 		arr, isSlice := v.([]interface{})
 		if !isSlice {
 			return nil, false
 		}
-		var strs []string
 		for _, iface := range arr {
 			str, isString := iface.(string)
 			if !isString {

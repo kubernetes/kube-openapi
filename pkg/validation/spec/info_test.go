@@ -102,3 +102,62 @@ func TestInfoRoundTrip(t *testing.T) {
 		})
 	}
 }
+
+func TestGetStringSlice(t *testing.T) {
+	type stringSliceCase struct {
+		name  string
+		slice any
+
+		expectedValue []string
+	}
+
+	cases := []stringSliceCase{
+		{
+			name:          "interfaces",
+			slice:         []interface{}{"key1", "key2", "key3"},
+			expectedValue: []string{"key1", "key2", "key3"},
+		},
+		{
+			name:          "strings",
+			slice:         []string{"key1", "key2", "key3"},
+			expectedValue: []string{"key1", "key2", "key3"},
+		},
+		{
+			name:  "ints",
+			slice: []int{1, 2, 3},
+		},
+		{
+			name:  "string",
+			slice: "hello world",
+		},
+		{
+			name: "badkey",
+		},
+	}
+
+	exts := VendorExtensible{}
+	for _, c := range cases {
+		if c.slice != nil {
+			exts.AddExtension(c.name, c.slice)
+		}
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			slice, ok := exts.Extensions.GetStringSlice(c.name)
+			assert.Equal(t, c.expectedValue != nil, ok)
+			assert.Equal(t, c.expectedValue, slice)
+
+			// Make sure modifying the result slice doesn't touch the original
+			if len(slice) > 0 {
+				slice[0] = "changed value"
+			} else {
+				slice = append(slice, "new value")
+			}
+
+			slice, ok = exts.Extensions.GetStringSlice(c.name)
+			assert.Equal(t, c.expectedValue != nil, ok)
+			assert.Equal(t, c.expectedValue, slice)
+		})
+	}
+}
