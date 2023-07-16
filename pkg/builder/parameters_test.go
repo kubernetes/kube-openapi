@@ -59,12 +59,12 @@ func TestCollectSharedParameters(t *testing.T) {
   }
 }`,
 			want: map[string]string{
-				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`:  "x-Z2Xub4DK",
-				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`:  "y-y7usp1yI",
-				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`:  "z-zZJItIuA",
-				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x2","in":"query"}`: "x2-c9T21SCy",
-				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y2","in":"query"}`: "y2-DvN7hOA8",
-				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z2","in":"query"}`: "z2-nF5ahw6l",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`:  "x-yaDSHpi7",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`:  "y-g6h7lEsz",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`:  "z--SXYWoM_",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x2","in":"query"}`: "x2-nds6MpS1",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y2","in":"query"}`: "y2-exnalzYE",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z2","in":"query"}`: "z2-8oJfzBQF",
 			},
 		},
 		{
@@ -89,9 +89,9 @@ func TestCollectSharedParameters(t *testing.T) {
   }
 }`,
 			want: map[string]string{
-				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x-Z2Xub4DK",
-				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y-y7usp1yI",
-				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z-zZJItIuA",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x-yaDSHpi7",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y-g6h7lEsz",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z--SXYWoM_",
 			},
 		},
 		{
@@ -120,9 +120,9 @@ func TestCollectSharedParameters(t *testing.T) {
   }
 }`,
 			want: map[string]string{
-				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x-Z2Xub4DK",
-				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y-y7usp1yI",
-				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z-zZJItIuA",
+				`{"uniqueItems":true,"type":"boolean","description":"x","name":"x","in":"query"}`: "x-yaDSHpi7",
+				`{"uniqueItems":true,"type":"boolean","description":"y","name":"y","in":"query"}`: "y-g6h7lEsz",
+				`{"uniqueItems":true,"type":"boolean","description":"z","name":"z","in":"query"}`: "z--SXYWoM_",
 			},
 		},
 	}
