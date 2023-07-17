@@ -67,6 +67,9 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 		if p.In == "query" && p.Name == "fieldValidation" {
 			return nil // keep fieldValidation parameter unshared because kubectl uses it (until 1.27) to detect server-side field validation support
 		}
+		if p.In == "query" && p.Name == "dryRun" {
+			return nil // keep fieldValidation parameter unshared because kubectl uses it (until 1.26) to detect dry-run support
+		}
 		if p.Schema != nil && p.In == "body" && p.Name == "body" && !strings.HasPrefix(p.Schema.Ref.String(), "#/definitions/io.k8s.apimachinery") {
 			return nil // ignore non-generic body parameters as they reference the custom schema of the kind
 		}
