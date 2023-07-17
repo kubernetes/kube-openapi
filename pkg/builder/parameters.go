@@ -17,10 +17,10 @@ limitations under the License.
 package builder
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"sort"
 	"strconv"
 	"strings"
@@ -63,6 +63,12 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 	collect := func(p *spec.Parameter) error {
 		if (p.In == "query" || p.In == "path") && p.Name == "name" {
 			return nil // ignore name parameter as they are never shared with the Kind in the description
+		}
+		if p.In == "query" && p.Name == "fieldValidation" {
+			return nil // keep fieldValidation parameter unshared because kubectl uses it (until 1.27) to detect server-side field validation support
+		}
+		if p.In == "query" && p.Name == "dryRun" {
+			return nil // keep fieldValidation parameter unshared because kubectl uses it (until 1.26) to detect dry-run support
 		}
 		if p.Schema != nil && p.In == "body" && p.Name == "body" && !strings.HasPrefix(p.Schema.Ref.String(), "#/definitions/io.k8s.apimachinery") {
 			return nil // ignore non-generic body parameters as they reference the custom schema of the kind
@@ -118,6 +124,7 @@ func collectSharedParameters(sp *spec.Swagger) (namesByJSON map[string]string, r
 	for _, k := range keys {
 		name := shared[k].Name
 		if name == "" {
+			// this should never happen as the name is a required field. But if it does, let's be safe.
 			name = "param"
 		}
 		name += "-" + base64Hash(k)
@@ -141,8 +148,9 @@ func operations(path *spec.PathItem) []*spec.Operation {
 }
 
 func base64Hash(s string) string {
-	hash := sha256.Sum224([]byte(s))
-	return base64.URLEncoding.EncodeToString(hash[:6]) // 8 characters
+	hash := fnv.New64()
+	hash.Write([]byte(s))                                                      //nolint:errcheck
+	return base64.URLEncoding.EncodeToString(hash.Sum(make([]byte, 0, 8))[:6]) // 8 characters
 }
 
 func replaceSharedParameters(sharedParameterNamesByJSON map[string]string, sp *spec.Swagger) (*spec.Swagger, error) {

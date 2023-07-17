@@ -292,12 +292,12 @@ func getTestCommonParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 2)
 	ret[0] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/path-Xf6bMocQ"),
+			Ref: spec.MustCreateRef("#/parameters/path-z6Ciiujn"),
 		},
 	}
 	ret[1] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/pretty-QYJ-1x8O"),
+			Ref: spec.MustCreateRef("#/parameters/pretty-nN7o5FEq"),
 		},
 	}
 	return ret
@@ -328,12 +328,12 @@ func getAdditionalTestParameters() []spec.Parameter {
 	}
 	ret[1] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/fparam-5GSylsE3"),
+			Ref: spec.MustCreateRef("#/parameters/fparam-xCJg5kHS"),
 		},
 	}
 	ret[2] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/hparam-XbFNLzps"),
+			Ref: spec.MustCreateRef("#/parameters/hparam-tx-jfxM1"),
 		},
 	}
 	return ret
@@ -431,7 +431,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				"builder.TestOutput": getTestOutputDefinition(),
 			},
 			Parameters: map[string]spec.Parameter{
-				"fparam-5GSylsE3": {
+				"fparam-xCJg5kHS": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
@@ -444,7 +444,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Description: "a test form parameter",
 					},
 				},
-				"hparam-XbFNLzps": {
+				"hparam-tx-jfxM1": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
@@ -457,7 +457,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Description: "a test head parameter",
 					},
 				},
-				"path-Xf6bMocQ": {
+				"path-z6Ciiujn": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
@@ -471,7 +471,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Required:    true,
 					},
 				},
-				"pretty-QYJ-1x8O": {
+				"pretty-nN7o5FEq": {
 					CommonValidations: spec.CommonValidations{
 						UniqueItems: true,
 					},
