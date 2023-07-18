@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -464,7 +463,7 @@ func getDiscovery(server *httptest.Server, path string) (*OpenAPIV3Discovery, st
 	if resp.StatusCode != 200 {
 		return nil, "", fmt.Errorf("unexpected response status code, want: %v, got: %v", 200, resp.StatusCode)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, "", fmt.Errorf("Failed to read request body: %v", err)
 	}
