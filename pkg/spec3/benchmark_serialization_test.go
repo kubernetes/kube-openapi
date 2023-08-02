@@ -11,6 +11,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	fuzz "github.com/google/gofuzz"
 	"k8s.io/kube-openapi/pkg/internal"
+	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
@@ -68,6 +69,95 @@ func TestOpenAPIV3Deserialize(t *testing.T) {
 
 	if !reflect.DeepEqual(result1, result2) {
 		t.Fatal(cmp.Diff(result1, result2, swaggerDiffOptions...))
+	}
+}
+
+func TestOpenAPIV3Serialize(t *testing.T) {
+	swagFile, err := os.Open("./testdata/appsv1spec.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer swagFile.Close()
+	originalJSON, err := io.ReadAll(swagFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var openapi *OpenAPI
+	if err := json.Unmarshal(originalJSON, &openapi); err != nil {
+		t.Fatal(err)
+	}
+
+	internal.UseOptimizedJSONUnmarshalingV3 = false
+	want, err := json.Marshal(openapi)
+	if err != nil {
+		t.Fatal(err)
+	}
+	internal.UseOptimizedJSONUnmarshalingV3 = true
+	got, err := openapi.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := jsontesting.JsonCompare(want, got); err != nil {
+		t.Errorf("marshal doesn't match: %v", err)
+	}
+}
+
+func TestOpenAPIV3SerializeFuzzed(t *testing.T) {
+	var fuzzer *fuzz.Fuzzer
+	fuzzer = fuzz.NewWithSeed(1646791953)
+	fuzzer.MaxDepth(13).NilChance(0.075).NumElements(1, 2)
+	fuzzer.Funcs(OpenAPIV3FuzzFuncs...)
+
+	for i := 0; i < 100; i++ {
+		openapi := &OpenAPI{}
+		fuzzer.Fuzz(openapi)
+
+		internal.UseOptimizedJSONUnmarshalingV3 = false
+		want, err := json.Marshal(openapi)
+		if err != nil {
+			t.Fatal(err)
+		}
+		internal.UseOptimizedJSONUnmarshalingV3 = true
+		got, err := openapi.MarshalJSON()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := jsontesting.JsonCompare(want, got); err != nil {
+			t.Errorf("fuzzed marshal doesn't match: %v", err)
+		}
+	}
+}
+
+func TestOpenAPIV3SerializeStable(t *testing.T) {
+	swagFile, err := os.Open("./testdata/appsv1spec.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer swagFile.Close()
+	originalJSON, err := io.ReadAll(swagFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var openapi *OpenAPI
+	if err := json.Unmarshal(originalJSON, &openapi); err != nil {
+		t.Fatal(err)
+	}
+
+	internal.UseOptimizedJSONUnmarshalingV3 = true
+	for i := 0; i < 5; i++ {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			want, err := openapi.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := openapi.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := jsontesting.JsonCompare(want, got); err != nil {
+				t.Errorf("marshal doesn't match: %v", err)
+			}
+		})
 	}
 }
 
@@ -136,6 +226,64 @@ func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 			for i := 0; i < b2.N; i++ {
 				var result *OpenAPI
 				if err := result.UnmarshalJSON(originalJSON); err != nil {
+					b2.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkOpenAPIV3Serialize(b *testing.B) {
+	benchcases := []struct {
+		file string
+	}{
+		{
+			file: "appsv1spec.json",
+		},
+		{
+			file: "authorizationv1spec.json",
+		},
+	}
+	for _, bc := range benchcases {
+		swagFile, err := os.Open("./testdata/" + bc.file)
+		if err != nil {
+			b.Fatal(err)
+		}
+		defer swagFile.Close()
+		originalJSON, err := io.ReadAll(swagFile)
+		if err != nil {
+			b.Fatal(err)
+		}
+		var openapi *OpenAPI
+		if err := json.Unmarshal(originalJSON, &openapi); err != nil {
+			b.Fatal(err)
+		}
+		b.ResetTimer()
+		b.Run(fmt.Sprintf("%s jsonv1", bc.file), func(b2 *testing.B) {
+			b2.ReportAllocs()
+			internal.UseOptimizedJSONMarshalingV3 = false
+			for i := 0; i < b2.N; i++ {
+				if _, err := json.Marshal(openapi); err != nil {
+					b2.Fatal(err)
+				}
+			}
+		})
+
+		b.Run(fmt.Sprintf("%s jsonv2 via jsonv1 full spec", bc.file), func(b2 *testing.B) {
+			b2.ReportAllocs()
+			internal.UseOptimizedJSONMarshalingV3 = true
+			for i := 0; i < b2.N; i++ {
+				if _, err := json.Marshal(openapi); err != nil {
+					b2.Fatal(err)
+				}
+			}
+		})
+
+		b.Run("jsonv2", func(b2 *testing.B) {
+			b2.ReportAllocs()
+			internal.UseOptimizedJSONMarshalingV3 = true
+			for i := 0; i < b2.N; i++ {
+				if _, err := openapi.MarshalJSON(); err != nil {
 					b2.Fatal(err)
 				}
 			}

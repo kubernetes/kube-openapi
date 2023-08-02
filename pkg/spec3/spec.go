@@ -48,3 +48,12 @@ func (o *OpenAPI) UnmarshalJSON(data []byte) error {
 	}
 	return json.Unmarshal(data, &p)
 }
+
+func (o *OpenAPI) MarshalJSON() ([]byte, error) {
+	type OpenAPIWithNoFunctions OpenAPI
+	p := (*OpenAPIWithNoFunctions)(o)
+	if internal.UseOptimizedJSONMarshalingV3 {
+		return internal.DeterministicMarshal(&p)
+	}
+	return json.Marshal(&p)
+}
