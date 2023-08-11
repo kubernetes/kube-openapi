@@ -39,7 +39,7 @@ var returnedOpenAPI = []byte(`{
    "title": "Kubernetes",
    "version": "v1.23.0"
   },
-  "paths": {"x-kubernetes-extension": "val"}}`)
+  "paths": {}}`)
 
 func TestRegisterOpenAPIVersionedService(t *testing.T) {
 	var s *spec3.OpenAPI

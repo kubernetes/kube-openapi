@@ -50,10 +50,28 @@ func (o *OpenAPI) UnmarshalJSON(data []byte) error {
 }
 
 func (o *OpenAPI) MarshalJSON() ([]byte, error) {
+	if internal.UseOptimizedJSONMarshalingV3 {
+		return internal.DeterministicMarshal(o)
+	}
 	type OpenAPIWithNoFunctions OpenAPI
 	p := (*OpenAPIWithNoFunctions)(o)
-	if internal.UseOptimizedJSONMarshalingV3 {
-		return internal.DeterministicMarshal(&p)
-	}
 	return json.Marshal(&p)
+}
+
+func (o *OpenAPI) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
+	var x struct {
+		Version      string                 `json:"openapi"`
+		Info         *spec.Info             `json:"info"`
+		Paths        *Paths                 `json:"paths,omitzero"`
+		Servers      []*Server              `json:"servers,omitempty"`
+		Components   *Components            `json:"components,omitzero"`
+		ExternalDocs *ExternalDocumentation `json:"externalDocs,omitzero"`
+	}
+	x.Version = o.Version
+	x.Info = o.Info
+	x.Paths = o.Paths
+	x.Servers = o.Servers
+	x.Components = o.Components
+	x.ExternalDocs = o.ExternalDocs
+	return opts.MarshalNext(enc, x)
 }
