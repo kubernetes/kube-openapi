@@ -96,7 +96,7 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 
 		_, _, err = mime.ParseMediaType(responseContentType)
 		if err != nil {
-			t.Errorf("Unexpected error in prarsing response content type: %v, err: %v", responseContentType, err)
+			t.Errorf("Unexpected error in parsing response content type: %v, err: %v", responseContentType, err)
 		}
 
 		defer resp.Body.Close()
