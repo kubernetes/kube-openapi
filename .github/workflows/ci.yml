@@ -1,13 +1,10 @@
 name: ci-pipeline
-
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-
 jobs:
-
   ci:
     runs-on: ubuntu-latest
     strategy:
@@ -15,12 +12,10 @@ jobs:
         go: [ '1.19', '1.x' ]
     steps:
     - uses: actions/checkout@v3
-
     - name: Set up Go
       uses: actions/setup-go@v3
       with:
         go-version: "${{ matrix.go }}"
-
     - name: Build
       run: |
         go mod tidy && git diff --exit-code
