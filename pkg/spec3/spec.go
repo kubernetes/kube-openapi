@@ -59,7 +59,7 @@ func (o *OpenAPI) MarshalJSON() ([]byte, error) {
 }
 
 func (o *OpenAPI) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encoder) error {
-	var x struct {
+	type OpenAPIOmitZero struct {
 		Version      string                 `json:"openapi"`
 		Info         *spec.Info             `json:"info"`
 		Paths        *Paths                 `json:"paths,omitzero"`
@@ -67,11 +67,6 @@ func (o *OpenAPI) MarshalNextJSON(opts jsonv2.MarshalOptions, enc *jsonv2.Encode
 		Components   *Components            `json:"components,omitzero"`
 		ExternalDocs *ExternalDocumentation `json:"externalDocs,omitzero"`
 	}
-	x.Version = o.Version
-	x.Info = o.Info
-	x.Paths = o.Paths
-	x.Servers = o.Servers
-	x.Components = o.Components
-	x.ExternalDocs = o.ExternalDocs
+	x := (*OpenAPIOmitZero)(o)
 	return opts.MarshalNext(enc, x)
 }
