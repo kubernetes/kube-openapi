@@ -436,6 +436,11 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				Description: "Test API",
 				Version:     "unversioned",
 			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: map[string]any{
+					"hello": "world", // set from callback
+				},
+			},
 		},
 		Version: "3.0.0",
 		Paths: &spec3.Paths{
@@ -450,6 +455,12 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				"builder3.TestOutput": getTestOutputDefinition(),
 			},
 		},
+	}
+	config.PostProcessSpec3 = func(s *spec3.OpenAPI) (*spec3.OpenAPI, error) {
+		s.Info.Extensions = map[string]any{
+			"hello": "world",
+		}
+		return s, nil
 	}
 	swagger, err := BuildOpenAPISpec(container.RegisteredWebServices(), config)
 	if !assert.NoError(err) {
