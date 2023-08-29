@@ -23,8 +23,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"go/format"
 
+	"github.com/stretchr/testify/assert"
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/parser"
@@ -47,14 +48,16 @@ func construct(t *testing.T, files map[string]string, testNamer namer.Namer) (*p
 	return b, u, o
 }
 
-func testOpenAPITypeWriter(t *testing.T, code string) (error, error, *assert.Assertions, *bytes.Buffer, *bytes.Buffer) {
+func testOpenAPITypeWriter(t *testing.T, code string) (error, error, *assert.Assertions, *bytes.Buffer, *bytes.Buffer, []string) {
 	assert := assert.New(t)
 	var testFiles = map[string]string{
 		"base/foo/bar.go": code,
 	}
-	rawNamer := namer.NewRawNamer("o", nil)
+	outputPackage := "base/output"
+	imports := generator.NewImportTrackerForPackage(outputPackage)
+	rawNamer := namer.NewRawNamer(outputPackage, imports)
 	namers := namer.NameSystems{
-		"raw": namer.NewRawNamer("", nil),
+		"raw": rawNamer,
 		"private": &namer.NameStrategy{
 			Join: func(pre string, in []string, post string) string {
 				return strings.Join(in, "_")
@@ -77,11 +80,11 @@ func testOpenAPITypeWriter(t *testing.T, code string) (error, error, *assert.Ass
 	funcSW := generator.NewSnippetWriter(funcBuffer, context, "$", "$")
 	funcError := newOpenAPITypeWriter(funcSW, context).generate(blahT)
 
-	return callError, funcError, assert, callBuffer, funcBuffer
+	return callError, funcError, assert, callBuffer, funcBuffer, imports.ImportLines()
 }
 
 func TestSimple(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a test.
@@ -381,7 +384,7 @@ Extensions: spec.Extensions{
 }
 
 func TestEmptyProperties(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah demonstrate a struct without fields.
@@ -411,7 +414,7 @@ Type: []string{"object"},
 }
 
 func TestNestedStruct(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Nested is used as struct field
@@ -461,7 +464,7 @@ Dependencies: []string{
 }
 
 func TestNestedStructPointer(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Nested is used as struct pointer field
@@ -510,7 +513,7 @@ Dependencies: []string{
 }
 
 func TestEmbeddedStruct(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Nested is used as embedded struct field
@@ -560,7 +563,7 @@ Dependencies: []string{
 }
 
 func TestSingleEmbeddedStruct(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 import "time"
@@ -612,7 +615,7 @@ Dependencies: []string{
 }
 
 func TestEmbeddedInlineStruct(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Nested is used as embedded inline struct field
@@ -661,7 +664,7 @@ Required: []string{"String"},
 }
 
 func TestEmbeddedInlineStructPointer(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Nested is used as embedded inline struct pointer field.
@@ -710,7 +713,7 @@ Required: []string{"String"},
 }
 
 func TestNestedMapString(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Map sample tests openAPIGen.generateMapProperty method.
@@ -769,7 +772,7 @@ Required: []string{"StringToArray"},
 }
 
 func TestNestedMapInt(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Map sample tests openAPIGen.generateMapProperty method.
@@ -828,7 +831,7 @@ Required: []string{"StringToArray"},
 }
 
 func TestNestedMapBoolean(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Map sample tests openAPIGen.generateMapProperty method.
@@ -887,7 +890,7 @@ Required: []string{"StringToArray"},
 }
 
 func TestFailingSample1(t *testing.T) {
-	_, funcErr, assert, _, _ := testOpenAPITypeWriter(t, `
+	_, funcErr, assert, _, _, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Map sample tests openAPIGen.generateMapProperty method.
@@ -902,7 +905,7 @@ type Blah struct {
 }
 
 func TestFailingSample2(t *testing.T) {
-	_, funcErr, assert, _, _ := testOpenAPITypeWriter(t, `
+	_, funcErr, assert, _, _, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Map sample tests openAPIGen.generateMapProperty method.
@@ -972,7 +975,7 @@ type Item string	`,
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			_, funcErr, assert, _, _ := testOpenAPITypeWriter(t, test.definition)
+			_, funcErr, assert, _, _, _ := testOpenAPITypeWriter(t, test.definition)
 			if assert.Error(funcErr, "An error was expected") {
 				assert.Equal(funcErr, test.expectedError)
 			}
@@ -981,7 +984,7 @@ type Item string	`,
 }
 
 func TestCustomDef(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 import openapi "k8s.io/kube-openapi/pkg/common"
@@ -1012,7 +1015,7 @@ func (_ Blah) OpenAPIDefinition() openapi.OpenAPIDefinition {
 }
 
 func TestCustomDefV3(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 import openapi "k8s.io/kube-openapi/pkg/common"
@@ -1043,7 +1046,7 @@ func (_ Blah) OpenAPIV3Definition() openapi.OpenAPIDefinition {
 }
 
 func TestCustomDefV2AndV3(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 import openapi "k8s.io/kube-openapi/pkg/common"
@@ -1085,7 +1088,7 @@ func (_ Blah) OpenAPIDefinition() openapi.OpenAPIDefinition {
 }
 
 func TestCustomDefs(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a custom type
@@ -1119,7 +1122,7 @@ Format:foo.Blah{}.OpenAPISchemaFormat(),
 }
 
 func TestCustomDefsV3(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 import openapi "k8s.io/kube-openapi/pkg/common"
@@ -1166,7 +1169,7 @@ Format:foo.Blah{}.OpenAPISchemaFormat(),
 }
 
 func TestV3OneOfTypes(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a custom type
@@ -1210,7 +1213,7 @@ Format:foo.Blah{}.OpenAPISchemaFormat(),
 }
 
 func TestPointer(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // PointerSample demonstrate pointer's properties
@@ -1297,7 +1300,7 @@ Dependencies: []string{
 }
 
 func TestNestedLists(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a test.
@@ -1361,7 +1364,7 @@ Extensions: spec.Extensions{
 }
 
 func TestNestListOfMaps(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a test.
@@ -1433,7 +1436,7 @@ Extensions: spec.Extensions{
 }
 
 func TestExtensions(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a test.
@@ -1530,7 +1533,7 @@ Extensions: spec.Extensions{
 }
 
 func TestUnion(t *testing.T) {
-	callErr, funcErr, assert, callBuffer, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // Blah is a test.
@@ -1616,7 +1619,7 @@ map[string]interface{}{
 }
 
 func TestEnum(t *testing.T) {
-	callErr, funcErr, assert, _, funcBuffer := testOpenAPITypeWriter(t, `
+	callErr, funcErr, assert, _, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
 
 // EnumType is the enumType.
@@ -1691,4 +1694,94 @@ Extensions: spec.Extensions{
 }
 
 `, funcBuffer.String())
+}
+
+func TestSymbolReference(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+package foo
+
+// +k8s:openapi-gen=true
+type Blah struct {
+	// +default="A Default Value"
+	// +optional
+	Value *string
+
+	// User constant local to the output package fully qualified
+	// +default=ref(base/output.MyConst)
+	// +optional
+	FullyQualifiedOutputValue *string
+
+	// Local to types but not to output
+	// +default=ref(MyConst)
+	// +optional
+	LocalValue *string
+
+	// +default=ref(base/foo.MyConst)
+	// +optional
+	FullyQualifiedLocalValue *string
+
+	// +default=ref(k8s.io/api/v1.TerminationPathDefault)
+	// +optional
+	FullyQualifiedExternalValue *string
+}
+	`)
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`v1 "k8s.io/api/v1"`, `foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
+
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatal(err)
+	} else {
+		assert.Equal(string(formatted), `func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"Value": {
+						SchemaProps: spec.SchemaProps{
+							Default: "A Default Value",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"FullyQualifiedOutputValue": {
+						SchemaProps: spec.SchemaProps{
+							Description: "User constant local to the output package fully qualified",
+							Default:     MyConst,
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"LocalValue": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Local to types but not to output",
+							Default:     foo.MyConst,
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"FullyQualifiedLocalValue": {
+						SchemaProps: spec.SchemaProps{
+							Default: foo.MyConst,
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"FullyQualifiedExternalValue": {
+						SchemaProps: spec.SchemaProps{
+							Default: v1.TerminationPathDefault,
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+`)
+	}
+
 }

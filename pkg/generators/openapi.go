@@ -26,6 +26,7 @@ import (
 	"sort"
 	"strings"
 
+	defaultergen "k8s.io/gengo/examples/defaulter-gen/generators"
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
@@ -120,7 +121,7 @@ func newOpenAPIGen(sanitizedName string, targetPackage string) generator.Generat
 		DefaultGen: generator.DefaultGen{
 			OptionalName: sanitizedName,
 		},
-		imports:       generator.NewImportTracker(),
+		imports:       generator.NewImportTrackerForPackage(targetPackage),
 		targetPackage: targetPackage,
 	}
 }
@@ -553,19 +554,26 @@ func (g openAPITypeWriter) validatePatchTags(m *types.Member, parent *types.Type
 	return nil
 }
 
-func defaultFromComments(comments []string) (interface{}, error) {
+func defaultFromComments(comments []string, commentPath string) (interface{}, *types.Name, error) {
 	tag, err := getSingleTagsValue(comments, tagDefault)
 	if tag == "" {
-		return nil, err
+		return nil, nil, err
 	}
 	var i interface{}
-	if err := json.Unmarshal([]byte(tag), &i); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal default: %v", err)
+	if id, ok := defaultergen.ParseSymbolReference(tag, commentPath); ok {
+		return nil, &id, nil
+	} else if err := json.Unmarshal([]byte(tag), &i); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal default: %v", err)
 	}
-	return i, nil
+	return i, nil, nil
 }
 
 func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
+	// If t implements custom JSON marshalling, all of this logic is likely wrong
+	if _, isUnmarshaller := t.Methods["UnmarshalJSON"]; isUnmarshaller {
+		return nil, nil
+	}
+
 	switch t.Kind {
 	case types.Pointer, types.Map, types.Slice, types.Array, types.Interface:
 		return nil, nil
@@ -585,9 +593,10 @@ func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
 	}
 }
 
-func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool) error {
+func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool, commentOwningType *types.Type) error {
 	t = resolveAliasAndEmbeddedType(t)
-	def, err := defaultFromComments(comments)
+
+	def, ref, err := defaultFromComments(comments, commentOwningType.Name.Package)
 	if err != nil {
 		return err
 	}
@@ -603,6 +612,8 @@ func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omi
 	}
 	if def != nil {
 		g.Do("Default: $.$,\n", fmt.Sprintf("%#v", def))
+	} else if ref != nil {
+		g.Do("Default: $.|raw$,\n", &types.Type{Name: *ref})
 	}
 	return nil
 }
@@ -676,7 +687,7 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 		return nil
 	}
 	omitEmpty := strings.Contains(reflect.StructTag(m.Tags).Get("json"), "omitempty")
-	if err := g.generateDefault(m.CommentLines, m.Type, omitEmpty); err != nil {
+	if err := g.generateDefault(m.CommentLines, m.Type, omitEmpty, parent); err != nil {
 		return fmt.Errorf("failed to generate default in %v: %v: %v", parent, m.Name, err)
 	}
 	t := resolveAliasAndPtrType(m.Type)
@@ -762,7 +773,7 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 
 	g.Do("Type: []string{\"object\"},\n", nil)
 	g.Do("AdditionalProperties: &spec.SchemaOrBool{\nAllows: true,\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
-	if err := g.generateDefault(t.Elem.CommentLines, t.Elem, false); err != nil {
+	if err := g.generateDefault(t.Elem.CommentLines, t.Elem, false, t.Elem); err != nil {
 		return err
 	}
 	typeString, format := openapi.OpenAPITypeFormat(elemType.String())
@@ -795,7 +806,7 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 	elemType := resolveAliasAndPtrType(t.Elem)
 	g.Do("Type: []string{\"array\"},\n", nil)
 	g.Do("Items: &spec.SchemaOrArray{\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
-	if err := g.generateDefault(t.Elem.CommentLines, t.Elem, false); err != nil {
+	if err := g.generateDefault(t.Elem.CommentLines, t.Elem, false, t.Elem); err != nil {
 		return err
 	}
 	typeString, format := openapi.OpenAPITypeFormat(elemType.String())
