@@ -554,13 +554,39 @@ func (g openAPITypeWriter) validatePatchTags(m *types.Member, parent *types.Type
 	return nil
 }
 
-func defaultFromComments(comments []string, commentPath string) (interface{}, *types.Name, error) {
-	tag, err := getSingleTagsValue(comments, tagDefault)
-	if tag == "" {
-		return nil, nil, err
+func defaultFromComments(comments []string, commentPath string, t *types.Type) (interface{}, *types.Name, error) {
+	var tag string
+
+	for {
+		var err error
+		tag, err = getSingleTagsValue(comments, tagDefault)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if t == nil || len(tag) > 0 {
+			break
+		}
+
+		comments = t.CommentLines
+		commentPath = t.Name.Package
+		switch t.Kind {
+		case types.Pointer:
+			t = t.Elem
+		case types.Alias:
+			t = t.Underlying
+		default:
+			t = nil
+		}
 	}
+
+	if tag == "" {
+		return nil, nil, nil
+	}
+
 	var i interface{}
 	if id, ok := defaultergen.ParseSymbolReference(tag, commentPath); ok {
+		klog.Errorf("%v, %v", id, commentPath)
 		return nil, &id, nil
 	} else if err := json.Unmarshal([]byte(tag), &i); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal default: %v", err)
@@ -569,11 +595,6 @@ func defaultFromComments(comments []string, commentPath string) (interface{}, *t
 }
 
 func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
-	// If t implements custom JSON marshalling, all of this logic is likely wrong
-	if _, isUnmarshaller := t.Methods["UnmarshalJSON"]; isUnmarshaller {
-		return nil, nil
-	}
-
 	switch t.Kind {
 	case types.Pointer, types.Map, types.Slice, types.Array, types.Interface:
 		return nil, nil
@@ -594,13 +615,11 @@ func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
 }
 
 func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool, commentOwningType *types.Type) error {
-	t = resolveAliasAndEmbeddedType(t)
-
-	def, ref, err := defaultFromComments(comments, commentOwningType.Name.Package)
+	def, ref, err := defaultFromComments(comments, commentOwningType.Name.Package, t)
 	if err != nil {
 		return err
 	}
-	if enforced, err := mustEnforceDefault(t, omitEmpty); err != nil {
+	if enforced, err := mustEnforceDefault(resolveAliasAndEmbeddedType(t), omitEmpty); err != nil {
 		return err
 	} else if enforced != nil {
 		if def == nil {
