@@ -585,26 +585,27 @@ func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
 	}
 }
 
-func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool) error {
+func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool) (*string, error) {
 	t = resolveAliasAndEmbeddedType(t)
 	def, err := defaultFromComments(comments)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if enforced, err := mustEnforceDefault(t, omitEmpty); err != nil {
-		return err
+		return nil, err
 	} else if enforced != nil {
 		if def == nil {
 			def = enforced
 		} else if !reflect.DeepEqual(def, enforced) {
 			enforcedJson, _ := json.Marshal(enforced)
-			return fmt.Errorf("invalid default value (%#v) for non-pointer/non-omitempty. If specified, must be: %v", def, string(enforcedJson))
+			return nil, fmt.Errorf("invalid default value (%#v) for non-pointer/non-omitempty. If specified, must be: %v", def, string(enforcedJson))
 		}
 	}
 	if def != nil {
-		g.Do("Default: $.$,\n", fmt.Sprintf("%#v", def))
+		val := fmt.Sprintf("%#v", def)
+		return &val, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func (g openAPITypeWriter) generateDescription(CommentLines []string) {
@@ -676,8 +677,15 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 		return nil
 	}
 	omitEmpty := strings.Contains(reflect.StructTag(m.Tags).Get("json"), "omitempty")
-	if err := g.generateDefault(m.CommentLines, m.Type, omitEmpty); err != nil {
+	def, err := g.generateDefault(m.CommentLines, m.Type, omitEmpty)
+	if err != nil {
 		return fmt.Errorf("failed to generate default in %v: %v: %v", parent, m.Name, err)
+	}
+	if def != nil {
+		g.Do("Default: $.$,\n", *def)
+		if enumType, isEnum := g.enumContext.EnumType(m.Type); isEnum && !enumType.IsValid(*def) {
+			return fmt.Errorf("Default value is not a valid enum value: %v not in %v", *def, enumType.ValueStrings())
+		}
 	}
 	t := resolveAliasAndPtrType(m.Type)
 	// If we can get a openAPI type and format for this type, we consider it to be simple property
@@ -762,8 +770,12 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 
 	g.Do("Type: []string{\"object\"},\n", nil)
 	g.Do("AdditionalProperties: &spec.SchemaOrBool{\nAllows: true,\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
-	if err := g.generateDefault(t.Elem.CommentLines, t.Elem, false); err != nil {
+	def, err := g.generateDefault(t.Elem.CommentLines, t.Elem, false)
+	if err != nil {
 		return err
+	}
+	if def != nil {
+		g.Do("Default: $.$,\n", *def)
 	}
 	typeString, format := openapi.OpenAPITypeFormat(elemType.String())
 	if typeString != "" {
@@ -795,8 +807,12 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 	elemType := resolveAliasAndPtrType(t.Elem)
 	g.Do("Type: []string{\"array\"},\n", nil)
 	g.Do("Items: &spec.SchemaOrArray{\nSchema: &spec.Schema{\nSchemaProps: spec.SchemaProps{\n", nil)
-	if err := g.generateDefault(t.Elem.CommentLines, t.Elem, false); err != nil {
+	def, err := g.generateDefault(t.Elem.CommentLines, t.Elem, false)
+	if err != nil {
 		return err
+	}
+	if def != nil {
+		g.Do("Default: $.$,\n", *def)
 	}
 	typeString, format := openapi.OpenAPITypeFormat(elemType.String())
 	if typeString != "" {

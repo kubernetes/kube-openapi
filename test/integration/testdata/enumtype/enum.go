@@ -18,7 +18,8 @@ const FruitRiceBall FruitType = "onigiri"
 // FruitsBasket is the type that contains the enum type.
 // +k8s:openapi-gen=true
 type FruitsBasket struct {
-	Content FruitType `json:"content"`
+	// +optional
+	Content FruitType `json:"content,omitempty"`
 
 	// +default=0
 	Count int `json:"count"`

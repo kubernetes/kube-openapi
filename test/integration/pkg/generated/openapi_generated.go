@@ -338,10 +338,10 @@ func schema_test_integration_testdata_enumtype_FruitsBasket(ref common.Reference
 					"content": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Possible enum values:\n - `\"apple\"` is the Apple\n - `\"banana\"` is the Banana\n - `\"onigiri\"` is the Rice ball that does not seem to belong to a fruits basket but has a long comment that is so long that it spans multiple lines",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
-							Enum:        []interface{}{"apple", "banana", "onigiri"}},
+							Enum:        []interface{}{"apple", "banana", "onigiri"},
+						},
 					},
 					"count": {
 						SchemaProps: spec.SchemaProps{
@@ -351,7 +351,7 @@ func schema_test_integration_testdata_enumtype_FruitsBasket(ref common.Reference
 						},
 					},
 				},
-				Required: []string{"content", "count"},
+				Required: []string{"count"},
 			},
 		},
 	}

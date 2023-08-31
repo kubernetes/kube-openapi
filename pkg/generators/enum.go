@@ -75,6 +75,17 @@ func (et *enumType) ValueStrings() []string {
 	return values
 }
 
+// IsValue returns true if the given value is one of the possible enum
+// values.
+func (et *enumType) IsValid(val string) bool {
+	for _, value := range et.Values {
+		if val == fmt.Sprintf("%q", value.Value) {
+			return true
+		}
+	}
+	return false
+}
+
 // DescriptionLines returns a description of the enum in this format:
 //
 // Possible enum values:

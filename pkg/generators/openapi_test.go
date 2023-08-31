@@ -1632,10 +1632,10 @@ const EnumB EnumType = "b"
 // +k8s:openapi-gen=true
 // +k8s:openapi-gen=x-kubernetes-type-tag:type_test
 type Blah struct {
-  // Value is the value.
-	Value EnumType
-	NoCommentEnum EnumType
-  // +optional
+	// Value is the value.
+	// +default="b"
+	Value *EnumType
+	// +optional
 	OptionalEnum *EnumType
 }`)
 	if callErr != nil {
@@ -1653,33 +1653,24 @@ Description: "Blah is a test.",
 Type: []string{"object"},
 Properties: map[string]spec.Schema{
 "Value": {
-SchemaProps: spec.SchemaProps{`+"\n"+
-		"Description: \"Value is the value.\\n\\nPossible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
-Default: "",
-Type: []string{"string"},
-Format: "",
-Enum: []interface{}{"a", "b"},
-},
-},
-"NoCommentEnum": {
-SchemaProps: spec.SchemaProps{`+"\n"+
-		"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
-Default: "",
+SchemaProps: spec.SchemaProps{
+Description: "Value is the value.\n\nPossible enum values:\n - `+"`"+`\"a\"`+"`"+` is a.\n - `+"`"+`\"b\"`+"`"+` is b.",
+Default: "b",
 Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"},
 },
 },
 "OptionalEnum": {
-SchemaProps: spec.SchemaProps{`+"\n"+
-		"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
+SchemaProps: spec.SchemaProps{
+Description: "Possible enum values:\n - `+"`"+`\"a\"`+"`"+` is a.\n - `+"`"+`\"b\"`+"`"+` is b.",
 Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"},
 },
 },
 },
-Required: []string{"Value","NoCommentEnum"},
+Required: []string{"Value"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
