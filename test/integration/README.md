@@ -29,27 +29,16 @@ $ go run ../../cmd/openapi-gen/openapi-gen.go \
 The generated file `pkg/generated/openapi_generated.go` should have been created.
 
 Next, run the OpenAPI builder to create the Swagger file which includes
-the definitions. The output file named `golden.v2.json` will be output in
+the definitions. The output file named `golden.v2.json` (or v3) will be output in
 the current directory.
-
----
-**NOTE:**
-
-If you've created a new type, make sure you add it in `createWebServices()` in
-`./builder/main.go`, or the definitions won't be generated.
----
-
----
-**NOTE:**
-
-If you've created a new package, make sure you also add it to the
-`inputDir` in `integration_suite_test.go`.
----
 
 ```bash
 $ go run builder/main.go testdata/golden.v2.json
-```
-
-```bash
 $ go run builder3/main.go testdata/golden.v3.json
 ```
+
+❗NOTE❗: If you've created a new type, make sure you add it in `createWebServices()` in
+`./builder/main.go`, or the definitions won't be generated.
+
+❗NOTE❗: If you've created a new package, make sure you also add it to the
+`inputDir` in `integration_suite_test.go`.
