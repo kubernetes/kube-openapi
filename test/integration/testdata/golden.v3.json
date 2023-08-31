@@ -628,6 +628,26 @@
          "$ref": "#/components/schemas/defaults.SubStruct"
         }
        ]
+      },
+      "defaultedAliasSymbolReference": {
+       "type": "string",
+       "default": "SymbolConstant"
+      },
+      "externalSymbolReference": {
+       "type": "string",
+       "default": "apple"
+      },
+      "fullyQualifiedSymbolReference": {
+       "type": "string",
+       "default": "SymbolConstant"
+      },
+      "localSymbolReference": {
+       "type": "string",
+       "default": "SymbolConstant"
+      },
+      "pointerConversionSymbolReference": {
+       "type": "string",
+       "default": "apple"
       }
      }
     },
