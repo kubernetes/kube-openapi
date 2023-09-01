@@ -15,7 +15,22 @@ type Defaulted struct {
 
 	// +default={"foo": "bar"}
 	Map map[string]Item
+
+	// +default=ref(ConstantValue)
+	LocalSymbolReference string `json:"localSymbolReference,omitempty"`
+	// +default=ref(k8s.io/kube-openapi/test/integration/testdata/defaults.ConstantValue)
+	FullyQualifiedSymbolReference string `json:"fullyQualifiedSymbolReference,omitempty"`
+	// +default=ref(k8s.io/kube-openapi/test/integration/testdata/enumtype.FruitApple)
+	ExternalSymbolReference string `json:"externalSymbolReference,omitempty"`
+	// +default=ref(k8s.io/kube-openapi/test/integration/testdata/enumtype.FruitApple)
+	PointerConversionSymbolReference *DefaultedItem `json:"pointerConversionSymbolReference,omitempty"`
+	DefaultedAliasSymbolReference    DefaultedItem  `json:"defaultedAliasSymbolReference,omitempty"`
 }
+
+const ConstantValue string = "SymbolConstant"
+
+// +default=ref(ConstantValue)
+type DefaultedItem string
 
 // +k8s:openapi-gen=true
 type Item string
