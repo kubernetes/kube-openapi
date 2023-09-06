@@ -282,31 +282,10 @@ func getTestResponses() *spec3.Responses {
 func getTestCommonParameters() []*spec3.Parameter {
 	ret := make([]*spec3.Parameter, 2)
 	ret[0] = &spec3.Parameter{
-		ParameterProps: spec3.ParameterProps{
-			Description: "path to the resource",
-			Name:        "path",
-			In:          "path",
-			Required:    true,
-			Schema: &spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Type:        []string{"string"},
-					UniqueItems: true,
-				},
-			},
-		},
+		Refable: spec.Refable{Ref: spec.MustCreateRef("#/components/parameters/path-QDFyCov8")},
 	}
 	ret[1] = &spec3.Parameter{
-		ParameterProps: spec3.ParameterProps{
-			Description: "If 'true', then the output is pretty printed.",
-			Name:        "pretty",
-			In:          "query",
-			Schema: &spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Type:        []string{"string"},
-					UniqueItems: true,
-				},
-			},
-		},
+		Refable: spec.Refable{Ref: spec.MustCreateRef("#/components/parameters/pretty-yRBlrjxw")},
 	}
 	return ret
 }
@@ -399,6 +378,38 @@ func getTestInputDefinition() *spec.Schema {
 	}
 }
 
+func getComponentParameters() map[string]*spec3.Parameter {
+	return map[string]*spec3.Parameter{
+		"path-QDFyCov8": {
+			ParameterProps: spec3.ParameterProps{
+				Description: "path to the resource",
+				Name:        "path",
+				In:          "path",
+				Required:    true,
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type:        []string{"string"},
+						UniqueItems: true,
+					},
+				},
+			},
+		},
+		"pretty-yRBlrjxw": {
+			ParameterProps: spec3.ParameterProps{
+				Description: "If 'true', then the output is pretty printed.",
+				Name:        "pretty",
+				In:          "query",
+				Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type:        []string{"string"},
+						UniqueItems: true,
+					},
+				},
+			},
+		},
+	}
+}
+
 func getTestOutputDefinition() *spec.Schema {
 	return &spec.Schema{
 		SchemaProps: spec.SchemaProps{
@@ -445,6 +456,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 			},
 		},
 		Components: &spec3.Components{
+			Parameters: getComponentParameters(),
 			Schemas: map[string]*spec.Schema{
 				"builder3.TestInput":  getTestInputDefinition(),
 				"builder3.TestOutput": getTestOutputDefinition(),

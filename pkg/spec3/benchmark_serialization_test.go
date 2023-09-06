@@ -71,6 +71,52 @@ func TestOpenAPIV3Deserialize(t *testing.T) {
 	}
 }
 
+func BenchmarkSharedParamsDeserialize(b *testing.B) {
+	benchcases := []struct {
+		file string
+	}{
+		{
+			file: "apiv1spec.json",
+		},
+		{
+			file: "apiv1spec.sharedparams.json",
+		},
+		{
+			file: "appsv1spec.json",
+		},
+		{
+			file: "appsv1spec.sharedparams.json",
+		},
+		{
+			file: "authorizationv1spec.json",
+		},
+		{
+			file: "authorizationv1spec.sharedparams.json",
+		},
+	}
+	for _, bc := range benchcases {
+		swagFile, err := os.Open("./testdata/" + bc.file)
+		if err != nil {
+			b.Fatal(err)
+		}
+		defer swagFile.Close()
+		originalJSON, err := io.ReadAll(swagFile)
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.ResetTimer()
+		b.Run(fmt.Sprintf("%s", bc.file), func(b2 *testing.B) {
+			b2.ReportAllocs()
+			for i := 0; i < b2.N; i++ {
+				var result *OpenAPI
+				if err := result.UnmarshalJSON(originalJSON); err != nil {
+					b2.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
 func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 	benchcases := []struct {
 		file string
