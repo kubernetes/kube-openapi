@@ -321,6 +321,7 @@ func getTestRequestBody() *spec3.RequestBody {
 					},
 				},
 			},
+			Required: true,
 		},
 	}
 	return ret

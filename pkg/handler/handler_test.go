@@ -177,13 +177,13 @@ func TestUpdateSpecLazy(t *testing.T) {
 		t.Errorf("Unexpected swagger received, got %q, expected %q", body, string(returnedSwagger))
 	}
 
-	o.UpdateSpecLazy(cached.NewStaticSource(func() cached.Result[*spec.Swagger] {
+	o.UpdateSpecLazy(cached.Func(func() (*spec.Swagger, string, error) {
 		var s spec.Swagger
 		err := s.UnmarshalJSON(updatedSwagger)
 		if err != nil {
 			t.Errorf("Unexpected error in unmarshalling SwaggerJSON: %v", err)
 		}
-		return cached.NewResultOK(&s, "SOMEHASH")
+		return &s, "SOMEHASH", nil
 	}))
 
 	updatedJSON := normalizeSwaggerOrDie(updatedSwagger)
