@@ -21,8 +21,7 @@ var swaggerDiffOptions = []cmp.Option{cmp.Comparer(func(a spec.Ref, b spec.Ref) 
 })}
 
 func TestOpenAPIV3RoundTrip(t *testing.T) {
-	var fuzzer *fuzz.Fuzzer
-	fuzzer = fuzz.NewWithSeed(1646791953)
+	fuzzer := fuzz.NewWithSeed(1646791953)
 	// Make sure we have enough depth such that maps do not yield nil elements
 	fuzzer.MaxDepth(22).NilChance(0.5).NumElements(1, 7)
 	fuzzer.Funcs(OpenAPIV3FuzzFuncs...)
