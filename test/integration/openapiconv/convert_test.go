@@ -43,7 +43,9 @@ func TestConvertGolden(t *testing.T) {
 
 	// Create a minimal builder config, then call the builder with the definition names.
 	config := testutil.CreateOpenAPIBuilderConfig()
+	config3 := testutil.CreateOpenAPIV3BuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
+	config3.GetDefinitions = generated.GetOpenAPIDefinitions
 	// Build the Paths using a simple WebService for the final spec
 	openapiv2, serr := builderv2.BuildOpenAPISpec(testutil.CreateWebServices(false), config)
 	if serr != nil {
@@ -54,7 +56,7 @@ func TestConvertGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	openapiv3, serr := builderv3.BuildOpenAPISpec(testutil.CreateWebServices(false), config)
+	openapiv3, serr := builderv3.BuildOpenAPISpec(testutil.CreateWebServices(false), config3)
 	if serr != nil {
 		log.Fatalf("ERROR: %s", serr.Error())
 	}

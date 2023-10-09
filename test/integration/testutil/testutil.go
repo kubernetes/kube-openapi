@@ -22,6 +22,7 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -49,6 +50,31 @@ func CreateOpenAPIBuilderConfig() *common.Config {
 			404: *spec.ResponseRef("#/responses/NotFound"),
 		},
 	}
+}
+
+func CreateOpenAPIV3BuilderConfig() *common.OpenAPIV3Config {
+	return &common.OpenAPIV3Config{
+		IgnorePrefixes: []string{"/swaggerapi"},
+		Info: &spec.Info{
+			InfoProps: spec.InfoProps{
+				Title:   "Integration Test",
+				Version: "1.0",
+			},
+		},
+		ResponseDefinitions: map[string]*spec3.Response{
+			"NotFound": {
+				ResponseProps: spec3.ResponseProps{
+					Description: "Entity not found.",
+				},
+			},
+		},
+		CommonResponses: map[int]*spec3.Response{
+			404: {
+				Refable: spec.Refable{Ref: spec.MustCreateRef("#/components/responses/NotFound")},
+			},
+		},
+	}
+
 }
 
 // CreateWebServices hard-codes a simple WebService which only defines a GET and POST paths

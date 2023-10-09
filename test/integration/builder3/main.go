@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Create a minimal builder config, then call the builder with the definition names.
-	config := testutil.CreateOpenAPIBuilderConfig()
+	config := testutil.CreateOpenAPIV3BuilderConfig()
 	config.GetDefinitions = generated.GetOpenAPIDefinitions
 	// Build the Paths using a simple WebService for the final spec
 	swagger, serr := builderv3.BuildOpenAPISpec(testutil.CreateWebServices(true), config)

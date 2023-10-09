@@ -33,7 +33,7 @@ import (
 )
 
 // setUp is a convenience function for setting up for (most) tests.
-func setUp(t *testing.T, fullMethods bool) (*openapi.Config, *restful.Container, *assert.Assertions) {
+func setUp(t *testing.T, fullMethods bool) (*openapi.OpenAPIV3Config, *restful.Container, *assert.Assertions) {
 	assert := assert.New(t)
 	config, container := getConfig(fullMethods)
 	return config, container, assert
@@ -165,7 +165,7 @@ func getTestRoute(ws *restful.WebService, method string, opPrefix string) *restf
 	return ret
 }
 
-func getConfig(fullMethods bool) (*openapi.Config, *restful.Container) {
+func getConfig(fullMethods bool) (*openapi.OpenAPIV3Config, *restful.Container) {
 	mux := http.NewServeMux()
 	container := restful.NewContainer()
 	container.ServeMux = mux
@@ -193,8 +193,7 @@ func getConfig(fullMethods bool) (*openapi.Config, *restful.Container) {
 
 	}
 	container.Add(ws)
-	return &openapi.Config{
-		ProtocolList: []string{"https"},
+	return &openapi.OpenAPIV3Config{
 		Info: &spec.Info{
 			InfoProps: spec.InfoProps{
 				Title:       "TestAPI",
