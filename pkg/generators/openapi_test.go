@@ -1785,3 +1785,118 @@ type Blah struct {
 	}
 
 }
+
+// Show that types with unmarshalJSON in their hierarchy do not have struct
+// defaults enforced, and that aliases and embededd types are respected
+func TestMustEnforceDefaultStruct(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+package foo
+
+type Time struct {
+	value interface{}
+}
+
+
+type TimeWithoutUnmarshal struct {
+	value interface{}
+}
+
+func (_ TimeWithoutUnmarshal) OpenAPISchemaType() []string { return []string{"string"} }
+func (_ TimeWithoutUnmarshal) OpenAPISchemaFormat() string { return "date-time" }
+
+func (_ Time) UnmarshalJSON([]byte) error {
+	return nil
+}
+
+
+func (_ Time) OpenAPISchemaType() []string { return []string{"string"} }
+func (_ Time) OpenAPISchemaFormat() string { return "date-time" }
+
+// Time with UnmarshalJSON defined on pointer instead of struct
+type MicroTime struct {
+	value interface{}
+}
+
+func (t *MicroTime) UnmarshalJSON([]byte) error {
+	return nil
+}
+
+func (_ MicroTime) OpenAPISchemaType() []string { return []string{"string"} }
+func (_ MicroTime) OpenAPISchemaFormat() string { return "date-time" }
+
+type Int64 int64
+
+type Duration struct {
+	Int64
+}
+
+func (_ Duration) OpenAPISchemaType() []string { return []string{"string"} }
+func (_ Duration) OpenAPISchemaFormat() string { return "" }
+
+type NothingSpecial struct {
+	Field string
+}
+
+// +k8s:openapi-gen=true
+type Blah struct {
+	Embedded Duration
+	PointerUnmarshal MicroTime
+	StructUnmarshal Time
+	NoUnmarshal TimeWithoutUnmarshal
+	Regular NothingSpecial
+}
+	`)
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
+
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatal(err)
+	} else {
+		assert.Equal(string(formatted), `func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"Embedded": {
+						SchemaProps: spec.SchemaProps{
+							Default: 0,
+							Ref:     ref("base/foo.Duration"),
+						},
+					},
+					"PointerUnmarshal": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("base/foo.MicroTime"),
+						},
+					},
+					"StructUnmarshal": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("base/foo.Time"),
+						},
+					},
+					"NoUnmarshal": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("base/foo.TimeWithoutUnmarshal"),
+						},
+					},
+					"Regular": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("base/foo.NothingSpecial"),
+						},
+					},
+				},
+				Required: []string{"Embedded", "PointerUnmarshal", "StructUnmarshal", "NoUnmarshal", "Regular"},
+			},
+		},
+		Dependencies: []string{
+			"base/foo.Duration", "base/foo.MicroTime", "base/foo.NothingSpecial", "base/foo.Time", "base/foo.TimeWithoutUnmarshal"},
+	}
+}
+
+`)
+	}
+
+}
