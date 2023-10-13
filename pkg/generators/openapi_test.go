@@ -1727,7 +1727,7 @@ type Blah struct {
 	`)
 	assert.NoError(funcErr)
 	assert.NoError(callErr)
-	assert.ElementsMatch(imports, []string{`v1 "k8s.io/api/v1"`, `foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `v1 "k8s.io/api/v1"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
 
 	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
 		t.Fatal(err)
@@ -1899,4 +1899,219 @@ type Blah struct {
 `)
 	}
 
+}
+
+func TestMarkerComments(t *testing.T) {
+
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+package foo
+
+// +k8s:openapi-gen=true
+// +k8s:validation:maxProperties=10
+// +k8s:validation:minProperties=1
+// +k8s:validation:exclusiveMinimum
+// +k8s:validation:exclusiveMaximum
+type Blah struct {
+
+	// Integer with min and max values
+	// +k8s:validation:minimum=0
+	// +k8s:validation:maximum=10
+	// +k8s:validation:exclusiveMinimum
+	// +k8s:validation:exclusiveMaximum
+	IntValue int
+
+	// String with min and max lengths
+	// +k8s:validation:minLength=1
+	// +k8s:validation:maxLength=10
+	// +k8s:validation:pattern="^foo$[0-9]+"
+	StringValue string
+
+	// +k8s:validation:maxitems=10
+	// +k8s:validation:minItems=1
+	// +k8s:validation:uniqueItems
+	ArrayValue []string
+
+	// +k8s:validation:maxProperties=10
+	// +k8s:validation:minProperties=1
+	ObjValue map[string]interface{}
+}
+	`)
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`, `ptr "k8s.io/utils/ptr"`})
+
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+	} else {
+		formatted_expected, ree := format.Source([]byte(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+		return common.OpenAPIDefinition{
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: 			  []string{"object"},
+					ExclusiveMinimum: true,
+					ExclusiveMaximum: true,
+					MinProperties:    ptr.To[int64](1),
+					MaxProperties:    ptr.To[int64](10),
+					Properties: map[string]spec.Schema{
+						"IntValue": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Integer with min and max values",
+								Default: 	 0,
+								Minimum:	 ptr.To[float64](0),
+								Maximum:	 ptr.To[float64](10),
+								ExclusiveMinimum: true,
+								ExclusiveMaximum: true,
+								Type:        []string{"integer"},
+								Format:	  	 "int32",
+							},
+						},
+						"StringValue": {
+							SchemaProps: spec.SchemaProps{
+								Description: "String with min and max lengths",
+								Default:	 "",
+								MinLength:	 ptr.To[int64](1),
+								MaxLength:	 ptr.To[int64](10),
+								Pattern:	 "^foo$[0-9]+",
+								Type:        []string{"string"},
+								Format:	  	 "",
+							},
+						},
+						"ArrayValue": {
+							SchemaProps: spec.SchemaProps{
+								MinItems:	 ptr.To[int64](1),
+								MaxItems:	 ptr.To[int64](10),
+								UniqueItems: true,
+								Type: []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Default: "",
+											Type:    []string{"string"},
+											Format:  "",
+										},
+									},
+								},
+							},
+						},
+						"ObjValue": {
+							SchemaProps: spec.SchemaProps{
+								MinProperties:	 ptr.To[int64](1),
+								MaxProperties:	 ptr.To[int64](10),
+								Type: []string{"object"},
+									AdditionalProperties: &spec.SchemaOrBool{
+										Allows: true,
+										Schema: &spec.Schema{
+											SchemaProps: spec.SchemaProps{
+												Type:   []string{"object"},
+												Format: "",
+											},
+										},
+									},
+							},
+						},
+					},
+					Required: []string{"IntValue", "StringValue", "ArrayValue", "ObjValue"},
+				},
+			},
+		}
+	}
+
+`))
+		if ree != nil {
+			t.Fatal(ree)
+		}
+		assert.Equal(string(formatted), string(formatted_expected))
+	}
+}
+
+func TestMarkerCommentsCustomDefsV3(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
+package foo
+
+import openapi "k8s.io/kube-openapi/pkg/common"
+
+// +k8s:validation:maxProperties=10
+type Blah struct {
+}
+
+func (_ Blah) OpenAPIV3Definition() openapi.OpenAPIDefinition {
+	return openapi.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:   []string{"object"},
+				MaxProperties: ptr.To[int64](10),
+				Format: "ipv4",
+			},
+		},
+	}
+}
+
+func (_ Blah) OpenAPISchemaType() []string { return []string{"object"} }
+func (_ Blah) OpenAPISchemaFormat() string { return "ipv4" }
+`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.EmbedOpenAPIDefinitionIntoV2Extension(foo.Blah{}.OpenAPIV3Definition(), common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Type:foo.Blah{}.OpenAPISchemaType(),
+Format:foo.Blah{}.OpenAPISchemaFormat(),
+MaxProperties: ptr.To[int64](10),
+},
+},
+})
+}
+
+`, funcBuffer.String())
+}
+
+func TestMarkerCommentsV3OneOfTypes(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
+package foo
+
+// +k8s:validation:maxLength=10
+type Blah struct {
+}
+
+func (_ Blah) OpenAPISchemaType() []string { return []string{"string"} }
+func (_ Blah) OpenAPIV3OneOfTypes() []string { return []string{"string", "array"} }
+func (_ Blah) OpenAPISchemaFormat() string { return "ipv4" }
+
+`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.EmbedOpenAPIDefinitionIntoV2Extension(common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+OneOf:common.GenerateOpenAPIV3OneOfSchema(foo.Blah{}.OpenAPIV3OneOfTypes()),
+Format:foo.Blah{}.OpenAPISchemaFormat(),
+MaxLength: ptr.To[int64](10),
+},
+},
+},common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Type:foo.Blah{}.OpenAPISchemaType(),
+Format:foo.Blah{}.OpenAPISchemaFormat(),
+MaxLength: ptr.To[int64](10),
+},
+},
+})
+}
+
+`, funcBuffer.String())
 }

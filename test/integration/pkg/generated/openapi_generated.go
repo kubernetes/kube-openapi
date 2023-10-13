@@ -29,6 +29,8 @@ import (
 	custom "k8s.io/kube-openapi/test/integration/testdata/custom"
 	defaults "k8s.io/kube-openapi/test/integration/testdata/defaults"
 	enumtype "k8s.io/kube-openapi/test/integration/testdata/enumtype"
+	valuevalidation "k8s.io/kube-openapi/test/integration/testdata/valuevalidation"
+	ptr "k8s.io/utils/ptr"
 )
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
@@ -62,6 +64,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/kube-openapi/test/integration/testdata/uniontype.TopLevelUnion":             schema_test_integration_testdata_uniontype_TopLevelUnion(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union":                     schema_test_integration_testdata_uniontype_Union(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/uniontype.Union2":                    schema_test_integration_testdata_uniontype_Union2(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo":                 schema_test_integration_testdata_valuevalidation_Foo(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo2":                schema_test_integration_testdata_valuevalidation_Foo2(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo3":                schema_test_integration_testdata_valuevalidation_Foo3(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo4":                valuevalidation.Foo4{}.OpenAPIDefinition(),
+		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo5":                schema_test_integration_testdata_valuevalidation_Foo5(ref),
 	}
 }
 
@@ -1004,4 +1011,123 @@ func schema_test_integration_testdata_uniontype_Union2(ref common.ReferenceCallb
 			},
 		},
 	}
+}
+
+func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:          []string{"object"},
+				MinProperties: ptr.To[int64](1),
+				MaxProperties: ptr.To[int64](5),
+				Properties: map[string]spec.Schema{
+					"StringValue": {
+						SchemaProps: spec.SchemaProps{
+							Default:   "",
+							MinLength: ptr.To[int64](1),
+							MaxLength: ptr.To[int64](5),
+							Pattern:   "^a.*b$",
+							Type:      []string{"string"},
+							Format:    "",
+						},
+					},
+					"NumberValue": {
+						SchemaProps: spec.SchemaProps{
+							Default:          0,
+							Minimum:          ptr.To[float64](1),
+							Maximum:          ptr.To[float64](5),
+							ExclusiveMinimum: true,
+							ExclusiveMaximum: true,
+							MultipleOf:       ptr.To[float64](2),
+							Type:             []string{"number"},
+							Format:           "double",
+						},
+					},
+					"ArrayValue": {
+						SchemaProps: spec.SchemaProps{
+							MinItems:    ptr.To[int64](1),
+							MaxItems:    ptr.To[int64](5),
+							UniqueItems: true,
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"MapValue": {
+						SchemaProps: spec.SchemaProps{
+							MinProperties: ptr.To[int64](1),
+							MaxProperties: ptr.To[int64](5),
+							Type:          []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"StringValue", "NumberValue", "ArrayValue", "MapValue"},
+			},
+		},
+	}
+}
+
+func schema_test_integration_testdata_valuevalidation_Foo2(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.EmbedOpenAPIDefinitionIntoV2Extension(valuevalidation.Foo2{}.OpenAPIV3Definition(), common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description:   "This one has an open API v3 definition",
+				Type:          valuevalidation.Foo2{}.OpenAPISchemaType(),
+				Format:        valuevalidation.Foo2{}.OpenAPISchemaFormat(),
+				MaxProperties: ptr.To[int64](5),
+			},
+		},
+	})
+}
+
+func schema_test_integration_testdata_valuevalidation_Foo3(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.EmbedOpenAPIDefinitionIntoV2Extension(common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description:   "This one has a OneOf",
+				OneOf:         common.GenerateOpenAPIV3OneOfSchema(valuevalidation.Foo3{}.OpenAPIV3OneOfTypes()),
+				Format:        valuevalidation.Foo3{}.OpenAPISchemaFormat(),
+				MaxProperties: ptr.To[int64](5),
+			},
+		},
+	}, common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description:   "This one has a OneOf",
+				Type:          valuevalidation.Foo3{}.OpenAPISchemaType(),
+				Format:        valuevalidation.Foo3{}.OpenAPISchemaFormat(),
+				MaxProperties: ptr.To[int64](5),
+			},
+		},
+	})
+}
+
+func schema_test_integration_testdata_valuevalidation_Foo5(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.EmbedOpenAPIDefinitionIntoV2Extension(valuevalidation.Foo5{}.OpenAPIV3Definition(), common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:          valuevalidation.Foo5{}.OpenAPISchemaType(),
+				Format:        valuevalidation.Foo5{}.OpenAPISchemaFormat(),
+				MinProperties: ptr.To[int64](1),
+				MaxProperties: ptr.To[int64](5),
+			},
+		},
+	})
 }

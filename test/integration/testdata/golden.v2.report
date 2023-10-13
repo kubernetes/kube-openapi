@@ -1,5 +1,6 @@
 API rule violation: list_type_missing,k8s.io/kube-openapi/test/integration/testdata/defaults,Defaulted,List
 API rule violation: list_type_missing,k8s.io/kube-openapi/test/integration/testdata/listtype,UntypedList,Field
+API rule violation: list_type_missing,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,ArrayValue
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/defaults,Defaulted,Field
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/defaults,Defaulted,List
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/defaults,Defaulted,Map
@@ -33,4 +34,8 @@ API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/st
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,FieldLevelOverrideStruct,OtherField
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,GranularStruct,Field
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/structtype,GranularStruct,OtherField
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,ArrayValue
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,MapValue
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,NumberValue
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,StringValue
 API rule violation: omitempty_match_case,k8s.io/kube-openapi/test/integration/testdata/listtype,Item,C
