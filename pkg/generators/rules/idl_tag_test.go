@@ -115,12 +115,29 @@ func TestListTypeMissing(t *testing.T) {
 			},
 			expected: []string{"Items"},
 		},
+
+		{
+			name: "a byte-slice field without annotation should pass validation",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "ByteSliceField",
+						Type: &types.Type{
+							Kind: types.Slice,
+							Elem: types.Byte,
+						},
+					},
+				},
+			},
+			expected: []string{},
+		},
 	}
 
 	rule := &ListTypeMissing{}
 	for _, tc := range tcs {
 		if violations, _ := rule.Validate(tc.t); !reflect.DeepEqual(violations, tc.expected) {
-			t.Errorf("unexpected validation result: test name %v, want: %v, got: %v",
+			t.Errorf("unexpected validation result: test name %q, want: %v, got: %v",
 				tc.name, tc.expected, violations)
 		}
 	}
