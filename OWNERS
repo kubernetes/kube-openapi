@@ -8,11 +8,13 @@ reviewers:
 - sttts
 - jpbetz
 - jefftree
+- alexzielenski
 approvers:
-- lavalamp
 - sttts
 - apelisse
 - jpbetz
 - jefftree
+- alexzielenski
 emeritus_approvers:
 - mbohlool
+- lavalamp
