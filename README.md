@@ -9,7 +9,7 @@ code or routes. Thus, there should be no kubernetes specific code in this repo.
 There are two main parts: 
  - A model generator that goes through .go files, find and generate model 
 definitions. 
- - The spec generator that is responsible for dynamically generate 
+ - The spec generator that is responsible for dynamically generating 
 the final OpenAPI spec using web service routes or combining other 
 OpenAPI/Json specs.
 
