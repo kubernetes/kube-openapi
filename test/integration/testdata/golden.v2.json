@@ -604,6 +604,138 @@
       }
      }
     }
+   },
+   "/test/valuevalidation": {
+    "post": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "create-valuevalidation.Foo",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.Foo"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.Foo",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.Foo"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo2": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.Foo2",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.Foo2"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo3": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.Foo3",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.Foo3"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo4": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.Foo4",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.Foo4"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo5": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.Foo5",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.Foo5"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
    }
   },
   "definitions": {
@@ -1086,6 +1218,76 @@
       }
      }
     ]
+   },
+   "valuevalidation.Foo": {
+    "type": "object",
+    "maxProperties": 5,
+    "minProperties": 1,
+    "required": [
+     "StringValue",
+     "NumberValue",
+     "ArrayValue",
+     "MapValue"
+    ],
+    "properties": {
+     "ArrayValue": {
+      "type": "array",
+      "maxItems": 5,
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "MapValue": {
+      "type": "object",
+      "maxProperties": 5,
+      "minProperties": 1,
+      "additionalProperties": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "NumberValue": {
+      "type": "number",
+      "format": "double",
+      "default": 0,
+      "maximum": 5,
+      "exclusiveMaximum": true,
+      "minimum": 1,
+      "exclusiveMinimum": true,
+      "multipleOf": 2
+     },
+     "StringValue": {
+      "type": "string",
+      "default": "",
+      "maxLength": 5,
+      "minLength": 1,
+      "pattern": "^a.*b$"
+     }
+    }
+   },
+   "valuevalidation.Foo2": {
+    "description": "This one has an open API v3 definition",
+    "type": "test-type",
+    "format": "test-format",
+    "maxProperties": 5
+   },
+   "valuevalidation.Foo3": {
+    "description": "This one has a OneOf",
+    "type": "string",
+    "format": "string",
+    "maxProperties": 5
+   },
+   "valuevalidation.Foo4": {
+    "type": "integer"
+   },
+   "valuevalidation.Foo5": {
+    "type": "test-type",
+    "format": "test-format",
+    "maxProperties": 5,
+    "minProperties": 1
    }
   },
   "responses": {

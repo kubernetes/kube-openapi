@@ -95,6 +95,10 @@ func CreateWebServices(includeV2SchemaAnnotation bool) []*restful.WebService {
 	if includeV2SchemaAnnotation {
 		addRoutes(w, buildRouteForType(w, "custom", "Bac")...)
 		addRoutes(w, buildRouteForType(w, "custom", "Bah")...)
+		addRoutes(w, buildRouteForType(w, "valuevalidation", "Foo2")...)
+		addRoutes(w, buildRouteForType(w, "valuevalidation", "Foo3")...)
+		addRoutes(w, buildRouteForType(w, "valuevalidation", "Foo4")...)
+		addRoutes(w, buildRouteForType(w, "valuevalidation", "Foo5")...)
 	}
 	addRoutes(w, buildRouteForType(w, "maptype", "GranularMap")...)
 	addRoutes(w, buildRouteForType(w, "maptype", "AtomicMap")...)
@@ -103,6 +107,7 @@ func CreateWebServices(includeV2SchemaAnnotation bool) []*restful.WebService {
 	addRoutes(w, buildRouteForType(w, "structtype", "AtomicStruct")...)
 	addRoutes(w, buildRouteForType(w, "structtype", "DeclaredAtomicStruct")...)
 	addRoutes(w, buildRouteForType(w, "defaults", "Defaulted")...)
+	addRoutes(w, buildRouteForType(w, "valuevalidation", "Foo")...)
 	return []*restful.WebService{w}
 }
 

@@ -38,6 +38,7 @@ const (
 		"," + testPkgDir + "/uniontype" +
 		"," + testPkgDir + "/enumtype" +
 		"," + testPkgDir + "/custom" +
+		"," + testPkgDir + "/valuevalidation" +
 		"," + testPkgDir + "/defaults"
 	outputBase                 = "pkg"
 	outputPackage              = "generated"

@@ -554,6 +554,126 @@
       }
      }
     }
+   },
+   "/test/valuevalidation": {
+    "post": {
+     "operationId": "create-valuevalidation.Foo",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo2": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo2",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo2"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo3": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo3",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo3"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo4": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo4",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo4"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo5": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo5",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo5"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
    }
   },
   "components": {
@@ -1060,6 +1180,77 @@
        }
       }
      ]
+    },
+    "valuevalidation.Foo": {
+     "type": "object",
+     "maxProperties": 5,
+     "minProperties": 1,
+     "required": [
+      "StringValue",
+      "NumberValue",
+      "ArrayValue",
+      "MapValue"
+     ],
+     "properties": {
+      "ArrayValue": {
+       "type": "array",
+       "maxItems": 5,
+       "minItems": 1,
+       "uniqueItems": true,
+       "items": {
+        "type": "string",
+        "default": ""
+       }
+      },
+      "MapValue": {
+       "type": "object",
+       "maxProperties": 5,
+       "minProperties": 1,
+       "additionalProperties": {
+        "type": "string",
+        "default": ""
+       }
+      },
+      "NumberValue": {
+       "type": "number",
+       "format": "double",
+       "default": 0,
+       "maximum": 5,
+       "exclusiveMaximum": true,
+       "minimum": 1,
+       "exclusiveMinimum": true,
+       "multipleOf": 2
+      },
+      "StringValue": {
+       "type": "string",
+       "default": "",
+       "maxLength": 5,
+       "minLength": 1,
+       "pattern": "^a.*b$"
+      }
+     }
+    },
+    "valuevalidation.Foo2": {
+     "type": "object"
+    },
+    "valuevalidation.Foo3": {
+     "description": "This one has a OneOf",
+     "format": "string",
+     "maxProperties": 5,
+     "oneOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "string"
+      }
+     ]
+    },
+    "valuevalidation.Foo4": {
+     "type": "integer"
+    },
+    "valuevalidation.Foo5": {
+     "type": "object"
     }
    },
    "responses": {
