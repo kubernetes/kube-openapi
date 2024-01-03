@@ -136,12 +136,12 @@ func buildRouteForType(ws *restful.WebService, pkg, name string) []*restful.Rout
 	}
 
 	routes := []*restful.RouteBuilder{
-		ws.GET(fmt.Sprintf("test/%s/%s", pkg, strings.ToLower(name))).
+		ws.GET(fmt.Sprintf("/test/%s/%s", pkg, strings.ToLower(name))).
 			Operation(fmt.Sprintf("get-%s.%s", pkg, name)).
 			Produces("application/json").
 			To(func(*restful.Request, *restful.Response) {}).
 			Writes(&namer),
-		ws.POST(fmt.Sprintf("test/%s", pkg)).
+		ws.POST(fmt.Sprintf("/test/%s", pkg)).
 			Operation(fmt.Sprintf("create-%s.%s", pkg, name)).
 			Produces("application/json").
 			To(func(*restful.Request, *restful.Response) {}).
