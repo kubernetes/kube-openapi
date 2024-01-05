@@ -18,6 +18,7 @@ package generators
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -38,93 +39,52 @@ type CommentTags struct {
 	// Default  any  `json:"default,omitempty"`
 }
 
-// shim because k8s is on older go version
-type joinError struct {
-	errs []error
-}
-
-func (e *joinError) Error() string {
-	var b []byte
-	for i, err := range e.errs {
-		if i > 0 {
-			b = append(b, '\n')
-		}
-		b = append(b, err.Error()...)
-	}
-	return string(b)
-}
-
-func (e *joinError) Unwrap() []error {
-	return e.errs
-}
-
-func join(errs ...error) error {
-	n := 0
-	for _, err := range errs {
-		if err != nil {
-			n++
-		}
-	}
-	if n == 0 {
-		return nil
-	}
-	e := &joinError{
-		errs: make([]error, 0, n),
-	}
-	for _, err := range errs {
-		if err != nil {
-			e.errs = append(e.errs, err)
-		}
-	}
-	return e
-}
-
 // validates the parameters in a CommentTags instance. Returns any errors encountered.
 func (c CommentTags) Validate() error {
 
 	var err error
 
 	if c.MinLength != nil && *c.MinLength < 0 {
-		err = join(err, fmt.Errorf("minLength cannot be negative"))
+		err = errors.Join(err, fmt.Errorf("minLength cannot be negative"))
 	}
 	if c.MaxLength != nil && *c.MaxLength < 0 {
-		err = join(err, fmt.Errorf("maxLength cannot be negative"))
+		err = errors.Join(err, fmt.Errorf("maxLength cannot be negative"))
 	}
 	if c.MinItems != nil && *c.MinItems < 0 {
-		err = join(err, fmt.Errorf("minItems cannot be negative"))
+		err = errors.Join(err, fmt.Errorf("minItems cannot be negative"))
 	}
 	if c.MaxItems != nil && *c.MaxItems < 0 {
-		err = join(err, fmt.Errorf("maxItems cannot be negative"))
+		err = errors.Join(err, fmt.Errorf("maxItems cannot be negative"))
 	}
 	if c.MinProperties != nil && *c.MinProperties < 0 {
-		err = join(err, fmt.Errorf("minProperties cannot be negative"))
+		err = errors.Join(err, fmt.Errorf("minProperties cannot be negative"))
 	}
 	if c.MaxProperties != nil && *c.MaxProperties < 0 {
-		err = join(err, fmt.Errorf("maxProperties cannot be negative"))
+		err = errors.Join(err, fmt.Errorf("maxProperties cannot be negative"))
 	}
 	if c.Minimum != nil && c.Maximum != nil && *c.Minimum > *c.Maximum {
-		err = join(err, fmt.Errorf("minimum %f is greater than maximum %f", *c.Minimum, *c.Maximum))
+		err = errors.Join(err, fmt.Errorf("minimum %f is greater than maximum %f", *c.Minimum, *c.Maximum))
 	}
 	if (c.ExclusiveMinimum || c.ExclusiveMaximum) && c.Minimum != nil && c.Maximum != nil && *c.Minimum == *c.Maximum {
-		err = join(err, fmt.Errorf("exclusiveMinimum/Maximum cannot be set when minimum == maximum"))
+		err = errors.Join(err, fmt.Errorf("exclusiveMinimum/Maximum cannot be set when minimum == maximum"))
 	}
 	if c.MinLength != nil && c.MaxLength != nil && *c.MinLength > *c.MaxLength {
-		err = join(err, fmt.Errorf("minLength %d is greater than maxLength %d", *c.MinLength, *c.MaxLength))
+		err = errors.Join(err, fmt.Errorf("minLength %d is greater than maxLength %d", *c.MinLength, *c.MaxLength))
 	}
 	if c.MinItems != nil && c.MaxItems != nil && *c.MinItems > *c.MaxItems {
-		err = join(err, fmt.Errorf("minItems %d is greater than maxItems %d", *c.MinItems, *c.MaxItems))
+		err = errors.Join(err, fmt.Errorf("minItems %d is greater than maxItems %d", *c.MinItems, *c.MaxItems))
 	}
 	if c.MinProperties != nil && c.MaxProperties != nil && *c.MinProperties > *c.MaxProperties {
-		err = join(err, fmt.Errorf("minProperties %d is greater than maxProperties %d", *c.MinProperties, *c.MaxProperties))
+		err = errors.Join(err, fmt.Errorf("minProperties %d is greater than maxProperties %d", *c.MinProperties, *c.MaxProperties))
 	}
 	if c.Pattern != "" {
 		_, e := regexp.Compile(c.Pattern)
 		if e != nil {
-			err = join(err, fmt.Errorf("invalid pattern %q: %v", c.Pattern, e))
+			err = errors.Join(err, fmt.Errorf("invalid pattern %q: %v", c.Pattern, e))
 		}
 	}
 	if c.MultipleOf != nil && *c.MultipleOf == 0 {
-		err = join(err, fmt.Errorf("multipleOf cannot be 0"))
+		err = errors.Join(err, fmt.Errorf("multipleOf cannot be 0"))
 	}
 
 	return err
@@ -147,43 +107,43 @@ func (c CommentTags) ValidateType(t *types.Type) error {
 		isFloat := typeString == "number"
 
 		if c.MaxItems != nil && !isArray {
-			err = join(err, fmt.Errorf("maxItems can only be used on array types"))
+			err = errors.Join(err, fmt.Errorf("maxItems can only be used on array types"))
 		}
 		if c.MinItems != nil && !isArray {
-			err = join(err, fmt.Errorf("minItems can only be used on array types"))
+			err = errors.Join(err, fmt.Errorf("minItems can only be used on array types"))
 		}
 		if c.UniqueItems && !isArray {
-			err = join(err, fmt.Errorf("uniqueItems can only be used on array types"))
+			err = errors.Join(err, fmt.Errorf("uniqueItems can only be used on array types"))
 		}
 		if c.MaxProperties != nil && !isMap {
-			err = join(err, fmt.Errorf("maxProperties can only be used on map types"))
+			err = errors.Join(err, fmt.Errorf("maxProperties can only be used on map types"))
 		}
 		if c.MinProperties != nil && !isMap {
-			err = join(err, fmt.Errorf("minProperties can only be used on map types"))
+			err = errors.Join(err, fmt.Errorf("minProperties can only be used on map types"))
 		}
 		if c.MinLength != nil && !isString {
-			err = join(err, fmt.Errorf("minLength can only be used on string types"))
+			err = errors.Join(err, fmt.Errorf("minLength can only be used on string types"))
 		}
 		if c.MaxLength != nil && !isString {
-			err = join(err, fmt.Errorf("maxLength can only be used on string types"))
+			err = errors.Join(err, fmt.Errorf("maxLength can only be used on string types"))
 		}
 		if c.Pattern != "" && !isString {
-			err = join(err, fmt.Errorf("pattern can only be used on string types"))
+			err = errors.Join(err, fmt.Errorf("pattern can only be used on string types"))
 		}
 		if c.Minimum != nil && !isInt && !isFloat {
-			err = join(err, fmt.Errorf("minimum can only be used on numeric types"))
+			err = errors.Join(err, fmt.Errorf("minimum can only be used on numeric types"))
 		}
 		if c.Maximum != nil && !isInt && !isFloat {
-			err = join(err, fmt.Errorf("maximum can only be used on numeric types"))
+			err = errors.Join(err, fmt.Errorf("maximum can only be used on numeric types"))
 		}
 		if c.MultipleOf != nil && !isInt && !isFloat {
-			err = join(err, fmt.Errorf("multipleOf can only be used on numeric types"))
+			err = errors.Join(err, fmt.Errorf("multipleOf can only be used on numeric types"))
 		}
 		if c.ExclusiveMinimum && !isInt && !isFloat {
-			err = join(err, fmt.Errorf("exclusiveMinimum can only be used on numeric types"))
+			err = errors.Join(err, fmt.Errorf("exclusiveMinimum can only be used on numeric types"))
 		}
 		if c.ExclusiveMaximum && !isInt && !isFloat {
-			err = join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
+			err = errors.Join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
 		}
 	}
 
@@ -221,7 +181,7 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 	validationErrors := commentTags.Validate()
 
 	if t != nil {
-		validationErrors = join(validationErrors, commentTags.ValidateType(t))
+		validationErrors = errors.Join(validationErrors, commentTags.ValidateType(t))
 	}
 
 	if validationErrors != nil {
@@ -317,7 +277,7 @@ func nestMarkers(markers map[string]any) (map[string]any, error) {
 	}
 
 	if len(errs) > 0 {
-		return nil, join(errs...)
+		return nil, errors.Join(errs...)
 	}
 
 	return nested, nil
