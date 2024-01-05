@@ -295,8 +295,9 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 	rest := k[1:]
 
 	if idxIdx := strings.Index(key, "["); idxIdx > -1 {
+		subscript := strings.Split(key[idxIdx+1:], "]")[0]
 		key := key[:idxIdx]
-		index, err := strconv.Atoi(strings.Split(key[idxIdx+1:], "]")[0])
+		index, err := strconv.Atoi(subscript)
 		if err != nil {
 			// Ignore key
 			return nil, fmt.Errorf("expected integer index in key %v, got %v", key, key[idxIdx+1:])
