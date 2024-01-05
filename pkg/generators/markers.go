@@ -315,11 +315,10 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 		if arrayDestination[index] == nil {
 			// Doesn't exist case
 			destination := make(map[string]any)
-			arrayDestination[index] = destination
-			return putNestedValue(destination, rest, v)
+			arrayDestination[index], err = putNestedValue(destination, rest, v)
 		} else if dst, ok := arrayDestination[index].(map[string]any); ok {
 			// Already exists case, correct type
-			return putNestedValue(dst, rest, v)
+			arrayDestination[index], err = putNestedValue(dst, rest, v)
 		}
 
 		// Already exists, incorrect type. Error
