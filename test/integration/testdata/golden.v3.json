@@ -1227,8 +1227,28 @@
        "maxLength": 5,
        "minLength": 1,
        "pattern": "^a.*b$"
+      },
+      "celField": {
+       "type": "string",
+       "default": "",
+       "x-kubernetes-validations": [
+        {
+         "message": "string message",
+         "rule": "self.length() \u003e 0"
+        },
+        {
+         "messageExpression": "self + ' hello'",
+         "rule": "self.length() % 2 == 0"
+        }
+       ]
       }
-     }
+     },
+     "x-kubernetes-validations": [
+      {
+       "message": "foo",
+       "rule": "self == oldSelf"
+      }
+     ]
     },
     "valuevalidation.Foo2": {
      "type": "object"
@@ -1243,6 +1263,12 @@
       },
       {
        "type": "string"
+      }
+     ],
+     "x-kubernetes-validations": [
+      {
+       "message": "foo3",
+       "rule": "self == oldSelf"
       }
      ]
     },

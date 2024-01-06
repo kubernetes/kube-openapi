@@ -30,9 +30,41 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
+type CELTag struct {
+	Rule              string `json:"rule,omitempty"`
+	Message           string `json:"message,omitempty"`
+	MessageExpression string `json:"messageExpression,omitempty"`
+	OptionalOldSelf   *bool  `json:"optionalOldSelf,omitempty"`
+}
+
+func (c *CELTag) Validate() error {
+	if c == nil || *c == (CELTag{}) {
+		return fmt.Errorf("empty CEL tag is not allowed")
+	}
+
+	var errs []error
+	if c.Rule == "" {
+		errs = append(errs, fmt.Errorf("rule cannot be empty"))
+	}
+	if c.Message == "" && c.MessageExpression == "" {
+		errs = append(errs, fmt.Errorf("message or messageExpression must be set"))
+	}
+	if c.Message != "" && c.MessageExpression != "" {
+		errs = append(errs, fmt.Errorf("message and messageExpression cannot be set at the same time"))
+	}
+
+	if len(errs) > 0 {
+		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
 // CommentTags represents the parsed comment tags for a given type. These types are then used to generate schema validations.
 type CommentTags struct {
 	spec.SchemaProps
+
+	CEL []CELTag `json:"cel,omitempty"`
 
 	// Future markers can all be parsed into this centralized struct...
 	// Optional bool `json:"optional,omitempty"`
@@ -85,6 +117,14 @@ func (c CommentTags) Validate() error {
 	}
 	if c.MultipleOf != nil && *c.MultipleOf == 0 {
 		err = errors.Join(err, fmt.Errorf("multipleOf cannot be 0"))
+	}
+
+	for i, celTag := range c.CEL {
+		celError := celTag.Validate()
+		if celError == nil {
+			continue
+		}
+		err = errors.Join(err, fmt.Errorf("invalid CEL tag at index %d: %w", i, celError))
 	}
 
 	return err
@@ -191,23 +231,82 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 	return commentTags, nil
 }
 
+// lintArrayIndices attempts to prevent:
+// 1. Skipped indices
+// 2. Non-consecutive indices
+func lintArrayIndices(markerComments []string, prefix string) error {
+	var lintErrors []error
+	prevLine := ""
+	prevIndex := -1
+	for _, line := range markerComments {
+		line = strings.Trim(line, " ")
+
+		// If there was a non-prefixed marker inserted in between, then
+		// reset the previous line and index.
+		if !strings.HasPrefix(line, "+"+prefix) {
+			prevLine = ""
+			prevIndex = -1
+			continue
+		}
+
+		// There will always be at least the first element in the split.
+		// If there is no = sign, we want to use the whole line as the key in the
+		// case of boolean marker comments.
+		key := strings.Split(line, "=")[0]
+		subscriptIdx := strings.Index(key, "[")
+		if subscriptIdx == -1 {
+			prevLine = ""
+			prevIndex = -1
+			continue
+		}
+
+		arrayPath := key[:subscriptIdx]
+		subscript := strings.Split(key[subscriptIdx+1:], "]")[0]
+
+		if len(subscript) == 0 {
+			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: empty subscript not allowed", line))
+			prevLine = ""
+			prevIndex = -1
+			continue
+		}
+
+		index, err := strconv.Atoi(subscript)
+
+		// If index is non-zero, check that that previous line was for the same
+		// key and either the same or previous index
+		if err != nil {
+			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, line[:subscriptIdx]))
+		} else if prevLine != arrayPath && index != 0 {
+			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
+		} else if index != prevIndex+1 && index != prevIndex {
+			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
+		}
+
+		prevLine = arrayPath
+		prevIndex = index
+	}
+
+	if len(lintErrors) > 0 {
+		return errors.Join(lintErrors...)
+	}
+
+	return nil
+}
+
 // Extracts and parses the given marker comments into a map of key -> value.
 // Accepts a prefix to filter out markers not related to validation.
 // The prefix is removed from the key in the returned map.
 // Empty keys and invalid values will return errors, refs are currently unsupported and will be skipped.
 func parseMarkers(markerComments []string, prefix string) (map[string]any, error) {
-	markers := types.ExtractCommentTags("+", markerComments)
+	if err := lintArrayIndices(markerComments, prefix); err != nil {
+		return nil, err
+	}
+
+	markers := types.ExtractCommentTags("+"+prefix, markerComments)
 
 	// Parse the values as JSON
 	result := map[string]any{}
 	for key, value := range markers {
-		if !strings.HasPrefix(key, prefix) {
-			// we only care about validation markers for now
-			continue
-		}
-
-		newKey := strings.TrimPrefix(key, prefix)
-
 		// Skip ref markers
 		if len(value) == 1 {
 			_, ok := defaultergen.ParseSymbolReference(value[0], "")
@@ -215,11 +314,11 @@ func parseMarkers(markerComments []string, prefix string) (map[string]any, error
 				continue
 			}
 		}
-		if len(newKey) == 0 {
+		if len(key) == 0 {
 			return nil, fmt.Errorf("cannot have empty key for marker comment")
 		} else if len(value) == 0 || (len(value) == 1 && len(value[0]) == 0) {
 			// Empty value means key is implicitly a bool
-			result[newKey] = true
+			result[key] = true
 			continue
 		}
 
@@ -228,16 +327,23 @@ func parseMarkers(markerComments []string, prefix string) (map[string]any, error
 			var unmarshalled interface{}
 			err := json.Unmarshal([]byte(v), &unmarshalled)
 			if err != nil {
-				return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+				// If not valid JSON, pass the raw string instead to allow
+				// implicit raw strings without quotes or escaping. This enables
+				// CEL rules to not have to worry about escaping their code for
+				// JSON strings.
+				//
+				// When interpreting the result of this function as a CommentTags,
+				// the value will be properly type checked.
+				newVal = append(newVal, v)
+			} else {
+				newVal = append(newVal, unmarshalled)
 			}
-
-			newVal = append(newVal, unmarshalled)
 		}
 
 		if len(newVal) == 1 {
-			result[newKey] = newVal[0]
+			result[key] = newVal[0]
 		} else {
-			result[newKey] = newVal
+			return nil, fmt.Errorf("cannot have multiple values for key '%v'", key)
 		}
 	}
 	return result, nil
@@ -296,11 +402,15 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 
 	if idxIdx := strings.Index(key, "["); idxIdx > -1 {
 		subscript := strings.Split(key[idxIdx+1:], "]")[0]
+		if len(subscript) == 0 {
+			return nil, fmt.Errorf("empty subscript not allowed")
+		}
+
 		key := key[:idxIdx]
 		index, err := strconv.Atoi(subscript)
 		if err != nil {
 			// Ignore key
-			return nil, fmt.Errorf("expected integer index in key %v, got %v", key, key[idxIdx+1:])
+			return nil, fmt.Errorf("expected integer index in key %v", key)
 		}
 
 		var arrayDestination []any
@@ -319,17 +429,24 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 
 		m[key] = arrayDestination
 		if arrayDestination[index] == nil {
-			// Doesn't exist case
+			// Doesn't exist case, create the destination.
+			// Assumes the destination is a map for now. Theoretically could be
+			// extended to support arrays of arrays, but that's not needed yet.
 			destination := make(map[string]any)
-			arrayDestination[index], err = putNestedValue(destination, rest, v)
+			if arrayDestination[index], err = putNestedValue(destination, rest, v); err != nil {
+				return nil, err
+			}
 		} else if dst, ok := arrayDestination[index].(map[string]any); ok {
 			// Already exists case, correct type
-			arrayDestination[index], err = putNestedValue(dst, rest, v)
+			if arrayDestination[index], err = putNestedValue(dst, rest, v); err != nil {
+				return nil, err
+			}
+		} else {
+			// Already exists, incorrect type. Error
+			// This shouldn't be possible.
+			return nil, fmt.Errorf("expected map at %v[%v], got %T", key, index, arrayDestination[index])
 		}
 
-		// Already exists, incorrect type. Error
-		// This can happen if you referred to this field without the [] in
-		// a past comment
 		return m, nil
 	} else if len(rest) == 0 {
 		// Base case. Single key. Just set into destination

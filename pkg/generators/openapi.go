@@ -448,9 +448,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			if err != nil {
 				return err
 			}
-			g.Do("},\n"+
-				"},\n"+
-				"})\n}\n\n", args)
+			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, overrides); err != nil {
+				return err
+			}
+			g.Do("},\n", nil)
+			g.Do("})\n}\n\n", args)
 			return nil
 		case hasV2DefinitionTypeAndFormat && hasV3OneOfTypes:
 			// generate v3 def.
@@ -464,10 +467,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			if err != nil {
 				return err
 			}
-			g.Do(
-				"},\n"+
-					"},\n"+
-					"},", args)
+			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, overrides); err != nil {
+				return err
+			}
+			g.Do("},\n", nil)
+			g.Do("},", args)
 			// generate v2 def.
 			g.Do("$.OpenAPIDefinition|raw${\n"+
 				"Schema: spec.Schema{\n"+
@@ -479,9 +484,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			if err != nil {
 				return err
 			}
-			g.Do("},\n"+
-				"},\n"+
-				"})\n}\n\n", args)
+			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, overrides); err != nil {
+				return err
+			}
+			g.Do("},\n", nil)
+			g.Do("})\n}\n\n", args)
 			return nil
 		case hasV2DefinitionTypeAndFormat:
 			g.Do("return $.OpenAPIDefinition|raw${\n"+
@@ -494,9 +502,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			if err != nil {
 				return err
 			}
-			g.Do("},\n"+
-				"},\n"+
-				"}\n}\n\n", args)
+			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, overrides); err != nil {
+				return err
+			}
+			g.Do("},\n", nil)
+			g.Do("}\n}\n\n", args)
 			return nil
 		case hasV3OneOfTypes:
 			// having v3 oneOf types without custom v2 type or format does not make sense.
@@ -530,7 +541,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			g.Do("Required: []string{\"$.$\"},\n", strings.Join(required, "\",\""))
 		}
 		g.Do("},\n", nil)
-		if err := g.generateStructExtensions(t); err != nil {
+		if err := g.generateStructExtensions(t, overrides); err != nil {
 			return err
 		}
 		g.Do("},\n", nil)
@@ -563,7 +574,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	return nil
 }
 
-func (g openAPITypeWriter) generateStructExtensions(t *types.Type) error {
+func (g openAPITypeWriter) generateStructExtensions(t *types.Type, tags CommentTags) error {
 	extensions, errors := parseExtensions(t.CommentLines)
 	// Initially, we will only log struct extension errors.
 	if len(errors) > 0 {
@@ -579,11 +590,11 @@ func (g openAPITypeWriter) generateStructExtensions(t *types.Type) error {
 	}
 
 	// TODO(seans3): Validate struct extensions here.
-	g.emitExtensions(extensions, unions)
+	g.emitExtensions(extensions, unions, tags.CEL)
 	return nil
 }
 
-func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *types.Type) error {
+func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *types.Type, tags CommentTags) error {
 	extensions, parseErrors := parseExtensions(m.CommentLines)
 	validationErrors := validateMemberExtensions(extensions, m)
 	errors := append(parseErrors, validationErrors...)
@@ -594,13 +605,13 @@ func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *typ
 			klog.V(2).Infof("%s %s\n", errorPrefix, e)
 		}
 	}
-	g.emitExtensions(extensions, nil)
+	g.emitExtensions(extensions, nil, tags.CEL)
 	return nil
 }
 
-func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union) {
+func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union, celRules []CELTag) {
 	// If any extensions exist, then emit code to create them.
-	if len(extensions) == 0 && len(unions) == 0 {
+	if len(extensions) == 0 && len(unions) == 0 && len(celRules) == 0 {
 		return
 	}
 	g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: spec.Extensions{\n", nil)
@@ -623,6 +634,37 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 		}
 		g.Do("},\n", nil)
 	}
+
+	if len(celRules) > 0 {
+		g.Do("\"x-kubernetes-validations\": []interface{}{\n", nil)
+		for _, rule := range celRules {
+			g.Do("map[string]interface{}{\n", nil)
+
+			g.Do("\"rule\": \"$.$\",\n", rule.Rule)
+
+			if len(rule.Message) > 0 {
+				g.Do("\"message\": \"$.$\",\n", rule.Message)
+			}
+
+			if len(rule.MessageExpression) > 0 {
+				g.Do("\"messageExpression\": \"$.$\",\n", rule.MessageExpression)
+			}
+
+			if rule.OptionalOldSelf != nil && *rule.OptionalOldSelf {
+				g.Do("\"optionalOldSelf\": $.ptrTo|raw$[bool](true),\n", generator.Args{
+					"ptrTo": &types.Type{
+						Name: types.Name{
+							Package: "k8s.io/utils/ptr",
+							Name:    "To",
+						}},
+				})
+			}
+
+			g.Do("},\n", nil)
+		}
+		g.Do("},\n", nil)
+	}
+
 	g.Do("},\n},\n", nil)
 }
 
@@ -807,11 +849,15 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	if name == "" {
 		return nil
 	}
+	overrides, err := ParseCommentTags(m.Type, m.CommentLines, markerPrefix)
+	if err != nil {
+		return err
+	}
 	if err := g.validatePatchTags(m, parent); err != nil {
 		return err
 	}
 	g.Do("\"$.$\": {\n", name)
-	if err := g.generateMemberExtensions(m, parent); err != nil {
+	if err := g.generateMemberExtensions(m, parent, overrides); err != nil {
 		return err
 	}
 	g.Do("SchemaProps: spec.SchemaProps{\n", nil)
@@ -829,10 +875,6 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	omitEmpty := strings.Contains(reflect.StructTag(m.Tags).Get("json"), "omitempty")
 	if err := g.generateDefault(m.CommentLines, m.Type, omitEmpty, parent); err != nil {
 		return fmt.Errorf("failed to generate default in %v: %v: %v", parent, m.Name, err)
-	}
-	overrides, err := ParseCommentTags(m.Type, m.CommentLines, markerPrefix)
-	if err != nil {
-		return err
 	}
 	err = g.generateValueValidations(&overrides.SchemaProps)
 	if err != nil {

@@ -1077,8 +1077,39 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 							},
 						},
 					},
+					"celField": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{
+									map[string]interface{}{
+										"rule":    "self.length() > 0",
+										"message": "string message",
+									},
+									map[string]interface{}{
+										"rule":              "self.length() % 2 == 0",
+										"messageExpression": "self + ' hello'",
+									},
+								},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
 				},
 				Required: []string{"StringValue", "NumberValue", "ArrayValue", "MapValue"},
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-validations": []interface{}{
+						map[string]interface{}{
+							"rule":    "self == oldSelf",
+							"message": "foo",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1093,6 +1124,16 @@ func schema_test_integration_testdata_valuevalidation_Foo2(ref common.ReferenceC
 				Format:        valuevalidation.Foo2{}.OpenAPISchemaFormat(),
 				MaxProperties: ptr.To[int64](5),
 			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-validations": []interface{}{
+						map[string]interface{}{
+							"rule":    "self == oldSelf",
+							"message": "foo2",
+						},
+					},
+				},
+			},
 		},
 	})
 }
@@ -1106,6 +1147,16 @@ func schema_test_integration_testdata_valuevalidation_Foo3(ref common.ReferenceC
 				Format:        valuevalidation.Foo3{}.OpenAPISchemaFormat(),
 				MaxProperties: ptr.To[int64](5),
 			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-validations": []interface{}{
+						map[string]interface{}{
+							"rule":    "self == oldSelf",
+							"message": "foo3",
+						},
+					},
+				},
+			},
 		},
 	}, common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1114,6 +1165,16 @@ func schema_test_integration_testdata_valuevalidation_Foo3(ref common.ReferenceC
 				Type:          valuevalidation.Foo3{}.OpenAPISchemaType(),
 				Format:        valuevalidation.Foo3{}.OpenAPISchemaFormat(),
 				MaxProperties: ptr.To[int64](5),
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-validations": []interface{}{
+						map[string]interface{}{
+							"rule":    "self == oldSelf",
+							"message": "foo3",
+						},
+					},
+				},
 			},
 		},
 	})
@@ -1127,6 +1188,16 @@ func schema_test_integration_testdata_valuevalidation_Foo5(ref common.ReferenceC
 				Format:        valuevalidation.Foo5{}.OpenAPISchemaFormat(),
 				MinProperties: ptr.To[int64](1),
 				MaxProperties: ptr.To[int64](5),
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-validations": []interface{}{
+						map[string]interface{}{
+							"rule":    "self == oldSelf",
+							"message": "foo5",
+						},
+					},
+				},
 			},
 		},
 	})
