@@ -306,9 +306,15 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 		var arrayDestination []any
 		if existing, ok := m[key]; !ok {
 			arrayDestination = make([]any, index+1)
-		} else {
+		} else if existing, ok := existing.([]any); !ok {
+			// Error case. Existing isn't of correct type. Can happen if
+			// someone is subscripting a field that was previously not an array
+			return nil, fmt.Errorf("expected []any at key %v, got %T", key, existing)
+		} else if index >= len(existing) {
 			// Ensure array is big enough
-			arrayDestination = append(existing.([]any), make([]any, index-len(existing.([]any))+1)...)
+			arrayDestination = append(existing, make([]any, index-len(existing)+1)...)
+		} else {
+			arrayDestination = existing
 		}
 
 		m[key] = arrayDestination
