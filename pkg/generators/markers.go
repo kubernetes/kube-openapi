@@ -232,6 +232,9 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 }
 
 // lintArrayIndices attempts to prevent:
+// This function only lints the first level of an array usage, and will not lint
+// arrays of arrays. Or arrays of maps of arrays, as that has not yet been needed.
+//
 // 1. Skipped indices
 // 2. Non-consecutive indices
 func lintArrayIndices(markerComments []string, prefix string) error {
@@ -293,57 +296,150 @@ func lintArrayIndices(markerComments []string, prefix string) error {
 	return nil
 }
 
+// ExtractCommentTags parses comments for lines of the form:
+//
+//	'marker' + "key=value".
+//
+// Values are optional; "" is the default.  A tag can be specified more than
+// one time and all values are returned.  If the resulting map has an entry for
+// a key, the value (a slice) is guaranteed to have at least 1 element.
+//
+// Similar to version from gengo, but this version support only allows one
+// value per key (preferring explicit array indices), supports raw strings
+// with concatenation, and limits the usable characters allowed in a key
+// (for simpler parsing).
+func extractCommentTags(marker string, lines []string) (map[string]string, error) {
+	allowedKeyCharacterSet := `[:_a-zA-Z0-9\[\]\-]`
+	valueEmpty := regexp.MustCompile(fmt.Sprintf(`^\+%s(%s*)$`, marker, allowedKeyCharacterSet))
+	valueAssign := regexp.MustCompile(fmt.Sprintf(`^\+%s(%s*)=(.*)$`, marker, allowedKeyCharacterSet))
+	valueRawString := regexp.MustCompile(fmt.Sprintf(`^\+%s(%s*)>(.*)$`, marker, allowedKeyCharacterSet))
+
+	out := map[string]string{}
+	lastKey := ""
+	for _, line := range lines {
+		line = strings.Trim(line, " ")
+
+		// Make sure last key gets reset if we `continue`
+		previousKey := lastKey
+		lastKey = ""
+
+		if len(line) == 0 {
+			continue
+		} else if !strings.HasPrefix(line, marker) {
+			continue
+		}
+
+		key := ""
+		value := ""
+
+		if matches := valueAssign.FindStringSubmatch(line); matches != nil {
+			key = matches[1]
+			value = matches[2]
+
+			// If key exists, throw error.
+			// Some of the old kube open-api gen marker comments like
+			// `+listMapKeys` allowed a list to be specified by writing key=value
+			// multiple times.
+			//
+			// This is not longer supported for the prefixed marker comments.
+			// This is to prevent confusion with the new array syntax which
+			// supports lists of objects.
+			//
+			// The old marker comments like +listMapKeys will remain functional,
+			// but new markers will not support it.
+			if _, ok := out[key]; ok {
+				return nil, fmt.Errorf("cannot have multiple values for key '%v'", key)
+			}
+
+		} else if matches := valueEmpty.FindStringSubmatch(line); matches != nil {
+			key = matches[1]
+			value = ""
+
+		} else if matches := valueRawString.FindStringSubmatch(line); matches != nil {
+			key = matches[1]
+
+			// First usage as a raw string.
+			if existing, exists := out[key]; !exists {
+
+				// Encode the raw string as JSON to ensure that it is properly escaped.
+				valueBytes, err := json.Marshal(matches[2])
+				if err != nil {
+					return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+				}
+
+				value = string(valueBytes)
+			} else if key != previousKey {
+				// Successive usages of the same key of a raw string must be
+				// consecutive
+				return nil, fmt.Errorf("concatenations to key '%s' must be consecutive with its assignment", key)
+			} else {
+				// If it is a consecutive repeat usage, concatenate to the
+				// existing value.
+				//
+				// Decode JSON string, append to it, re-encode JSON string.
+				// Kinda janky but this is a code-generator...
+				var unmarshalled string
+				if err := json.Unmarshal([]byte(existing), &unmarshalled); err != nil {
+					return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+				} else {
+					unmarshalled += "\n" + matches[2]
+					valueBytes, err := json.Marshal(unmarshalled)
+					if err != nil {
+						return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+					}
+
+					value = string(valueBytes)
+				}
+			}
+		} else {
+			// Comment has the correct prefix, but incorrect syntax, so it is an
+			// error
+			return nil, fmt.Errorf("invalid marker comment does not match expected `+key=<json formatted value>` pattern: %v", line)
+		}
+
+		out[key] = value
+		lastKey = key
+	}
+	return out, nil
+}
+
 // Extracts and parses the given marker comments into a map of key -> value.
 // Accepts a prefix to filter out markers not related to validation.
 // The prefix is removed from the key in the returned map.
 // Empty keys and invalid values will return errors, refs are currently unsupported and will be skipped.
 func parseMarkers(markerComments []string, prefix string) (map[string]any, error) {
+	// Called before extractCommentTags since extractCommentTags doesn't
+	// preserve order. Now that we roll our own comment tag extraction, we
+	// can return the order the keys were encountered. This would simplify
+	// logic in lintArrayIndices. This is left as a future improvement.
 	if err := lintArrayIndices(markerComments, prefix); err != nil {
 		return nil, err
 	}
 
-	markers := types.ExtractCommentTags("+"+prefix, markerComments)
+	markers, err := extractCommentTags("+"+prefix, markerComments)
+	if err != nil {
+		return nil, err
+	}
 
 	// Parse the values as JSON
 	result := map[string]any{}
 	for key, value := range markers {
-		// Skip ref markers
-		if len(value) == 1 {
-			_, ok := defaultergen.ParseSymbolReference(value[0], "")
-			if ok {
-				continue
-			}
-		}
+		var unmarshalled interface{}
+
 		if len(key) == 0 {
 			return nil, fmt.Errorf("cannot have empty key for marker comment")
-		} else if len(value) == 0 || (len(value) == 1 && len(value[0]) == 0) {
+		} else if _, ok := defaultergen.ParseSymbolReference(value, ""); ok {
+			// Skip ref markers
+			continue
+		} else if len(value) == 0 {
 			// Empty value means key is implicitly a bool
 			result[key] = true
-			continue
-		}
-
-		newVal := []any{}
-		for _, v := range value {
-			var unmarshalled interface{}
-			err := json.Unmarshal([]byte(v), &unmarshalled)
-			if err != nil {
-				// If not valid JSON, pass the raw string instead to allow
-				// implicit raw strings without quotes or escaping. This enables
-				// CEL rules to not have to worry about escaping their code for
-				// JSON strings.
-				//
-				// When interpreting the result of this function as a CommentTags,
-				// the value will be properly type checked.
-				newVal = append(newVal, v)
-			} else {
-				newVal = append(newVal, unmarshalled)
-			}
-		}
-
-		if len(newVal) == 1 {
-			result[key] = newVal[0]
+		} else if err := json.Unmarshal([]byte(value), &unmarshalled); err != nil {
+			// Not valid JSON, throw error
+			return nil, fmt.Errorf("failed to parse value for key %v as JSON: %w", key, err)
 		} else {
-			return nil, fmt.Errorf("cannot have multiple values for key '%v'", key)
+			// Is is valid JSON, use as a JSON value
+			result[key] = unmarshalled
 		}
 	}
 	return result, nil

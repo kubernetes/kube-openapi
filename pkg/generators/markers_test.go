@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package generators_test
 
 import (
@@ -123,16 +122,24 @@ func TestParseCommentTags(t *testing.T) {
 		},
 		{
 			t:    types.Float64,
-			name: "invalid: invalid value",
+			name: "invalid: non-JSON value",
 			comments: []string{
-				"+k8s:validation:minimum=asdf",
+				`+k8s:validation:minimum=asdf`,
+			},
+			expectedError: `failed to parse marker comments: failed to parse value for key minimum as JSON: invalid character 'a' looking for beginning of value`,
+		},
+		{
+			t:    types.Float64,
+			name: "invalid: invalid value type",
+			comments: []string{
+				`+k8s:validation:minimum="asdf"`,
 			},
 			expectedError: `failed to unmarshal marker comments: json: cannot unmarshal string into Go struct field CommentTags.minimum of type float64`,
 		},
 		{
 
 			t:    structKind,
-			name: "invalid: invalid value",
+			name: "invalid: empty key",
 			comments: []string{
 				"+k8s:validation:",
 			},
@@ -321,6 +328,58 @@ func TestParseCommentTags(t *testing.T) {
 						Rule:            "self > 5",
 						Message:         "must be greater than 5",
 						OptionalOldSelf: ptr.To(true),
+					},
+				},
+			},
+		},
+		{
+			t:    types.Float64,
+			name: "raw string rule",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> raw string rule`,
+				`+k8s:validation:cel[0]:message="raw string message"`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    " raw string rule",
+						Message: "raw string message",
+					},
+				},
+			},
+		},
+		{
+			t:    types.Float64,
+			name: "multiline string rule",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> self.length() % 2 == 0`,
+				`+k8s:validation:cel[0]:rule>   ? self.field == self.name + ' is even'`,
+				`+k8s:validation:cel[0]:rule>   : self.field == self.name + ' is odd'`,
+				`+k8s:validation:cel[0]:message>raw string message`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    " self.length() % 2 == 0\n   ? self.field == self.name + ' is even'\n   : self.field == self.name + ' is odd'",
+						Message: "raw string message",
+					},
+				},
+			},
+		},
+		{
+			t:    types.Float64,
+			name: "mix raw and non-raw string marker",
+			comments: []string{
+				`+k8s:validation:cel[0]:message>raw string message`,
+				`+k8s:validation:cel[0]:rule="self.length() % 2 == 0"`,
+				`+k8s:validation:cel[0]:rule>  ? self.field == self.name + ' is even'`,
+				`+k8s:validation:cel[0]:rule>  : self.field == self.name + ' is odd'`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    "self.length() % 2 == 0\n  ? self.field == self.name + ' is even'\n  : self.field == self.name + ' is odd'",
+						Message: "raw string message",
 					},
 				},
 			},
