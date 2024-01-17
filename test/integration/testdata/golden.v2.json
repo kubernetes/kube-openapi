@@ -1265,20 +1265,52 @@
       "maxLength": 5,
       "minLength": 1,
       "pattern": "^a.*b$"
+     },
+     "celField": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "message": "string message",
+        "rule": "self.length() \u003e 0"
+       },
+       {
+        "messageExpression": "self + ' hello'",
+        "rule": "self.length() % 2 == 0"
+       }
+      ]
      }
-    }
+    },
+    "x-kubernetes-validations": [
+     {
+      "message": "foo",
+      "rule": "self == oldSelf"
+     }
+    ]
    },
    "valuevalidation.Foo2": {
     "description": "This one has an open API v3 definition",
     "type": "test-type",
     "format": "test-format",
-    "maxProperties": 5
+    "maxProperties": 5,
+    "x-kubernetes-validations": [
+     {
+      "message": "foo2",
+      "rule": "self == oldSelf"
+     }
+    ]
    },
    "valuevalidation.Foo3": {
     "description": "This one has a OneOf",
     "type": "string",
     "format": "string",
-    "maxProperties": 5
+    "maxProperties": 5,
+    "x-kubernetes-validations": [
+     {
+      "message": "foo3",
+      "rule": "self == oldSelf"
+     }
+    ]
    },
    "valuevalidation.Foo4": {
     "type": "integer"
@@ -1287,7 +1319,13 @@
     "type": "test-type",
     "format": "test-format",
     "maxProperties": 5,
-    "minProperties": 1
+    "minProperties": 1,
+    "x-kubernetes-validations": [
+     {
+      "message": "foo5",
+      "rule": "self == oldSelf"
+     }
+    ]
    }
   },
   "responses": {

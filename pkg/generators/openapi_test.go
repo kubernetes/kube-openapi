@@ -2024,6 +2024,84 @@ type Blah struct {
 	}
 }
 
+func TestCELMarkerComments(t *testing.T) {
+
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+		package foo
+
+		// +k8s:openapi-gen=true
+		// +k8s:validation:cel[0]:rule="self == oldSelf"
+		// +k8s:validation:cel[0]:message="message1"
+		type Blah struct {
+			// +k8s:validation:cel[0]:rule="self.length() > 0"
+			// +k8s:validation:cel[0]:message="string message"
+			// +k8s:validation:cel[1]:rule="self.length() % 2 == 0"
+			// +k8s:validation:cel[1]:messageExpression="self + ' hello'"
+			// +k8s:validation:cel[1]:optionalOldSelf
+			// +optional
+			Field string
+		}
+	`)
+
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`, `ptr "k8s.io/utils/ptr"`})
+
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+	} else {
+		formatted_expected, ree := format.Source([]byte(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+		return common.OpenAPIDefinition{
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: 			  []string{"object"},
+					Properties: map[string]spec.Schema{
+						"Field": {
+							VendorExtensible: spec.VendorExtensible{
+								Extensions: spec.Extensions{
+									"x-kubernetes-validations": []interface{}{
+										map[string]interface{}{
+											"rule": "self.length() > 0",
+											"message": "string message",
+										},
+										map[string]interface{}{
+											"rule": "self.length() % 2 == 0",
+											"messageExpression": "self + ' hello'",
+											"optionalOldSelf": ptr.To[bool](true),
+										},
+									},
+								},
+							},
+							SchemaProps: spec.SchemaProps{
+								Default: "",
+								Type:    []string{"string"},
+								Format:  "",
+							},
+						},
+					},
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule": "self == oldSelf",
+								"message": "message1",
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+`))
+		if ree != nil {
+			t.Fatal(ree)
+		}
+		assert.Equal(string(formatted_expected), string(formatted))
+	}
+}
+
 func TestMarkerCommentsCustomDefsV3(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
