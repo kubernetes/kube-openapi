@@ -420,6 +420,21 @@ func (g openAPITypeWriter) generateValueValidations(vs *spec.SchemaProps) error 
 		g.Do("UniqueItems: true,\n", nil)
 	}
 
+	allOfSchemas := vs.AllOf
+	if len(allOfSchemas) > 0 {
+		g.Do("AllOf: []spec.Schema{\n", nil)
+		for _, s := range allOfSchemas {
+			g.Do("spec.Schema{\n", nil)
+			err := g.generateValueValidations(&s.SchemaProps)
+			if err != nil {
+				return err
+			}
+			g.Do("},\n", nil)
+		}
+
+		g.Do("},\n", nil)
+	}
+
 	return nil
 }
 
@@ -453,10 +468,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
 				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
 			err = g.generateValueValidations(&validationSchema.SchemaProps)
+			err = g.generateValueValidations(&validationSchema.SchemaProps)
 			if err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 				return err
 			}
@@ -472,10 +489,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			g.Do("OneOf:common.GenerateOpenAPIV3OneOfSchema($.type|raw${}.OpenAPIV3OneOfTypes()),\n"+
 				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
 			err = g.generateValueValidations(&validationSchema.SchemaProps)
+			err = g.generateValueValidations(&validationSchema.SchemaProps)
 			if err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 				return err
 			}
@@ -489,10 +508,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
 				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
 			err = g.generateValueValidations(&validationSchema.SchemaProps)
+			err = g.generateValueValidations(&validationSchema.SchemaProps)
 			if err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 				return err
 			}
@@ -507,10 +528,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			g.Do("Type:$.type|raw${}.OpenAPISchemaType(),\n"+
 				"Format:$.type|raw${}.OpenAPISchemaFormat(),\n", args)
 			err = g.generateValueValidations(&validationSchema.SchemaProps)
+			err = g.generateValueValidations(&validationSchema.SchemaProps)
 			if err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
+			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
 				return err
 			}
@@ -525,6 +548,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		g.Do("return $.OpenAPIDefinition|raw${\nSchema: spec.Schema{\nSchemaProps: spec.SchemaProps{\n", args)
 		g.generateDescription(t.CommentLines)
 		g.Do("Type: []string{\"object\"},\n", nil)
+		err = g.generateValueValidations(&validationSchema.SchemaProps)
 		err = g.generateValueValidations(&validationSchema.SchemaProps)
 		if err != nil {
 			return err
