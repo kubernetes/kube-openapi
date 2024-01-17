@@ -640,14 +640,14 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 		for _, rule := range celRules {
 			g.Do("map[string]interface{}{\n", nil)
 
-			g.Do("\"rule\": \"$.$\",\n", rule.Rule)
+			g.Do("\"rule\": $.$,\n", fmt.Sprintf("%#v", rule.Rule))
 
 			if len(rule.Message) > 0 {
-				g.Do("\"message\": \"$.$\",\n", rule.Message)
+				g.Do("\"message\": $.$,\n", fmt.Sprintf("%#v", rule.Message))
 			}
 
 			if len(rule.MessageExpression) > 0 {
-				g.Do("\"messageExpression\": \"$.$\",\n", rule.MessageExpression)
+				g.Do("\"messageExpression\": $.$,\n", fmt.Sprintf("%#v", rule.MessageExpression))
 			}
 
 			if rule.OptionalOldSelf != nil && *rule.OptionalOldSelf {

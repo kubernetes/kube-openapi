@@ -2113,9 +2113,10 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 		type Blah struct {
 			// +k8s:validation:cel[0]:rule="self.length() > 0"
 			// +k8s:validation:cel[0]:message="string message"
-			// +k8s:validation:cel[1]:rule>  
-			// +k8s:validation:cel[1]:rule>  self.length() % 2 == 0
-			// +k8s:validation:cel[1]:messageExpression="self + ' hello'"
+			// +k8s:validation:cel[1]:rule>  !oldSelf.hasValue() || self.length() % 2 == 0
+			// +k8s:validation:cel[1]:rule>     ? self.field == "even"
+			// +k8s:validation:cel[1]:rule>     : self.field == "odd"
+			// +k8s:validation:cel[1]:messageExpression="field must be whether the length of the string is even or odd"
 			// +k8s:validation:cel[1]:optionalOldSelf
 			// +optional
 			Field string
@@ -2144,8 +2145,8 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 											"message": "string message",
 										},
 										map[string]interface{}{
-											"rule": "self.length() % 2 == 0",
-											"messageExpression": "self + ' hello'",
+											"rule": "!oldSelf.hasValue() || self.length() % 2 == 0\n? self.field == \"even\"\n: self.field == \"odd\"",
+											"messageExpression": "field must be whether the length of the string is even or odd",
 											"optionalOldSelf": ptr.To[bool](true),
 										},
 									},
