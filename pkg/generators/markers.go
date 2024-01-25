@@ -360,30 +360,13 @@ func extractCommentTags(marker string, lines []string) (map[string]string, error
 		}
 
 		out[key] = value
+		lastKey = key
 
-		{
-			// Lint arary indices if they exist
-			subscriptIdx := strings.Index(key, "[")
-			if subscriptIdx == -1 {
-				continue
-			}
-
-			arrayPath := key[:subscriptIdx]
-			subscript := strings.Split(key[subscriptIdx+1:], "]")[0]
-
-			if len(subscript) == 0 {
-				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: empty subscript not allowed", line))
-				continue
-			}
-
-			index, err := strconv.Atoi(subscript)
-
+		if arrayPath, index, hasSubscript, err := extractArraySubscript(key); hasSubscript {
 			// If index is non-zero, check that that previous line was for the same
 			// key and either the same or previous index
 			if err != nil {
-				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, line[:subscriptIdx]))
-			} else if index < 0 {
-				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: subscript '%v' is invalid. index must be positive", arrayPath, subscript))
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, key))
 			} else if previousArrayKey != arrayPath && index != 0 {
 				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
 			} else if index != previousIndex+1 && index != previousIndex {
@@ -392,7 +375,6 @@ func extractCommentTags(marker string, lines []string) (map[string]string, error
 
 			lastIndex = index
 			lastArrayKey = arrayPath
-			lastKey = key
 		}
 	}
 
