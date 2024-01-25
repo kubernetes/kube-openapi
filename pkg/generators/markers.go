@@ -472,8 +472,8 @@ func nestMarkers(markers map[string]any) (map[string]any, error) {
 	for key, value := range markers {
 		var err error
 		keys := strings.Split(key, ":")
-		nested, err = putNestedValue(nested, keys, value)
-		if err != nil {
+
+		if err = putNestedValue(nested, keys, value); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -488,34 +488,25 @@ func nestMarkers(markers map[string]any) (map[string]any, error) {
 // Recursively puts a value into the given keypath, creating intermediate maps
 // and slices as needed. If a key is of the form `foo[bar]`, then bar will be
 // treated as an index into the array foo. If bar is not a valid integer, putNestedValue returns an error.
-func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error) {
+func putNestedValue(m map[string]any, k []string, v any) error {
 	if len(k) == 0 {
-		return m, nil
+		return nil
 	}
 
 	key := k[0]
 	rest := k[1:]
 
-	if idxIdx := strings.Index(key, "["); idxIdx > -1 {
-		subscript := strings.Split(key[idxIdx+1:], "]")[0]
-		if len(subscript) == 0 {
-			return nil, fmt.Errorf("empty subscript not allowed")
-		}
-
-		key := key[:idxIdx]
-		index, err := strconv.Atoi(subscript)
-		if err != nil {
-			// Ignore key
-			return nil, fmt.Errorf("expected integer index in key %v", key)
-		}
-
+	// Array case
+	if index, hasSubscript, err := extractArraySubscript(key); err != nil {
+		return fmt.Errorf("error parsing subscript for key %v: %w", key, err)
+	} else if hasSubscript {
 		var arrayDestination []any
 		if existing, ok := m[key]; !ok {
 			arrayDestination = make([]any, index+1)
 		} else if existing, ok := existing.([]any); !ok {
 			// Error case. Existing isn't of correct type. Can happen if
 			// someone is subscripting a field that was previously not an array
-			return nil, fmt.Errorf("expected []any at key %v, got %T", key, existing)
+			return fmt.Errorf("expected []any at key %v, got %T", key, existing)
 		} else if index >= len(existing) {
 			// Ensure array is big enough
 			arrayDestination = append(existing, make([]any, index-len(existing)+1)...)
@@ -529,25 +520,26 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 			// Assumes the destination is a map for now. Theoretically could be
 			// extended to support arrays of arrays, but that's not needed yet.
 			destination := make(map[string]any)
-			if arrayDestination[index], err = putNestedValue(destination, rest, v); err != nil {
-				return nil, err
+			arrayDestination[index] = destination
+			if err = putNestedValue(destination, rest, v); err != nil {
+				return err
 			}
 		} else if dst, ok := arrayDestination[index].(map[string]any); ok {
 			// Already exists case, correct type
-			if arrayDestination[index], err = putNestedValue(dst, rest, v); err != nil {
-				return nil, err
+			if putNestedValue(dst, rest, v); err != nil {
+				return err
 			}
 		} else {
 			// Already exists, incorrect type. Error
 			// This shouldn't be possible.
-			return nil, fmt.Errorf("expected map at %v[%v], got %T", key, index, arrayDestination[index])
+			return fmt.Errorf("expected map at %v[%v], got %T", key, index, arrayDestination[index])
 		}
 
-		return m, nil
+		return nil
 	} else if len(rest) == 0 {
 		// Base case. Single key. Just set into destination
 		m[key] = v
-		return m, nil
+		return nil
 	}
 
 	if existing, ok := m[key]; !ok {
@@ -559,6 +551,27 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 	} else {
 		// Error case. Existing isn't of correct type. Can happen if prior comment
 		// referred to value as an error
-		return nil, fmt.Errorf("expected map[string]any at key %v, got %T", key, existing)
+		return fmt.Errorf("expected map[string]any at key %v, got %T", key, existing)
 	}
+}
+
+func extractArraySubscript(str string) (int, bool, error) {
+	subscriptIdx := strings.Index(str, "[")
+	if subscriptIdx == -1 {
+		return -1, false, nil
+	}
+
+	subscript := strings.Split(str[subscriptIdx+1:], "]")[0]
+	if len(subscript) == 0 {
+		return -1, false, fmt.Errorf("empty subscript not allowed")
+	}
+
+	index, err := strconv.Atoi(subscript)
+	if err != nil {
+		return -1, false, fmt.Errorf("expected integer index in key %v", str)
+	} else if index < 0 {
+		return -1, false, fmt.Errorf("subscript '%v' is invalid. index must be positive", subscript)
+	}
+
+	return index, true, nil
 }
