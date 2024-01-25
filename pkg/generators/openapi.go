@@ -38,7 +38,7 @@ import (
 
 // This is the comment tag that carries parameters for open API generation.
 const tagName = "k8s:openapi-gen"
-const markerPrefix = "k8s:validation:"
+const markerPrefix = "+k8s:validation:"
 const tagOptional = "optional"
 const tagDefault = "default"
 

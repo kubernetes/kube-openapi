@@ -246,7 +246,7 @@ func lintArrayIndices(markerComments []string, prefix string) error {
 
 		// If there was a non-prefixed marker inserted in between, then
 		// reset the previous line and index.
-		if !strings.HasPrefix(line, "+"+prefix) {
+		if !strings.HasPrefix(line, prefix) {
 			prevLine = ""
 			prevIndex = -1
 			continue
@@ -308,11 +308,24 @@ func lintArrayIndices(markerComments []string, prefix string) error {
 // value per key (preferring explicit array indices), supports raw strings
 // with concatenation, and limits the usable characters allowed in a key
 // (for simpler parsing).
-func extractCommentTags(marker string, lines []string) (map[string]string, error) {
-	allowedKeyCharacterSet := `[:_a-zA-Z0-9\[\]\-]`
-	valueEmpty := regexp.MustCompile(fmt.Sprintf(`^\+%s(%s*)$`, marker, allowedKeyCharacterSet))
-	valueAssign := regexp.MustCompile(fmt.Sprintf(`^\+%s(%s*)=(.*)$`, marker, allowedKeyCharacterSet))
-	valueRawString := regexp.MustCompile(fmt.Sprintf(`^\+%s(%s*)>(.*)$`, marker, allowedKeyCharacterSet))
+//
+// Assignments and empty values have the same syntax as from gengo. Raw strings
+// have the syntax:
+//
+//	'marker' + "key>value"
+//	'marker' + "key>value"
+//
+// Successive usages of the same raw string key results in concatenating each
+// line with `\n` in between. It is an error to use `=` to assing to a previously
+// assigned key
+// (in contrast to types.ExtractCommentTags which allows array-typed
+// values to be specified using `=`).
+var (
+	allowedKeyCharacterSet = `[:_a-zA-Z0-9\[\]\-]`
+	valueEmpty             = regexp.MustCompile(fmt.Sprintf(`^(%s*)$`, allowedKeyCharacterSet))
+	valueAssign            = regexp.MustCompile(fmt.Sprintf(`^(%s*)=(.*)$`, allowedKeyCharacterSet))
+	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
+)
 
 	out := map[string]string{}
 	lastKey := ""
@@ -416,7 +429,7 @@ func parseMarkers(markerComments []string, prefix string) (map[string]any, error
 		return nil, err
 	}
 
-	markers, err := extractCommentTags("+"+prefix, markerComments)
+	markers, err := extractCommentTags(prefix, markerComments)
 	if err != nil {
 		return nil, err
 	}
