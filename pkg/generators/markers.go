@@ -231,71 +231,6 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 	return commentTags, nil
 }
 
-// lintArrayIndices attempts to prevent:
-// This function only lints the first level of an array usage, and will not lint
-// arrays of arrays. Or arrays of maps of arrays, as that has not yet been needed.
-//
-// 1. Skipped indices
-// 2. Non-consecutive indices
-func lintArrayIndices(markerComments []string, prefix string) error {
-	var lintErrors []error
-	prevLine := ""
-	prevIndex := -1
-	for _, line := range markerComments {
-		line = strings.Trim(line, " ")
-
-		// If there was a non-prefixed marker inserted in between, then
-		// reset the previous line and index.
-		if !strings.HasPrefix(line, prefix) {
-			prevLine = ""
-			prevIndex = -1
-			continue
-		}
-
-		// There will always be at least the first element in the split.
-		// If there is no = sign, we want to use the whole line as the key in the
-		// case of boolean marker comments.
-		key := strings.Split(line, "=")[0]
-		subscriptIdx := strings.Index(key, "[")
-		if subscriptIdx == -1 {
-			prevLine = ""
-			prevIndex = -1
-			continue
-		}
-
-		arrayPath := key[:subscriptIdx]
-		subscript := strings.Split(key[subscriptIdx+1:], "]")[0]
-
-		if len(subscript) == 0 {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: empty subscript not allowed", line))
-			prevLine = ""
-			prevIndex = -1
-			continue
-		}
-
-		index, err := strconv.Atoi(subscript)
-
-		// If index is non-zero, check that that previous line was for the same
-		// key and either the same or previous index
-		if err != nil {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, line[:subscriptIdx]))
-		} else if prevLine != arrayPath && index != 0 {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
-		} else if index != prevIndex+1 && index != prevIndex {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
-		}
-
-		prevLine = arrayPath
-		prevIndex = index
-	}
-
-	if len(lintErrors) > 0 {
-		return errors.Join(lintErrors...)
-	}
-
-	return nil
-}
-
 // ExtractCommentTags parses comments for lines of the form:
 //
 //	'marker' + "key=value".
@@ -327,13 +262,23 @@ var (
 	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
 )
 
+func extractCommentTags(marker string, lines []string) (map[string]string, error) {
 	out := map[string]string{}
 	lastKey := ""
+	lastIndex := -1
+	lastArrayKey := ""
+
+	var lintErrors []error
+
 	for _, line := range lines {
 		line = strings.Trim(line, " ")
 
 		// Make sure last key gets reset if we `continue`
 		previousKey := lastKey
+		previousArrayKey := lastArrayKey
+		previousIndex := lastIndex
+
+		lastIndex = -1
 		lastKey = ""
 
 		if len(line) == 0 {
@@ -341,6 +286,8 @@ var (
 		} else if !strings.HasPrefix(line, marker) {
 			continue
 		}
+
+		line = strings.TrimPrefix(line, marker)
 
 		key := ""
 		value := ""
@@ -369,13 +316,15 @@ var (
 			value = ""
 
 		} else if matches := valueRawString.FindStringSubmatch(line); matches != nil {
+			toAdd := strings.Trim(string(matches[2]), " ")
+
 			key = matches[1]
 
 			// First usage as a raw string.
 			if existing, exists := out[key]; !exists {
 
 				// Encode the raw string as JSON to ensure that it is properly escaped.
-				valueBytes, err := json.Marshal(matches[2])
+				valueBytes, err := json.Marshal(toAdd)
 				if err != nil {
 					return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
 				}
@@ -395,7 +344,7 @@ var (
 				if err := json.Unmarshal([]byte(existing), &unmarshalled); err != nil {
 					return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
 				} else {
-					unmarshalled += "\n" + matches[2]
+					unmarshalled += "\n" + toAdd
 					valueBytes, err := json.Marshal(unmarshalled)
 					if err != nil {
 						return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
@@ -411,8 +360,46 @@ var (
 		}
 
 		out[key] = value
-		lastKey = key
+
+		{
+			// Lint arary indices if they exist
+			subscriptIdx := strings.Index(key, "[")
+			if subscriptIdx == -1 {
+				continue
+			}
+
+			arrayPath := key[:subscriptIdx]
+			subscript := strings.Split(key[subscriptIdx+1:], "]")[0]
+
+			if len(subscript) == 0 {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: empty subscript not allowed", line))
+				continue
+			}
+
+			index, err := strconv.Atoi(subscript)
+
+			// If index is non-zero, check that that previous line was for the same
+			// key and either the same or previous index
+			if err != nil {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, line[:subscriptIdx]))
+			} else if index < 0 {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: subscript '%v' is invalid. index must be positive", arrayPath, subscript))
+			} else if previousArrayKey != arrayPath && index != 0 {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
+			} else if index != previousIndex+1 && index != previousIndex {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
+			}
+
+			lastIndex = index
+			lastArrayKey = arrayPath
+			lastKey = key
+		}
 	}
+
+	if len(lintErrors) > 0 {
+		return nil, errors.Join(lintErrors...)
+	}
+
 	return out, nil
 }
 
@@ -421,14 +408,6 @@ var (
 // The prefix is removed from the key in the returned map.
 // Empty keys and invalid values will return errors, refs are currently unsupported and will be skipped.
 func parseMarkers(markerComments []string, prefix string) (map[string]any, error) {
-	// Called before extractCommentTags since extractCommentTags doesn't
-	// preserve order. Now that we roll our own comment tag extraction, we
-	// can return the order the keys were encountered. This would simplify
-	// logic in lintArrayIndices. This is left as a future improvement.
-	if err := lintArrayIndices(markerComments, prefix); err != nil {
-		return nil, err
-	}
-
 	markers, err := extractCommentTags(prefix, markerComments)
 	if err != nil {
 		return nil, err
@@ -510,9 +489,10 @@ func putNestedValue(m map[string]any, k []string, v any) error {
 	rest := k[1:]
 
 	// Array case
-	if index, hasSubscript, err := extractArraySubscript(key); err != nil {
+	if arrayKeyWithoutSubscript, index, hasSubscript, err := extractArraySubscript(key); err != nil {
 		return fmt.Errorf("error parsing subscript for key %v: %w", key, err)
 	} else if hasSubscript {
+		key = arrayKeyWithoutSubscript
 		var arrayDestination []any
 		if existing, ok := m[key]; !ok {
 			arrayDestination = make([]any, index+1)
@@ -568,23 +548,23 @@ func putNestedValue(m map[string]any, k []string, v any) error {
 	}
 }
 
-func extractArraySubscript(str string) (int, bool, error) {
+func extractArraySubscript(str string) (string, int, bool, error) {
 	subscriptIdx := strings.Index(str, "[")
 	if subscriptIdx == -1 {
-		return -1, false, nil
+		return "", -1, false, nil
 	}
 
 	subscript := strings.Split(str[subscriptIdx+1:], "]")[0]
 	if len(subscript) == 0 {
-		return -1, false, fmt.Errorf("empty subscript not allowed")
+		return "", -1, false, fmt.Errorf("empty subscript not allowed")
 	}
 
 	index, err := strconv.Atoi(subscript)
 	if err != nil {
-		return -1, false, fmt.Errorf("expected integer index in key %v", str)
+		return "", -1, false, fmt.Errorf("expected integer index in key %v", str)
 	} else if index < 0 {
-		return -1, false, fmt.Errorf("subscript '%v' is invalid. index must be positive", subscript)
+		return "", -1, false, fmt.Errorf("subscript '%v' is invalid. index must be positive", subscript)
 	}
 
-	return index, true, nil
+	return str[:subscriptIdx], index, true, nil
 }

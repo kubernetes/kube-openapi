@@ -287,6 +287,33 @@ func TestParseCommentTags(t *testing.T) {
 		},
 		{
 			t:    types.Float64,
+			name: "non-consecutive raw string indexing",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> raw string rule`,
+				`+k8s:validation:cel[1]:rule="self > 5"`,
+				`+k8s:validation:cel[1]:message="must be greater than 5"`,
+				`+k8s:validation:cel[0]:message>another raw string message`,
+			},
+			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[0]:message>another raw string message: non-consecutive index 0 for key '+k8s:validation:cel'`,
+		},
+		{
+			t:    types.Float64,
+			name: "non-consecutive string indexing false positive",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> raw string rule [1]`,
+				`+k8s:validation:pattern="self[3] == 'hi'"`,
+			},
+		},
+		{
+			t:    types.Float64,
+			name: "non-consecutive raw string indexing false positive",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> raw string rule [1]`,
+				`+k8s:validation:pattern>"self[3] == 'hi'"`,
+			},
+		},
+		{
+			t:    types.Float64,
 			name: "boolean key at invalid index",
 			comments: []string{
 				`+k8s:validation:cel[0]:rule="oldSelf == self"`,
@@ -388,7 +415,7 @@ func TestParseCommentTags(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
 			if tc.expectedError != "" {
 				require.Error(t, err)
 				require.EqualError(t, err, tc.expectedError)
@@ -647,7 +674,7 @@ func TestCommentTags_Validate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")
+			_, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
 			if tc.errorMessage != "" {
 				require.Error(t, err)
 				require.Equal(t, "invalid marker comments: "+tc.errorMessage, err.Error())
