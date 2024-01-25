@@ -435,6 +435,26 @@ func TestParseCommentTags(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "raw string with different key in between",
+			t:    types.Float64,
+			comments: []string{
+				`+k8s:validation:cel[0]:message>raw string message`,
+				`+k8s:validation:cel[0]:rule="self.length() % 2 == 0"`,
+				`+k8s:validation:cel[0]:message>raw string message 2`,
+			},
+			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
+		},
+		{
+			name: "raw string with different raw string key in between",
+			t:    types.Float64,
+			comments: []string{
+				`+k8s:validation:cel[0]:message>raw string message`,
+				`+k8s:validation:cel[0]:rule>self.length() % 2 == 0`,
+				`+k8s:validation:cel[0]:message>raw string message 2`,
+			},
+			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
+		},
 	}
 
 	for _, tc := range cases {

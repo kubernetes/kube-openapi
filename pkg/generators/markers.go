@@ -231,13 +231,24 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 	return commentTags, nil
 }
 
-// ExtractCommentTags parses comments for lines of the form:
+var (
+	allowedKeyCharacterSet = `[:_a-zA-Z0-9\[\]\-]`
+	valueEmpty             = regexp.MustCompile(fmt.Sprintf(`^(%s*)$`, allowedKeyCharacterSet))
+	valueAssign            = regexp.MustCompile(fmt.Sprintf(`^(%s*)=(.*)$`, allowedKeyCharacterSet))
+	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
+)
+
+// extractCommentTags parses comments for lines of the form:
 //
-//	'marker' + "key=value".
+//	'marker' + "key=value"
+//
+//	or to specify truthy boolean keys:
+//
+//	'marker' + "key"
 //
 // Values are optional; "" is the default.  A tag can be specified more than
-// one time and all values are returned.  If the resulting map has an entry for
-// a key, the value (a slice) is guaranteed to have at least 1 element.
+// one time and all values are returned.  Returns a map with an entry for
+// for each key and a value.
 //
 // Similar to version from gengo, but this version support only allows one
 // value per key (preferring explicit array indices), supports raw strings
@@ -255,15 +266,11 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 // assigned key
 // (in contrast to types.ExtractCommentTags which allows array-typed
 // values to be specified using `=`).
-var (
-	allowedKeyCharacterSet = `[:_a-zA-Z0-9\[\]\-]`
-	valueEmpty             = regexp.MustCompile(fmt.Sprintf(`^(%s*)$`, allowedKeyCharacterSet))
-	valueAssign            = regexp.MustCompile(fmt.Sprintf(`^(%s*)=(.*)$`, allowedKeyCharacterSet))
-	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
-)
-
 func extractCommentTags(marker string, lines []string) (map[string]string, error) {
 	out := map[string]string{}
+
+	// Used to track the the line immediately prior to the one being iterated.
+	// If there was an invalid or ignored line, these values get reset.
 	lastKey := ""
 	lastIndex := -1
 	lastArrayKey := ""
@@ -273,12 +280,15 @@ func extractCommentTags(marker string, lines []string) (map[string]string, error
 	for _, line := range lines {
 		line = strings.Trim(line, " ")
 
-		// Make sure last key gets reset if we `continue`
+		// Track the current value of the last vars to use in this loop iteration
+		// before they are reset for the next iteration.
 		previousKey := lastKey
 		previousArrayKey := lastArrayKey
 		previousIndex := lastIndex
 
+		// Make sure last vars gets reset if we `continue`
 		lastIndex = -1
+		lastArrayKey = ""
 		lastKey = ""
 
 		if len(line) == 0 {
@@ -362,6 +372,9 @@ func extractCommentTags(marker string, lines []string) (map[string]string, error
 		out[key] = value
 		lastKey = key
 
+		// Lint the array subscript for common mistakes. This only lints the last
+		// array index used, (since we do not have a need for nested arrays yet
+		// in markers)
 		if arrayPath, index, hasSubscript, err := extractArraySubscript(key); hasSubscript {
 			// If index is non-zero, check that that previous line was for the same
 			// key and either the same or previous index
@@ -530,6 +543,14 @@ func putNestedValue(m map[string]any, k []string, v any) error {
 	}
 }
 
+// extractArraySubscript extracts the left array subscript from a key of
+// the form  `foo[bar][baz]` -> "bar".
+// Returns the key without the subscript, the index, and a bool indicating if
+// the key had a subscript.
+// If the key has a subscript, but the subscript is not a valid integer, returns an error.
+//
+// This can be adapted to support multidimensional subscripts probably fairly
+// easily by retuning a list of ints
 func extractArraySubscript(str string) (string, int, bool, error) {
 	subscriptIdx := strings.Index(str, "[")
 	if subscriptIdx == -1 {
