@@ -231,66 +231,171 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 	return commentTags, nil
 }
 
-// lintArrayIndices attempts to prevent:
-// 1. Skipped indices
-// 2. Non-consecutive indices
-func lintArrayIndices(markerComments []string, prefix string) error {
+var (
+	allowedKeyCharacterSet = `[:_a-zA-Z0-9\[\]\-]`
+	valueEmpty             = regexp.MustCompile(fmt.Sprintf(`^(%s*)$`, allowedKeyCharacterSet))
+	valueAssign            = regexp.MustCompile(fmt.Sprintf(`^(%s*)=(.*)$`, allowedKeyCharacterSet))
+	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
+)
+
+// extractCommentTags parses comments for lines of the form:
+//
+//	'marker' + "key=value"
+//
+//	or to specify truthy boolean keys:
+//
+//	'marker' + "key"
+//
+// Values are optional; "" is the default.  A tag can be specified more than
+// one time and all values are returned.  Returns a map with an entry for
+// for each key and a value.
+//
+// Similar to version from gengo, but this version support only allows one
+// value per key (preferring explicit array indices), supports raw strings
+// with concatenation, and limits the usable characters allowed in a key
+// (for simpler parsing).
+//
+// Assignments and empty values have the same syntax as from gengo. Raw strings
+// have the syntax:
+//
+//	'marker' + "key>value"
+//	'marker' + "key>value"
+//
+// Successive usages of the same raw string key results in concatenating each
+// line with `\n` in between. It is an error to use `=` to assing to a previously
+// assigned key
+// (in contrast to types.ExtractCommentTags which allows array-typed
+// values to be specified using `=`).
+func extractCommentTags(marker string, lines []string) (map[string]string, error) {
+	out := map[string]string{}
+
+	// Used to track the the line immediately prior to the one being iterated.
+	// If there was an invalid or ignored line, these values get reset.
+	lastKey := ""
+	lastIndex := -1
+	lastArrayKey := ""
+
 	var lintErrors []error
-	prevLine := ""
-	prevIndex := -1
-	for _, line := range markerComments {
+
+	for _, line := range lines {
 		line = strings.Trim(line, " ")
 
-		// If there was a non-prefixed marker inserted in between, then
-		// reset the previous line and index.
-		if !strings.HasPrefix(line, "+"+prefix) {
-			prevLine = ""
-			prevIndex = -1
+		// Track the current value of the last vars to use in this loop iteration
+		// before they are reset for the next iteration.
+		previousKey := lastKey
+		previousArrayKey := lastArrayKey
+		previousIndex := lastIndex
+
+		// Make sure last vars gets reset if we `continue`
+		lastIndex = -1
+		lastArrayKey = ""
+		lastKey = ""
+
+		if len(line) == 0 {
+			continue
+		} else if !strings.HasPrefix(line, marker) {
 			continue
 		}
 
-		// There will always be at least the first element in the split.
-		// If there is no = sign, we want to use the whole line as the key in the
-		// case of boolean marker comments.
-		key := strings.Split(line, "=")[0]
-		subscriptIdx := strings.Index(key, "[")
-		if subscriptIdx == -1 {
-			prevLine = ""
-			prevIndex = -1
-			continue
+		line = strings.TrimPrefix(line, marker)
+
+		key := ""
+		value := ""
+
+		if matches := valueAssign.FindStringSubmatch(line); matches != nil {
+			key = matches[1]
+			value = matches[2]
+
+			// If key exists, throw error.
+			// Some of the old kube open-api gen marker comments like
+			// `+listMapKeys` allowed a list to be specified by writing key=value
+			// multiple times.
+			//
+			// This is not longer supported for the prefixed marker comments.
+			// This is to prevent confusion with the new array syntax which
+			// supports lists of objects.
+			//
+			// The old marker comments like +listMapKeys will remain functional,
+			// but new markers will not support it.
+			if _, ok := out[key]; ok {
+				return nil, fmt.Errorf("cannot have multiple values for key '%v'", key)
+			}
+
+		} else if matches := valueEmpty.FindStringSubmatch(line); matches != nil {
+			key = matches[1]
+			value = ""
+
+		} else if matches := valueRawString.FindStringSubmatch(line); matches != nil {
+			toAdd := strings.Trim(string(matches[2]), " ")
+
+			key = matches[1]
+
+			// First usage as a raw string.
+			if existing, exists := out[key]; !exists {
+
+				// Encode the raw string as JSON to ensure that it is properly escaped.
+				valueBytes, err := json.Marshal(toAdd)
+				if err != nil {
+					return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+				}
+
+				value = string(valueBytes)
+			} else if key != previousKey {
+				// Successive usages of the same key of a raw string must be
+				// consecutive
+				return nil, fmt.Errorf("concatenations to key '%s' must be consecutive with its assignment", key)
+			} else {
+				// If it is a consecutive repeat usage, concatenate to the
+				// existing value.
+				//
+				// Decode JSON string, append to it, re-encode JSON string.
+				// Kinda janky but this is a code-generator...
+				var unmarshalled string
+				if err := json.Unmarshal([]byte(existing), &unmarshalled); err != nil {
+					return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+				} else {
+					unmarshalled += "\n" + toAdd
+					valueBytes, err := json.Marshal(unmarshalled)
+					if err != nil {
+						return nil, fmt.Errorf("invalid value for key %v: %w", key, err)
+					}
+
+					value = string(valueBytes)
+				}
+			}
+		} else {
+			// Comment has the correct prefix, but incorrect syntax, so it is an
+			// error
+			return nil, fmt.Errorf("invalid marker comment does not match expected `+key=<json formatted value>` pattern: %v", line)
 		}
 
-		arrayPath := key[:subscriptIdx]
-		subscript := strings.Split(key[subscriptIdx+1:], "]")[0]
+		out[key] = value
+		lastKey = key
 
-		if len(subscript) == 0 {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: empty subscript not allowed", line))
-			prevLine = ""
-			prevIndex = -1
-			continue
+		// Lint the array subscript for common mistakes. This only lints the last
+		// array index used, (since we do not have a need for nested arrays yet
+		// in markers)
+		if arrayPath, index, hasSubscript, err := extractArraySubscript(key); hasSubscript {
+			// If index is non-zero, check that that previous line was for the same
+			// key and either the same or previous index
+			if err != nil {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, key))
+			} else if previousArrayKey != arrayPath && index != 0 {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
+			} else if index != previousIndex+1 && index != previousIndex {
+				lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
+			}
+
+			lastIndex = index
+			lastArrayKey = arrayPath
 		}
-
-		index, err := strconv.Atoi(subscript)
-
-		// If index is non-zero, check that that previous line was for the same
-		// key and either the same or previous index
-		if err != nil {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: expected integer index in key '%v'", line, line[:subscriptIdx]))
-		} else if prevLine != arrayPath && index != 0 {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
-		} else if index != prevIndex+1 && index != prevIndex {
-			lintErrors = append(lintErrors, fmt.Errorf("error parsing %v: non-consecutive index %v for key '%v'", line, index, arrayPath))
-		}
-
-		prevLine = arrayPath
-		prevIndex = index
 	}
 
 	if len(lintErrors) > 0 {
-		return errors.Join(lintErrors...)
+		return nil, errors.Join(lintErrors...)
 	}
 
-	return nil
+	return out, nil
 }
 
 // Extracts and parses the given marker comments into a map of key -> value.
@@ -298,52 +403,30 @@ func lintArrayIndices(markerComments []string, prefix string) error {
 // The prefix is removed from the key in the returned map.
 // Empty keys and invalid values will return errors, refs are currently unsupported and will be skipped.
 func parseMarkers(markerComments []string, prefix string) (map[string]any, error) {
-	if err := lintArrayIndices(markerComments, prefix); err != nil {
+	markers, err := extractCommentTags(prefix, markerComments)
+	if err != nil {
 		return nil, err
 	}
-
-	markers := types.ExtractCommentTags("+"+prefix, markerComments)
 
 	// Parse the values as JSON
 	result := map[string]any{}
 	for key, value := range markers {
-		// Skip ref markers
-		if len(value) == 1 {
-			_, ok := defaultergen.ParseSymbolReference(value[0], "")
-			if ok {
-				continue
-			}
-		}
+		var unmarshalled interface{}
+
 		if len(key) == 0 {
 			return nil, fmt.Errorf("cannot have empty key for marker comment")
-		} else if len(value) == 0 || (len(value) == 1 && len(value[0]) == 0) {
+		} else if _, ok := defaultergen.ParseSymbolReference(value, ""); ok {
+			// Skip ref markers
+			continue
+		} else if len(value) == 0 {
 			// Empty value means key is implicitly a bool
 			result[key] = true
-			continue
-		}
-
-		newVal := []any{}
-		for _, v := range value {
-			var unmarshalled interface{}
-			err := json.Unmarshal([]byte(v), &unmarshalled)
-			if err != nil {
-				// If not valid JSON, pass the raw string instead to allow
-				// implicit raw strings without quotes or escaping. This enables
-				// CEL rules to not have to worry about escaping their code for
-				// JSON strings.
-				//
-				// When interpreting the result of this function as a CommentTags,
-				// the value will be properly type checked.
-				newVal = append(newVal, v)
-			} else {
-				newVal = append(newVal, unmarshalled)
-			}
-		}
-
-		if len(newVal) == 1 {
-			result[key] = newVal[0]
+		} else if err := json.Unmarshal([]byte(value), &unmarshalled); err != nil {
+			// Not valid JSON, throw error
+			return nil, fmt.Errorf("failed to parse value for key %v as JSON: %w", key, err)
 		} else {
-			return nil, fmt.Errorf("cannot have multiple values for key '%v'", key)
+			// Is is valid JSON, use as a JSON value
+			result[key] = unmarshalled
 		}
 	}
 	return result, nil
@@ -376,8 +459,8 @@ func nestMarkers(markers map[string]any) (map[string]any, error) {
 	for key, value := range markers {
 		var err error
 		keys := strings.Split(key, ":")
-		nested, err = putNestedValue(nested, keys, value)
-		if err != nil {
+
+		if err = putNestedValue(nested, keys, value); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -392,34 +475,26 @@ func nestMarkers(markers map[string]any) (map[string]any, error) {
 // Recursively puts a value into the given keypath, creating intermediate maps
 // and slices as needed. If a key is of the form `foo[bar]`, then bar will be
 // treated as an index into the array foo. If bar is not a valid integer, putNestedValue returns an error.
-func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error) {
+func putNestedValue(m map[string]any, k []string, v any) error {
 	if len(k) == 0 {
-		return m, nil
+		return nil
 	}
 
 	key := k[0]
 	rest := k[1:]
 
-	if idxIdx := strings.Index(key, "["); idxIdx > -1 {
-		subscript := strings.Split(key[idxIdx+1:], "]")[0]
-		if len(subscript) == 0 {
-			return nil, fmt.Errorf("empty subscript not allowed")
-		}
-
-		key := key[:idxIdx]
-		index, err := strconv.Atoi(subscript)
-		if err != nil {
-			// Ignore key
-			return nil, fmt.Errorf("expected integer index in key %v", key)
-		}
-
+	// Array case
+	if arrayKeyWithoutSubscript, index, hasSubscript, err := extractArraySubscript(key); err != nil {
+		return fmt.Errorf("error parsing subscript for key %v: %w", key, err)
+	} else if hasSubscript {
+		key = arrayKeyWithoutSubscript
 		var arrayDestination []any
 		if existing, ok := m[key]; !ok {
 			arrayDestination = make([]any, index+1)
 		} else if existing, ok := existing.([]any); !ok {
 			// Error case. Existing isn't of correct type. Can happen if
 			// someone is subscripting a field that was previously not an array
-			return nil, fmt.Errorf("expected []any at key %v, got %T", key, existing)
+			return fmt.Errorf("expected []any at key %v, got %T", key, existing)
 		} else if index >= len(existing) {
 			// Ensure array is big enough
 			arrayDestination = append(existing, make([]any, index-len(existing)+1)...)
@@ -433,25 +508,26 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 			// Assumes the destination is a map for now. Theoretically could be
 			// extended to support arrays of arrays, but that's not needed yet.
 			destination := make(map[string]any)
-			if arrayDestination[index], err = putNestedValue(destination, rest, v); err != nil {
-				return nil, err
+			arrayDestination[index] = destination
+			if err = putNestedValue(destination, rest, v); err != nil {
+				return err
 			}
 		} else if dst, ok := arrayDestination[index].(map[string]any); ok {
 			// Already exists case, correct type
-			if arrayDestination[index], err = putNestedValue(dst, rest, v); err != nil {
-				return nil, err
+			if putNestedValue(dst, rest, v); err != nil {
+				return err
 			}
 		} else {
 			// Already exists, incorrect type. Error
 			// This shouldn't be possible.
-			return nil, fmt.Errorf("expected map at %v[%v], got %T", key, index, arrayDestination[index])
+			return fmt.Errorf("expected map at %v[%v], got %T", key, index, arrayDestination[index])
 		}
 
-		return m, nil
+		return nil
 	} else if len(rest) == 0 {
 		// Base case. Single key. Just set into destination
 		m[key] = v
-		return m, nil
+		return nil
 	}
 
 	if existing, ok := m[key]; !ok {
@@ -463,6 +539,35 @@ func putNestedValue(m map[string]any, k []string, v any) (map[string]any, error)
 	} else {
 		// Error case. Existing isn't of correct type. Can happen if prior comment
 		// referred to value as an error
-		return nil, fmt.Errorf("expected map[string]any at key %v, got %T", key, existing)
+		return fmt.Errorf("expected map[string]any at key %v, got %T", key, existing)
 	}
+}
+
+// extractArraySubscript extracts the left array subscript from a key of
+// the form  `foo[bar][baz]` -> "bar".
+// Returns the key without the subscript, the index, and a bool indicating if
+// the key had a subscript.
+// If the key has a subscript, but the subscript is not a valid integer, returns an error.
+//
+// This can be adapted to support multidimensional subscripts probably fairly
+// easily by retuning a list of ints
+func extractArraySubscript(str string) (string, int, bool, error) {
+	subscriptIdx := strings.Index(str, "[")
+	if subscriptIdx == -1 {
+		return "", -1, false, nil
+	}
+
+	subscript := strings.Split(str[subscriptIdx+1:], "]")[0]
+	if len(subscript) == 0 {
+		return "", -1, false, fmt.Errorf("empty subscript not allowed")
+	}
+
+	index, err := strconv.Atoi(subscript)
+	if err != nil {
+		return "", -1, false, fmt.Errorf("expected integer index in key %v", str)
+	} else if index < 0 {
+		return "", -1, false, fmt.Errorf("subscript '%v' is invalid. index must be positive", subscript)
+	}
+
+	return str[:subscriptIdx], index, true, nil
 }

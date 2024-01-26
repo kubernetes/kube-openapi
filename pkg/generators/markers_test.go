@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,7 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
 package generators_test
 
 import (
@@ -123,16 +122,24 @@ func TestParseCommentTags(t *testing.T) {
 		},
 		{
 			t:    types.Float64,
-			name: "invalid: invalid value",
+			name: "invalid: non-JSON value",
 			comments: []string{
-				"+k8s:validation:minimum=asdf",
+				`+k8s:validation:minimum=asdf`,
+			},
+			expectedError: `failed to parse marker comments: failed to parse value for key minimum as JSON: invalid character 'a' looking for beginning of value`,
+		},
+		{
+			t:    types.Float64,
+			name: "invalid: invalid value type",
+			comments: []string{
+				`+k8s:validation:minimum="asdf"`,
 			},
 			expectedError: `failed to unmarshal marker comments: json: cannot unmarshal string into Go struct field CommentTags.minimum of type float64`,
 		},
 		{
 
 			t:    structKind,
-			name: "invalid: invalid value",
+			name: "invalid: empty key",
 			comments: []string{
 				"+k8s:validation:",
 			},
@@ -173,7 +180,7 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[2]:rule="self > 5"`,
 				`+k8s:validation:cel[2]:message="must be greater than 5"`,
 			},
-			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[2]:rule="self > 5": non-consecutive index 2 for key '+k8s:validation:cel'`,
+			expectedError: `failed to parse marker comments: error parsing cel[2]:rule="self > 5": non-consecutive index 2 for key 'cel'`,
 		},
 		{
 			t:    types.Float64,
@@ -236,7 +243,7 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[2]:optionalOldSelf=true`,
 				`+k8s:validation:cel[2]:message="must be greater than 5"`,
 			},
-			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[2]:rule="self > 5": non-consecutive index 2 for key '+k8s:validation:cel'`,
+			expectedError: `failed to parse marker comments: error parsing cel[2]:rule="self > 5": non-consecutive index 2 for key 'cel'`,
 		},
 		{
 			t:    types.Float64,
@@ -248,7 +255,7 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:optionalOldSelf=true`,
 				`+k8s:validation:cel[0]:message="must be greater than 5"`,
 			},
-			expectedError: "failed to parse marker comments: error parsing +k8s:validation:cel[0]:optionalOldSelf=true: non-consecutive index 0 for key '+k8s:validation:cel'",
+			expectedError: "failed to parse marker comments: error parsing cel[0]:optionalOldSelf=true: non-consecutive index 0 for key 'cel'",
 		},
 		{
 			t:    types.Float64,
@@ -262,7 +269,7 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[2]:rule="a rule"`,
 				`+k8s:validation:cel[2]:message="message 2"`,
 			},
-			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[2]:rule="a rule": non-consecutive index 2 for key '+k8s:validation:cel'`,
+			expectedError: "failed to parse marker comments: error parsing cel[2]:rule=\"a rule\": non-consecutive index 2 for key 'cel'",
 		},
 		{
 			t:    types.Float64,
@@ -276,7 +283,58 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[2]:rule="a rule"`,
 				`+k8s:validation:cel[2]:message="message 2"`,
 			},
-			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[2]:rule="a rule": non-consecutive index 2 for key '+k8s:validation:cel'`,
+			expectedError: "failed to parse marker comments: error parsing cel[2]:rule=\"a rule\": non-consecutive index 2 for key 'cel'",
+		},
+		{
+			t:    types.Float64,
+			name: "non-consecutive raw string indexing",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> raw string rule`,
+				`+k8s:validation:cel[1]:rule="self > 5"`,
+				`+k8s:validation:cel[1]:message="must be greater than 5"`,
+				`+k8s:validation:cel[0]:message>another raw string message`,
+			},
+			expectedError: "failed to parse marker comments: error parsing cel[0]:message>another raw string message: non-consecutive index 0 for key 'cel'",
+		},
+		{
+			t:    types.String,
+			name: "non-consecutive string indexing false positive",
+			comments: []string{
+				`+k8s:validation:cel[0]:message>[3]string rule [1]`,
+				`+k8s:validation:cel[0]:rule="string rule [1]"`,
+				`+k8s:validation:pattern="self[3] == 'hi'"`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    "string rule [1]",
+						Message: "[3]string rule [1]",
+					},
+				},
+				SchemaProps: spec.SchemaProps{
+					Pattern: "self[3] == 'hi'",
+				},
+			},
+		},
+		{
+			t:    types.String,
+			name: "non-consecutive raw string indexing false positive",
+			comments: []string{
+				`+k8s:validation:cel[0]:message>[3]raw string message with subscirpt [3]"`,
+				`+k8s:validation:cel[0]:rule> raw string rule [1]`,
+				`+k8s:validation:pattern>"self[3] == 'hi'"`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    "raw string rule [1]",
+						Message: "[3]raw string message with subscirpt [3]\"",
+					},
+				},
+				SchemaProps: spec.SchemaProps{
+					Pattern: `"self[3] == 'hi'"`,
+				},
+			},
 		},
 		{
 			t:    types.Float64,
@@ -286,7 +344,7 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:message="cant change"`,
 				`+k8s:validation:cel[2]:optionalOldSelf`,
 			},
-			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[2]:optionalOldSelf: non-consecutive index 2 for key '+k8s:validation:cel'`,
+			expectedError: `failed to parse marker comments: error parsing cel[2]:optionalOldSelf: non-consecutive index 2 for key 'cel'`,
 		},
 		{
 			t:    types.Float64,
@@ -299,7 +357,7 @@ func TestParseCommentTags(t *testing.T) {
 				`+minimum=5`,
 				`+k8s:validation:cel[1]:optionalOldSelf`,
 			},
-			expectedError: `failed to parse marker comments: error parsing +k8s:validation:cel[1]:optionalOldSelf: non-consecutive index 1 for key '+k8s:validation:cel'`,
+			expectedError: `failed to parse marker comments: error parsing cel[1]:optionalOldSelf: non-consecutive index 1 for key 'cel'`,
 		},
 		{
 			t:    types.Float64,
@@ -325,11 +383,83 @@ func TestParseCommentTags(t *testing.T) {
 				},
 			},
 		},
+		{
+			t:    types.Float64,
+			name: "raw string rule",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> raw string rule`,
+				`+k8s:validation:cel[0]:message="raw string message"`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    "raw string rule",
+						Message: "raw string message",
+					},
+				},
+			},
+		},
+		{
+			t:    types.Float64,
+			name: "multiline string rule",
+			comments: []string{
+				`+k8s:validation:cel[0]:rule> self.length() % 2 == 0`,
+				`+k8s:validation:cel[0]:rule>   ? self.field == self.name + ' is even'`,
+				`+k8s:validation:cel[0]:rule>   : self.field == self.name + ' is odd'`,
+				`+k8s:validation:cel[0]:message>raw string message`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    "self.length() % 2 == 0\n? self.field == self.name + ' is even'\n: self.field == self.name + ' is odd'",
+						Message: "raw string message",
+					},
+				},
+			},
+		},
+		{
+			t:    types.Float64,
+			name: "mix raw and non-raw string marker",
+			comments: []string{
+				`+k8s:validation:cel[0]:message>raw string message`,
+				`+k8s:validation:cel[0]:rule="self.length() % 2 == 0"`,
+				`+k8s:validation:cel[0]:rule>  ? self.field == self.name + ' is even'`,
+				`+k8s:validation:cel[0]:rule>  : self.field == self.name + ' is odd'`,
+			},
+			expected: generators.CommentTags{
+				CEL: []generators.CELTag{
+					{
+						Rule:    "self.length() % 2 == 0\n? self.field == self.name + ' is even'\n: self.field == self.name + ' is odd'",
+						Message: "raw string message",
+					},
+				},
+			},
+		},
+		{
+			name: "raw string with different key in between",
+			t:    types.Float64,
+			comments: []string{
+				`+k8s:validation:cel[0]:message>raw string message`,
+				`+k8s:validation:cel[0]:rule="self.length() % 2 == 0"`,
+				`+k8s:validation:cel[0]:message>raw string message 2`,
+			},
+			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
+		},
+		{
+			name: "raw string with different raw string key in between",
+			t:    types.Float64,
+			comments: []string{
+				`+k8s:validation:cel[0]:message>raw string message`,
+				`+k8s:validation:cel[0]:rule>self.length() % 2 == 0`,
+				`+k8s:validation:cel[0]:message>raw string message 2`,
+			},
+			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
 			if tc.expectedError != "" {
 				require.Error(t, err)
 				require.EqualError(t, err, tc.expectedError)
@@ -588,7 +718,7 @@ func TestCommentTags_Validate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")
+			_, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
 			if tc.errorMessage != "" {
 				require.Error(t, err)
 				require.Equal(t, "invalid marker comments: "+tc.errorMessage, err.Error())
