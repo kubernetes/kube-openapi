@@ -35,6 +35,8 @@ type CELTag struct {
 	Message           string `json:"message,omitempty"`
 	MessageExpression string `json:"messageExpression,omitempty"`
 	OptionalOldSelf   *bool  `json:"optionalOldSelf,omitempty"`
+	Reason            string `json:"reason,omitempty"`
+	FieldPath         string `json:"fieldPath,omitempty"`
 }
 
 func (c *CELTag) Validate() error {

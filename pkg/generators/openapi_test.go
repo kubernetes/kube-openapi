@@ -2110,9 +2110,11 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 		// +k8s:openapi-gen=true
 		// +k8s:validation:cel[0]:rule="self == oldSelf"
 		// +k8s:validation:cel[0]:message="message1"
+		// +k8s:validation:cel[0]:fieldPath="field"
 		type Blah struct {
 			// +k8s:validation:cel[0]:rule="self.length() > 0"
 			// +k8s:validation:cel[0]:message="string message"
+			// +k8s:validation:cel[0]:reason="Invalid"
 			// +k8s:validation:cel[1]:rule>  !oldSelf.hasValue() || self.length() % 2 == 0
 			// +k8s:validation:cel[1]:rule>     ? self.field == "even"
 			// +k8s:validation:cel[1]:rule>     : self.field == "odd"
@@ -2143,6 +2145,7 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 										map[string]interface{}{
 											"rule": "self.length() > 0",
 											"message": "string message",
+											"reason": "Invalid",
 										},
 										map[string]interface{}{
 											"rule": "!oldSelf.hasValue() || self.length() % 2 == 0\n? self.field == \"even\"\n: self.field == \"odd\"",
@@ -2166,6 +2169,7 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 							map[string]interface{}{
 								"rule": "self == oldSelf",
 								"message": "message1",
+								"fieldPath": "field",
 							},
 						},
 					},

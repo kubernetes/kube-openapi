@@ -660,6 +660,14 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 				})
 			}
 
+			if len(rule.Reason) > 0 {
+				g.Do("\"reason\": $.$,\n", fmt.Sprintf("%#v", rule.Reason))
+			}
+
+			if len(rule.FieldPath) > 0 {
+				g.Do("\"fieldPath\": $.$,\n", fmt.Sprintf("%#v", rule.FieldPath))
+			}
+
 			g.Do("},\n", nil)
 		}
 		g.Do("},\n", nil)
