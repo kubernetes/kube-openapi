@@ -16,6 +16,7 @@ limitations under the License.
 package generators_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -565,6 +566,78 @@ func TestParseCommentTags(t *testing.T) {
 			if tc.expectedError != "" {
 				require.Error(t, err)
 				require.EqualError(t, err, tc.expectedError)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestNameFormat(t *testing.T) {
+	stringKind := createType("string")
+
+	formatNames := []string{
+		"dns1123Label",
+		"dns1123Subdomain",
+		"httpPath",
+		"qualifiedName",
+		"wildcardDNS1123Subdomain",
+		"cIdentifier",
+		"dns1035Label",
+		"labelValue",
+	}
+
+	cases := []struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      generators.CommentTags
+		expectedError string
+	}{}
+
+	for _, formatName := range formatNames {
+
+		var schemaProps spec.SchemaProps
+		if generators.NameFormats[formatName].MaxLength != -1 {
+			schemaProps = spec.SchemaProps{
+				Pattern:   generators.NameFormats[formatName].Pattern,
+				MaxLength: ptr.To[int64](generators.NameFormats[formatName].MaxLength),
+			}
+		} else {
+			schemaProps = spec.SchemaProps{
+				Pattern: generators.NameFormats[formatName].Pattern,
+			}
+		}
+
+		cases = append(cases, struct {
+			t             *types.Type
+			name          string
+			comments      []string
+			expected      generators.CommentTags
+			expectedError string
+		}{
+			t:    &stringKind,
+			name: formatName,
+			comments: []string{
+				"comment",
+				"another + comment",
+				fmt.Sprintf("+k8s:validation:nameFormat=\"%s\"", formatName),
+			},
+			expected: generators.CommentTags{
+				SchemaProps: schemaProps,
+			},
+		})
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				require.Regexp(t, tc.expectedError, err.Error())
 				return
 			} else {
 				require.NoError(t, err)
