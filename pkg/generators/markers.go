@@ -108,6 +108,72 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 	return &res, nil
 }
 
+type NameFormat struct {
+	name         string
+	pattern      string
+	ref          string
+	errorMessage string
+}
+
+func (nf NameFormat) Validate(field string) error {
+	matched, err := regexp.MatchString(nf.pattern, field)
+	if err != nil || !matched {
+		return fmt.Errorf(nf.errorMessage)
+	}
+	return nil
+}
+
+var NameFormats = map[string]NameFormat{
+	"dns1123Label": {
+		name:         "dns1123Label",
+		pattern:      "(?=.{1,63}$)[a-z0-9]([-a-z0-9]*[a-z0-9])?",
+		ref:          `$ref: "#/definitions/dns1123Label"`,
+		errorMessage: "a lowercase RFC 1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character",
+	},
+	"dns1123Subdomain": {
+		name:         "dns1123Subdomain",
+		pattern:      "(?=.{1,253}$)[a-z]([-a-z0-9]*[a-z0-9])?",
+		ref:          `$ref: "#/definitions/dns1123Subdomain"`,
+		errorMessage: "a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character",
+	},
+	"httpPath": {
+		name:         "httpPath",
+		pattern:      `[A-Za-z0-9/\-._~%!$&'()*+,;=:]+`,
+		ref:          `$ref: "#/definitions/httpPath"`,
+		errorMessage: "",
+	},
+	"qualifiedName": {
+		name:         "qualifiedName",
+		pattern:      "(?=.{1,63}$)([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]",
+		ref:          `$ref: "#/definitions/qualifiedName"`,
+		errorMessage: "must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character",
+	},
+	"wildcardDNS1123Subdomain": {
+		name:         "wildcardDNS1123Subdomain",
+		pattern:      "\\*\\.(?=.{1,253}$)[a-z]([-a-z0-9]*[a-z0-9])?",
+		ref:          `$ref: "#/definitions/wildcardDNS1123Subdomain"`,
+		errorMessage: "a wildcard DNS-1123 subdomain must start with '*.', followed by a valid DNS subdomain, which must consist of lower case alphanumeric characters, '-' or '.' and end with an alphanumeric character",
+	},
+	"cIdentifier": {
+		name:         "cIdentifier",
+		pattern:      "[A-Za-z_][A-Za-z0-9_]*",
+		ref:          `$ref: "#/definitions/cIdentifier"`,
+		errorMessage: "a valid C identifier must start with alphabetic character or '_', followed by a string of alphanumeric characters or '_'",
+	},
+	"dns1035Label": {
+		name:         "dns1035Label",
+		pattern:      "(?=.{1,63}$)[a-z]([-a-z0-9]*[a-z0-9])?",
+		ref:          `$ref: "#/definitions/dns1035Label"`,
+		errorMessage: "a DNS-1035 label must consist of lower case alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character",
+	},
+	"labelValue": {
+		name:         "labelValue",
+		pattern:      "(?=.{1,63}$)(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?",
+		ref:          `$ref: "#/definitions/labelValue"`,
+		errorMessage: "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character",
+	},
+}
+
 // validates the parameters in a CommentTags instance. Returns any errors encountered.
 func (c commentTags) Validate() error {
 
@@ -228,6 +294,28 @@ func (c commentTags) ValidateType(t *types.Type) error {
 	}
 
 	return err
+}
+
+func validateNameFormats(nested map[string]any) (map[string]any, error) {
+	var errs []error
+	if formatName, ok := nested["nameFormat"]; ok {
+		if nameFormat, ok := NameFormats[formatName.(string)]; ok {
+			// remove nameformat from nested
+			delete(nested, "nameFormat")
+			if allOf, ok := nested["AllOf"]; ok {
+				// add nameformat to allOf
+				nested["AllOf"] = append(allOf.([]any), nameFormat.ref)
+			} else {
+				nested["AllOf"] = []any{nameFormat.ref}
+			}
+		} else {
+			errs = append(errs, fmt.Errorf("invalid nameFormat: %v", formatName))
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errors.Join(errs...)
+	}
+	return nested, nil
 }
 
 // Parses the given comments into a CommentTags type. Validates the parsed comment tags, and returns the result.
