@@ -494,6 +494,69 @@ func TestParseCommentTags(t *testing.T) {
 			},
 			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
 		},
+		{
+			name: "alias type without any comments",
+			t:    &types.Type{Kind: types.Slice, Elem: &types.Type{Kind: types.Alias, Name: types.Name{Name: "PersistentVolumeAccessMode"}, Underlying: types.String}},
+			comments: []string{
+				`+k8s:validation:cel[0]:rule>!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+				`+k8s:validation:cel[0]:message>may not use ReadWriteOncePod with other access modes`,
+				`+k8s:validation:cel[0]:reason>FieldForbidden`,
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    `!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+								"message": "may not use ReadWriteOncePod with other access modes",
+								"reason":  "FieldForbidden",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "alias type with comments",
+			t: &types.Type{
+				Kind: types.Alias,
+				Name: types.Name{Name: "PersistentVolumeAccessModeList"},
+				CommentLines: []string{
+					`+k8s:validation:cel[0]:rule>self.all(c, ["ReadWriteOncePod","ReadOnlyMany","ReadWriteMany","ReadWriteOnce"].contains(c))`,
+					`+k8s:validation:cel[0]:message>must follow enum`,
+				},
+				Underlying: &types.Type{
+					Kind: types.Slice,
+					Elem: &types.Type{
+						Kind:       types.Alias,
+						Name:       types.Name{Name: "PersistentVolumeAccessMode"},
+						Underlying: types.String,
+					},
+				},
+			},
+			comments: []string{
+				`+k8s:validation:cel[0]:rule>!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+				`+k8s:validation:cel[0]:message>may not use ReadWriteOncePod with other access modes`,
+				`+k8s:validation:cel[0]:reason>FieldForbidden`,
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    `self.all(c, ["ReadWriteOncePod","ReadOnlyMany","ReadWriteMany","ReadWriteOnce"].contains(c))`,
+								"message": "must follow enum",
+							},
+							map[string]interface{}{
+								"rule":    `!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+								"message": "may not use ReadWriteOncePod with other access modes",
+								"reason":  "FieldForbidden",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {

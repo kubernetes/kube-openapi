@@ -435,7 +435,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	// Only generate for struct type and ignore the rest
 	switch t.Kind {
 	case types.Struct:
-		validationSchema, err := ParseCommentTags(t, t.CommentLines, markerPrefix)
+		validationSchema, err := ParseCommentTags(t, nil, markerPrefix)
 		if err != nil {
 			return err
 		}
