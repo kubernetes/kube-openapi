@@ -405,7 +405,7 @@ func (g openAPITypeWriter) generateValueValidations(vs *spec.SchemaProps) error 
 		if err != nil {
 			return err
 		}
-		g.Do("Pattern: $.$,\n", string(p))
+		g.Do("Pattern: $.$,\n", fmt.Sprintf("%#v", p))
 	}
 	if vs.MultipleOf != nil {
 		g.Do("MultipleOf: $.ptrTo|raw$[float64]($.spec.MultipleOf$),\n", args)

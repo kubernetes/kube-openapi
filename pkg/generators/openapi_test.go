@@ -2802,6 +2802,129 @@ func TestRequired(t *testing.T) {
 	})
 }
 
+func TestNameFormatMarkerComments(t *testing.T) {
+
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+package foo
+
+// +k8s:openapi-gen=true
+type Blah struct {
+	// +k8s:validation:nameFormat="dns1123Label"
+	foo string
+	// +k8s:validation:nameFormat="dns1123Subdomain"
+	bar string
+	// +k8s:validation:nameFormat="httpPath"
+	baz string
+	// +k8s:validation:nameFormat="qualifiedName"
+	qux string
+	// +k8s:validation:nameFormat="wildcardDNS1123Subdomain"
+	quux string
+	// +k8s:validation:nameFormat="cIdentifier"
+	corge string
+	// +k8s:validation:nameFormat="dns1035Label"
+	grault string
+	// +k8s:validation:nameFormat="labelValue"
+	garply string
+}
+	`)
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`, `ptr "k8s.io/utils/ptr"`})
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+	} else {
+		expectedStr := `func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+			return common.OpenAPIDefinition{
+				Schema: spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type:   []string{"object"},
+						Properties: map[string]spec.Schema{
+							"foo": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](63),
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["dns1123Label"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"bar": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](253),
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["dns1123Subdomain"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"baz": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["httpPath"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"qux": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](63),
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["qualifiedName"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"quux": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](253),
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["wildcardDNS1123Subdomain"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"corge": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["cIdentifier"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"grault": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](63),
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["dns1035Label"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"garply": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](63),
+									Pattern: "` + fmt.Sprintf("%#v", NameFormats["labelValue"].Pattern) + `",
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+						},
+						Required: []string{"foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply"},
+					},
+				},
+			}
+		}
+
+`
+		formatted_expected, ree := format.Source([]byte(expectedStr))
+		if ree != nil {
+			t.Fatal(ree)
+		}
+		assert.Equal(string(formatted), string(formatted_expected))
+	}
+}
+
 func TestMarkerCommentsCustomDefsV3(t *testing.T) {
 	inputFile := `
 		package foo
