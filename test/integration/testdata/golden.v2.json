@@ -613,12 +613,12 @@
      "schemes": [
       "https"
      ],
-     "operationId": "create-valuevalidation.Foo",
+     "operationId": "create-valuevalidation.NameFormats",
      "responses": {
       "201": {
        "description": "Created",
        "schema": {
-        "$ref": "#/definitions/valuevalidation.Foo"
+        "$ref": "#/definitions/valuevalidation.NameFormats"
        }
       },
       "404": {
@@ -729,6 +729,28 @@
        "description": "OK",
        "schema": {
         "$ref": "#/definitions/valuevalidation.Foo5"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/nameformats": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.NameFormats",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.NameFormats"
        }
       },
       "404": {
@@ -1326,6 +1348,67 @@
       "rule": "self == oldSelf"
      }
     ]
+   },
+   "valuevalidation.NameFormats": {
+    "type": "object",
+    "required": [
+     "dns",
+     "subdomain",
+     "path",
+     "qualified",
+     "wildcard",
+     "identifier",
+     "label",
+     "value"
+    ],
+    "properties": {
+     "dns": {
+      "type": "string",
+      "default": "",
+      "maxLength": 63,
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+     },
+     "identifier": {
+      "type": "string",
+      "default": "",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+     },
+     "label": {
+      "type": "string",
+      "default": "",
+      "maxLength": 63,
+      "pattern": "^[a-z]([-a-z0-9]*[a-z0-9])?$"
+     },
+     "path": {
+      "type": "string",
+      "default": "",
+      "pattern": "^[A-Za-z0-9/\\-\\._~%!\\$\\\u0026'()\\*\\+,;=:]+$"
+     },
+     "qualified": {
+      "type": "string",
+      "default": "",
+      "maxLength": 63,
+      "pattern": "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$"
+     },
+     "subdomain": {
+      "type": "string",
+      "default": "",
+      "maxLength": 253,
+      "pattern": "^[a-z]([-a-z0-9]*[a-z0-9])?$"
+     },
+     "value": {
+      "type": "string",
+      "default": "",
+      "maxLength": 63,
+      "pattern": "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"
+     },
+     "wildcard": {
+      "type": "string",
+      "default": "",
+      "maxLength": 253,
+      "pattern": "^\\*\\.[a-z]([-a-z0-9]*[a-z0-9])?$"
+     }
+    }
    }
   },
   "responses": {

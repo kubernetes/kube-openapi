@@ -2444,7 +2444,7 @@ func TestMarkerComments(t *testing.T) {
 								Default:	 "",
 								MinLength:	 ptr.To[int64](1),
 								MaxLength:	 ptr.To[int64](10),
-								Pattern:	 "^foo$[0-9]+",
+								Pattern:	 ` + fmt.Sprintf("%#v", "^foo$[0-9]+") + `,
 								Type:        []string{"string"},
 								Format:	  	 "",
 							},
@@ -2810,21 +2810,21 @@ package foo
 // +k8s:openapi-gen=true
 type Blah struct {
 	// +k8s:validation:nameFormat="dns1123Label"
-	foo string
+	dns string
 	// +k8s:validation:nameFormat="dns1123Subdomain"
-	bar string
+	subdomain string
 	// +k8s:validation:nameFormat="httpPath"
-	baz string
+	path string
 	// +k8s:validation:nameFormat="qualifiedName"
-	qux string
+	qualified string
 	// +k8s:validation:nameFormat="wildcardDNS1123Subdomain"
-	quux string
+	wildcard string
 	// +k8s:validation:nameFormat="cIdentifier"
-	corge string
+	identifier string
 	// +k8s:validation:nameFormat="dns1035Label"
-	grault string
+	label string
 	// +k8s:validation:nameFormat="labelValue"
-	garply string
+	value string
 }
 	`)
 	assert.NoError(funcErr)
@@ -2839,78 +2839,78 @@ type Blah struct {
 					SchemaProps: spec.SchemaProps{
 						Type:   []string{"object"},
 						Properties: map[string]spec.Schema{
-							"foo": {
+							"dns": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									MaxLength: ptr.To[int64](63),
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["dns1123Label"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1123Label"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
-							"bar": {
+							"subdomain": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									MaxLength: ptr.To[int64](253),
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["dns1123Subdomain"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1123Subdomain"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
-							"baz": {
+							"path": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["httpPath"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["httpPath"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
-							"qux": {
+							"qualified": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									MaxLength: ptr.To[int64](63),
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["qualifiedName"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["qualifiedName"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
-							"quux": {
+							"wildcard": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									MaxLength: ptr.To[int64](253),
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["wildcardDNS1123Subdomain"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["wildcardDNS1123Subdomain"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
-							"corge": {
+							"identifier": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["cIdentifier"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["cIdentifier"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
-							"grault": {
-								SchemaProps: spec.SchemaProps{
-									Default:   "",
-									MaxLength: ptr.To[int64](63),
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["dns1035Label"].Pattern) + `",
-									Type:   []string{"string"},
-									Format: "",
-								},
-							},
-							"garply": {
+							"label": {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									MaxLength: ptr.To[int64](63),
-									Pattern: "` + fmt.Sprintf("%#v", NameFormats["labelValue"].Pattern) + `",
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1035Label"].Pattern) + `,
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"value": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									MaxLength: ptr.To[int64](63),
+									Pattern: ` + fmt.Sprintf("%#v", NameFormats["labelValue"].Pattern) + `,
 									Type:   []string{"string"},
 									Format: "",
 								},
 							},
 						},
-						Required: []string{"foo", "bar", "baz", "qux", "quux", "corge", "grault", "garply"},
+						Required: []string{"dns", "subdomain", "path", "qualified", "wildcard", "identifier", "label", "value"},
 					},
 				},
 			}
