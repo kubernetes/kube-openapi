@@ -109,11 +109,8 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 }
 
 type NameFormat struct {
-	Name         string
-	Pattern      string
-	MaxLength    int64
-	Ref          string
-	ErrorMessage string
+	Pattern   string
+	MaxLength int64
 }
 
 var NameFormats = map[string]NameFormat{
