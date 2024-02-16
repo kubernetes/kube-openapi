@@ -1382,7 +1382,7 @@
      "path": {
       "type": "string",
       "default": "",
-      "pattern": "^[A-Za-z0-9/\\-\\._~%!\\$\\\u0026'()\\*\\+,;=:]+$"
+      "pattern": "^[A-Za-z0-9/\\-._~%!$\u0026'()*+,;=:]+$"
      },
      "qualified": {
       "type": "string",
@@ -1394,7 +1394,7 @@
       "type": "string",
       "default": "",
       "maxLength": 253,
-      "pattern": "^[a-z]([-a-z0-9]*[a-z0-9])?$"
+      "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
      },
      "value": {
       "type": "string",

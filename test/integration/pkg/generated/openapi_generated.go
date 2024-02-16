@@ -1187,7 +1187,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default:   "",
 							MaxLength: ptr.To[int64](253),
-							Pattern:   "^[a-z]([-a-z0-9]*[a-z0-9])?$",
+							Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
 							Type:      []string{"string"},
 							Format:    "",
 						},
@@ -1195,7 +1195,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 					"path": {
 						SchemaProps: spec.SchemaProps{
 							Default: "",
-							Pattern: "^[A-Za-z0-9/\\-\\._~%!\\$\\&'()\\*\\+,;=:]+$",
+							Pattern: "^[A-Za-z0-9/\\-._~%!$&'()*+,;=:]+$",
 							Type:    []string{"string"},
 							Format:  "",
 						},
