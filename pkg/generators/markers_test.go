@@ -632,6 +632,48 @@ func TestNameFormat(t *testing.T) {
 		})
 	}
 
+	cases = append(cases, struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      generators.CommentTags
+		expectedError string
+	}{
+		t:    &stringKind,
+		name: "nameFormat with custom length less than format length",
+		comments: []string{
+			"+k8s:validation:nameFormat=\"dns1123Label\"",
+			"+k8s:validation:maxLength=5",
+		},
+		expected: generators.CommentTags{
+			SchemaProps: spec.SchemaProps{
+				Pattern:   generators.NameFormats["dns1123Label"].Pattern,
+				MaxLength: ptr.To[int64](5),
+			},
+		},
+	})
+
+	cases = append(cases, struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      generators.CommentTags
+		expectedError string
+	}{
+		t:    &stringKind,
+		name: "nameFormat with custom length greater than format length",
+		comments: []string{
+			"+k8s:validation:nameFormat=\"dns1123Label\"",
+			"+k8s:validation:maxLength=1000",
+		},
+		expected: generators.CommentTags{
+			SchemaProps: spec.SchemaProps{
+				Pattern:   generators.NameFormats["dns1123Label"].Pattern,
+				MaxLength: ptr.To[int64](63),
+			},
+		},
+	})
+
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")

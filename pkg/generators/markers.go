@@ -278,7 +278,11 @@ func validateNameFormats(nested map[string]any) (map[string]any, error) {
 			delete(nested, "nameFormat")
 			nested["pattern"] = nameFormat.Pattern
 			if nameFormat.MaxLength != -1 {
-				nested["maxLength"] = nameFormat.MaxLength
+				length, ok := nested["maxLength"]
+				_, err := strconv.ParseInt(fmt.Sprintf("%d", length), 10, 64)
+				if !ok || err != nil || length.(int64) > nameFormat.MaxLength {
+					nested["maxLength"] = nameFormat.MaxLength
+				}
 			}
 		} else {
 			errs = append(errs, fmt.Errorf("invalid nameFormat: %v", formatName))
