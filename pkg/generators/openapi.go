@@ -27,6 +27,7 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/gengo/v2"
 	"k8s.io/gengo/v2/generator"
 	"k8s.io/gengo/v2/namer"
 	"k8s.io/gengo/v2/types"
@@ -57,11 +58,11 @@ var tempPatchTags = [...]string{
 }
 
 func getOpenAPITagValue(comments []string) []string {
-	return types.ExtractCommentTags("+", comments)[tagName]
+	return gengo.ExtractCommentTags("+", comments)[tagName]
 }
 
 func getSingleTagsValue(comments []string, tag string) (string, error) {
-	tags, ok := types.ExtractCommentTags("+", comments)[tag]
+	tags, ok := gengo.ExtractCommentTags("+", comments)[tag]
 	if !ok || len(tags) == 0 {
 		return "", nil
 	}
@@ -85,9 +86,9 @@ func hasOpenAPITagValue(comments []string, value string) bool {
 // its comments. If +optional is present it returns true. If +required is present
 // it returns false. Otherwise, it returns true if `omitempty` JSON tag is present
 func isOptional(m *types.Member) (bool, error) {
-	hasOptionalCommentTag := types.ExtractCommentTags(
+	hasOptionalCommentTag := gengo.ExtractCommentTags(
 		"+", m.CommentLines)[tagOptional] != nil
-	hasRequiredCommentTag := types.ExtractCommentTags(
+	hasRequiredCommentTag := gengo.ExtractCommentTags(
 		"+", m.CommentLines)[tagRequired] != nil
 	if hasOptionalCommentTag && hasRequiredCommentTag {
 		return false, fmt.Errorf("member %s cannot be both optional and required", m.Name)
