@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/gengo/types"
+	"k8s.io/gengo/v2/types"
 	"k8s.io/kube-openapi/pkg/util/sets"
 )
 
