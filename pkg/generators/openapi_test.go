@@ -26,10 +26,10 @@ import (
 	"go/format"
 
 	"github.com/stretchr/testify/assert"
-	"k8s.io/gengo/generator"
-	"k8s.io/gengo/namer"
-	"k8s.io/gengo/parser"
-	"k8s.io/gengo/types"
+	"k8s.io/gengo/v2/generator"
+	"k8s.io/gengo/v2/namer"
+	"k8s.io/gengo/v2/parser"
+	"k8s.io/gengo/v2/types"
 )
 
 func construct(t *testing.T, files map[string]string, testNamer namer.Namer) (*parser.Builder, types.Universe, []*types.Type) {

@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"k8s.io/gengo/types"
+	"k8s.io/gengo/v2/types"
 	"k8s.io/kube-openapi/pkg/generators"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/utils/ptr"
