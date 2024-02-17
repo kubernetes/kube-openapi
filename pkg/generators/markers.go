@@ -77,7 +77,8 @@ func (c *CELTag) Validate() error {
 type commentTags struct {
 	spec.SchemaProps
 
-	CEL []CELTag `json:"cel,omitempty"`
+	NameFormat string   `json:"nameFormat,omitempty"`
+	CEL        []CELTag `json:"cel,omitempty"`
 
 	// Future markers can all be parsed into this centralized struct...
 	// Optional bool `json:"optional,omitempty"`
@@ -89,6 +90,17 @@ type commentTags struct {
 func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 	res := spec.Schema{
 		SchemaProps: c.SchemaProps,
+	}
+
+	if res.AllOf != nil {
+		res.AllOf = append([]spec.Schema{}, res.AllOf...)
+		if c.NameFormat != "" {
+			res.AllOf = append(res.AllOf, NameFormats[c.NameFormat].ToSchema())
+		}
+	} else {
+		if c.NameFormat != "" {
+			res.AllOf = append([]spec.Schema{}, NameFormats[c.NameFormat].ToSchema())
+		}
 	}
 
 	if len(c.CEL) > 0 {
@@ -148,6 +160,22 @@ var NameFormats = map[string]NameFormat{
 	},
 }
 
+func (nf NameFormat) ToSchema() spec.Schema {
+	if nf.MaxLength == -1 {
+		return spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Pattern: nf.Pattern,
+			},
+		}
+	}
+	return spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Pattern:   nf.Pattern,
+			MaxLength: &nf.MaxLength,
+		},
+	}
+}
+
 // validates the parameters in a CommentTags instance. Returns any errors encountered.
 func (c commentTags) Validate() error {
 
@@ -202,6 +230,13 @@ func (c commentTags) Validate() error {
 			continue
 		}
 		err = errors.Join(err, fmt.Errorf("invalid CEL tag at index %d: %w", i, celError))
+	}
+
+	if c.NameFormat != "" {
+		_, ok := NameFormats[c.NameFormat]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("invalid nameFormat: %v", c.NameFormat))
+		}
 	}
 
 	return err
@@ -266,32 +301,11 @@ func (c commentTags) ValidateType(t *types.Type) error {
 	if c.ExclusiveMaximum && !isInt && !isFloat {
 		err = errors.Join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
 	}
+	if c.NameFormat != "" && !isString {
+		err = errors.Join(err, fmt.Errorf("nameFormat can only be used on string types"))
+	}
 
 	return err
-}
-
-func validateNameFormats(nested map[string]any) (map[string]any, error) {
-	var errs []error
-	if formatName, ok := nested["nameFormat"]; ok {
-		if nameFormat, ok := NameFormats[formatName.(string)]; ok {
-			// remove nameformat from nested
-			delete(nested, "nameFormat")
-			nested["pattern"] = nameFormat.Pattern
-			if nameFormat.MaxLength != -1 {
-				length, ok := nested["maxLength"]
-				_, err := strconv.ParseInt(fmt.Sprintf("%d", length), 10, 64)
-				if !ok || err != nil || length.(int64) > nameFormat.MaxLength {
-					nested["maxLength"] = nameFormat.MaxLength
-				}
-			}
-		} else {
-			errs = append(errs, fmt.Errorf("invalid nameFormat: %v", formatName))
-		}
-	}
-	if len(errs) > 0 {
-		return nil, errors.Join(errs...)
-	}
-	return nested, nil
 }
 
 // Parses the given comments into a CommentTags type. Validates the parsed comment tags, and returns the result.

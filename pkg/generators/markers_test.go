@@ -577,7 +577,6 @@ func TestParseCommentTags(t *testing.T) {
 }
 
 func TestNameFormat(t *testing.T) {
-	stringKind := createType("string")
 
 	formatNames := []string{
 		"dns1123Label",
@@ -594,7 +593,7 @@ func TestNameFormat(t *testing.T) {
 		t             *types.Type
 		name          string
 		comments      []string
-		expected      generators.CommentTags
+		expected      *spec.Schema
 		expectedError string
 	}{}
 
@@ -603,12 +602,24 @@ func TestNameFormat(t *testing.T) {
 		var schemaProps spec.SchemaProps
 		if generators.NameFormats[formatName].MaxLength != -1 {
 			schemaProps = spec.SchemaProps{
-				Pattern:   generators.NameFormats[formatName].Pattern,
-				MaxLength: ptr.To[int64](generators.NameFormats[formatName].MaxLength),
+				AllOf: []spec.Schema{
+					{
+						SchemaProps: spec.SchemaProps{
+							Pattern:   generators.NameFormats[formatName].Pattern,
+							MaxLength: ptr.To[int64](generators.NameFormats[formatName].MaxLength),
+						},
+					},
+				},
 			}
 		} else {
 			schemaProps = spec.SchemaProps{
-				Pattern: generators.NameFormats[formatName].Pattern,
+				AllOf: []spec.Schema{
+					{
+						SchemaProps: spec.SchemaProps{
+							Pattern: generators.NameFormats[formatName].Pattern,
+						},
+					},
+				},
 			}
 		}
 
@@ -616,17 +627,15 @@ func TestNameFormat(t *testing.T) {
 			t             *types.Type
 			name          string
 			comments      []string
-			expected      generators.CommentTags
+			expected      *spec.Schema
 			expectedError string
 		}{
-			t:    &stringKind,
+			t:    types.String,
 			name: formatName,
 			comments: []string{
-				"comment",
-				"another + comment",
 				fmt.Sprintf("+k8s:validation:nameFormat=\"%s\"", formatName),
 			},
-			expected: generators.CommentTags{
+			expected: &spec.Schema{
 				SchemaProps: schemaProps,
 			},
 		})
@@ -636,40 +645,26 @@ func TestNameFormat(t *testing.T) {
 		t             *types.Type
 		name          string
 		comments      []string
-		expected      generators.CommentTags
+		expected      *spec.Schema
 		expectedError string
 	}{
-		t:    &stringKind,
-		name: "nameFormat with custom length less than format length",
+		t:    types.String,
+		name: "nameFormat with custom length",
 		comments: []string{
 			"+k8s:validation:nameFormat=\"dns1123Label\"",
 			"+k8s:validation:maxLength=5",
 		},
-		expected: generators.CommentTags{
+		expected: &spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Pattern:   generators.NameFormats["dns1123Label"].Pattern,
 				MaxLength: ptr.To[int64](5),
-			},
-		},
-	})
-
-	cases = append(cases, struct {
-		t             *types.Type
-		name          string
-		comments      []string
-		expected      generators.CommentTags
-		expectedError string
-	}{
-		t:    &stringKind,
-		name: "nameFormat with custom length greater than format length",
-		comments: []string{
-			"+k8s:validation:nameFormat=\"dns1123Label\"",
-			"+k8s:validation:maxLength=1000",
-		},
-		expected: generators.CommentTags{
-			SchemaProps: spec.SchemaProps{
-				Pattern:   generators.NameFormats["dns1123Label"].Pattern,
-				MaxLength: ptr.To[int64](63),
+				AllOf: []spec.Schema{
+					{
+						SchemaProps: spec.SchemaProps{
+							Pattern:   generators.NameFormats["dns1123Label"].Pattern,
+							MaxLength: ptr.To[int64](63),
+						},
+					},
+				},
 			},
 		},
 	})
