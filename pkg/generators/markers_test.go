@@ -671,7 +671,7 @@ func TestNameFormat(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "k8s:validation:")
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
 			if tc.expectedError != "" {
 				require.Error(t, err)
 				require.Regexp(t, tc.expectedError, err.Error())
