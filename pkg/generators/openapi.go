@@ -421,10 +421,12 @@ func (g openAPITypeWriter) generateValueValidations(vs *spec.SchemaProps) error 
 		g.Do("AllOf: []spec.Schema{\n", nil)
 		for _, s := range allOfSchemas {
 			g.Do("spec.Schema{\n", nil)
+			g.Do("SchemaProps: spec.SchemaProps{\n", nil)
 			err := g.generateValueValidations(&s.SchemaProps)
 			if err != nil {
 				return err
 			}
+			g.Do("},\n", nil)
 			g.Do("},\n", nil)
 		}
 

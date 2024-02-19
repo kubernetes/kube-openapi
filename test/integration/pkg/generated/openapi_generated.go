@@ -1176,72 +1176,120 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 				Properties: map[string]spec.Schema{
 					"dns": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
-							MaxLength: ptr.To[int64](63),
-							Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
-							Type:      []string{"string"},
-							Format:    "",
+							Default: "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										MaxLength: ptr.To[int64](63),
+										Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"subdomain": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
-							MaxLength: ptr.To[int64](253),
-							Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
-							Type:      []string{"string"},
-							Format:    "",
+							Default: "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										MaxLength: ptr.To[int64](253),
+										Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"path": {
 						SchemaProps: spec.SchemaProps{
 							Default: "",
-							Pattern: "^[A-Za-z0-9/\\-._~%!$&'()*+,;=:]+$",
-							Type:    []string{"string"},
-							Format:  "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Pattern: "^[A-Za-z0-9/\\-._~%!$&'()*+,;=:]+$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"qualified": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
-							MaxLength: ptr.To[int64](63),
-							Pattern:   "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
-							Type:      []string{"string"},
-							Format:    "",
+							Default: "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										MaxLength: ptr.To[int64](63),
+										Pattern:   "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"wildcard": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
-							MaxLength: ptr.To[int64](253),
-							Pattern:   "^\\*\\.[a-z]([-a-z0-9]*[a-z0-9])?$",
-							Type:      []string{"string"},
-							Format:    "",
+							Default: "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										MaxLength: ptr.To[int64](253),
+										Pattern:   "^\\*\\.[a-z]([-a-z0-9]*[a-z0-9])?$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"identifier": {
 						SchemaProps: spec.SchemaProps{
 							Default: "",
-							Pattern: "^[A-Za-z_][A-Za-z0-9_]*$",
-							Type:    []string{"string"},
-							Format:  "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Pattern: "^[A-Za-z_][A-Za-z0-9_]*$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"label": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
-							MaxLength: ptr.To[int64](63),
-							Pattern:   "^[a-z]([-a-z0-9]*[a-z0-9])?$",
-							Type:      []string{"string"},
-							Format:    "",
+							Default: "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										MaxLength: ptr.To[int64](63),
+										Pattern:   "^[a-z]([-a-z0-9]*[a-z0-9])?$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
-							MaxLength: ptr.To[int64](63),
-							Pattern:   "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$",
-							Type:      []string{"string"},
-							Format:    "",
+							Default: "",
+							AllOf: []spec.Schema{
+								spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										MaxLength: ptr.To[int64](63),
+										Pattern:   "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$",
+									},
+								},
+							},
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 				},
