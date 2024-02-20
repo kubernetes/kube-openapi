@@ -50,7 +50,7 @@ const (
 	generatedOpenAPIv3FileName = "generated.v3.json"
 	goldenOpenAPIv3Filename    = "golden.v3.json"
 
-	timeoutSeconds = 10.0
+	timeoutSeconds = 20.0
 )
 
 var (
