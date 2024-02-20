@@ -62,8 +62,20 @@ func (c *CELTag) Validate() error {
 	return nil
 }
 
-// CommentTags represents the parsed comment tags for a given type. These types are then used to generate schema validations.
-type CommentTags struct {
+// commentTags represents the parsed comment tags for a given type. These types are then used to generate schema validations.
+// These only include the newer prefixed tags. The older tags are still supported,
+// but are not included in this struct. Comment Tags are transformed into a
+// *spec.Schema, which is then combined with the older marker comments to produce
+// the generated OpenAPI spec.
+//
+// List of tags not included in this struct:
+//
+// - +optional
+// - +default
+// - +listType
+// - +listMapKeys
+// - +mapType
+type commentTags struct {
 	spec.SchemaProps
 
 	CEL []CELTag `json:"cel,omitempty"`
@@ -73,8 +85,36 @@ type CommentTags struct {
 	// Default  any  `json:"default,omitempty"`
 }
 
+// Returns the schema for the given CommentTags instance.
+// This is the final authoritative schema for the comment tags
+func (c commentTags) ValidationSchema() (*spec.Schema, error) {
+	res := spec.Schema{
+		SchemaProps: c.SchemaProps,
+	}
+
+	if res.AllOf != nil {
+		res.AllOf = append([]spec.Schema{}, res.AllOf...)
+	}
+
+	if len(c.CEL) > 0 {
+		// Convert the CELTag to a map[string]interface{} via JSON
+		celTagJSON, err := json.Marshal(c.CEL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal CEL tag: %w", err)
+		}
+		var celTagMap []interface{}
+		if err := json.Unmarshal(celTagJSON, &celTagMap); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal CEL tag: %w", err)
+		}
+
+		res.VendorExtensible.AddExtension("x-kubernetes-validations", celTagMap)
+	}
+
+	return &res, nil
+}
+
 // validates the parameters in a CommentTags instance. Returns any errors encountered.
-func (c CommentTags) Validate() error {
+func (c commentTags) Validate() error {
 
 	var err error
 
@@ -133,60 +173,63 @@ func (c CommentTags) Validate() error {
 }
 
 // Performs type-specific validation for CommentTags porameters. Accepts a Type instance and returns any errors encountered during validation.
-func (c CommentTags) ValidateType(t *types.Type) error {
+func (c commentTags) ValidateType(t *types.Type) error {
 	var err error
 
 	resolvedType := resolveAliasAndPtrType(t)
 	typeString, _ := openapi.OpenAPITypeFormat(resolvedType.String()) // will be empty for complicated types
-	isNoValidate := resolvedType.Kind == types.Interface || resolvedType.Kind == types.Struct
 
-	if !isNoValidate {
+	// Structs and interfaces may dynamically be any type, so we cant validate them
+	// easily. We may be able to if we check that they don't implement all the
+	// override functions, but for now we just skip them.
+	if resolvedType.Kind == types.Interface || resolvedType.Kind == types.Struct {
+		return nil
+	}
 
-		isArray := resolvedType.Kind == types.Slice || resolvedType.Kind == types.Array
-		isMap := resolvedType.Kind == types.Map
-		isString := typeString == "string"
-		isInt := typeString == "integer"
-		isFloat := typeString == "number"
+	isArray := resolvedType.Kind == types.Slice || resolvedType.Kind == types.Array
+	isMap := resolvedType.Kind == types.Map
+	isString := typeString == "string"
+	isInt := typeString == "integer"
+	isFloat := typeString == "number"
 
-		if c.MaxItems != nil && !isArray {
-			err = errors.Join(err, fmt.Errorf("maxItems can only be used on array types"))
-		}
-		if c.MinItems != nil && !isArray {
-			err = errors.Join(err, fmt.Errorf("minItems can only be used on array types"))
-		}
-		if c.UniqueItems && !isArray {
-			err = errors.Join(err, fmt.Errorf("uniqueItems can only be used on array types"))
-		}
-		if c.MaxProperties != nil && !isMap {
-			err = errors.Join(err, fmt.Errorf("maxProperties can only be used on map types"))
-		}
-		if c.MinProperties != nil && !isMap {
-			err = errors.Join(err, fmt.Errorf("minProperties can only be used on map types"))
-		}
-		if c.MinLength != nil && !isString {
-			err = errors.Join(err, fmt.Errorf("minLength can only be used on string types"))
-		}
-		if c.MaxLength != nil && !isString {
-			err = errors.Join(err, fmt.Errorf("maxLength can only be used on string types"))
-		}
-		if c.Pattern != "" && !isString {
-			err = errors.Join(err, fmt.Errorf("pattern can only be used on string types"))
-		}
-		if c.Minimum != nil && !isInt && !isFloat {
-			err = errors.Join(err, fmt.Errorf("minimum can only be used on numeric types"))
-		}
-		if c.Maximum != nil && !isInt && !isFloat {
-			err = errors.Join(err, fmt.Errorf("maximum can only be used on numeric types"))
-		}
-		if c.MultipleOf != nil && !isInt && !isFloat {
-			err = errors.Join(err, fmt.Errorf("multipleOf can only be used on numeric types"))
-		}
-		if c.ExclusiveMinimum && !isInt && !isFloat {
-			err = errors.Join(err, fmt.Errorf("exclusiveMinimum can only be used on numeric types"))
-		}
-		if c.ExclusiveMaximum && !isInt && !isFloat {
-			err = errors.Join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
-		}
+	if c.MaxItems != nil && !isArray {
+		err = errors.Join(err, fmt.Errorf("maxItems can only be used on array types"))
+	}
+	if c.MinItems != nil && !isArray {
+		err = errors.Join(err, fmt.Errorf("minItems can only be used on array types"))
+	}
+	if c.UniqueItems && !isArray {
+		err = errors.Join(err, fmt.Errorf("uniqueItems can only be used on array types"))
+	}
+	if c.MaxProperties != nil && !isMap {
+		err = errors.Join(err, fmt.Errorf("maxProperties can only be used on map types"))
+	}
+	if c.MinProperties != nil && !isMap {
+		err = errors.Join(err, fmt.Errorf("minProperties can only be used on map types"))
+	}
+	if c.MinLength != nil && !isString {
+		err = errors.Join(err, fmt.Errorf("minLength can only be used on string types"))
+	}
+	if c.MaxLength != nil && !isString {
+		err = errors.Join(err, fmt.Errorf("maxLength can only be used on string types"))
+	}
+	if c.Pattern != "" && !isString {
+		err = errors.Join(err, fmt.Errorf("pattern can only be used on string types"))
+	}
+	if c.Minimum != nil && !isInt && !isFloat {
+		err = errors.Join(err, fmt.Errorf("minimum can only be used on numeric types"))
+	}
+	if c.Maximum != nil && !isInt && !isFloat {
+		err = errors.Join(err, fmt.Errorf("maximum can only be used on numeric types"))
+	}
+	if c.MultipleOf != nil && !isInt && !isFloat {
+		err = errors.Join(err, fmt.Errorf("multipleOf can only be used on numeric types"))
+	}
+	if c.ExclusiveMinimum && !isInt && !isFloat {
+		err = errors.Join(err, fmt.Errorf("exclusiveMinimum can only be used on numeric types"))
+	}
+	if c.ExclusiveMaximum && !isInt && !isFloat {
+		err = errors.Join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
 	}
 
 	return err
@@ -196,27 +239,28 @@ func (c CommentTags) ValidateType(t *types.Type) error {
 // Accepts an optional type to validate against, and a prefix to filter out markers not related to validation.
 // Accepts a prefix to filter out markers not related to validation.
 // Returns any errors encountered while parsing or validating the comment tags.
-func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentTags, error) {
-
-	markers, err := parseMarkers(comments, prefix)
+func ParseCommentTags(t *types.Type, comments []string, prefix string) (*spec.Schema, error) {
+	// Parse the comment tags
+	commentTags, err := parseCommentTagsFromLines(comments, prefix)
 	if err != nil {
-		return CommentTags{}, fmt.Errorf("failed to parse marker comments: %w", err)
-	}
-	nested, err := nestMarkers(markers)
-	if err != nil {
-		return CommentTags{}, fmt.Errorf("invalid marker comments: %w", err)
+		return nil, err
 	}
 
-	// Parse the map into a CommentTags type by marshalling and unmarshalling
-	// as JSON in leiu of an unstructured converter.
-	out, err := json.Marshal(nested)
-	if err != nil {
-		return CommentTags{}, fmt.Errorf("failed to marshal marker comments: %w", err)
-	}
+	// If t is an alias then parse each of the underlying types' comment tags
+	// and merge them into a single schema. Aliases closest to t should take
+	// precedence (e.g. minLength specified in the alias closest to t should override
+	// any minLength specified in an alias further away from t).
+	currentT := t
+	for currentT != nil {
+		aliasCommentTags, err := parseCommentTagsFromLines(currentT.CommentLines, prefix)
+		if err != nil {
+			return nil, err
+		}
 
-	var commentTags CommentTags
-	if err = json.Unmarshal(out, &commentTags); err != nil {
-		return CommentTags{}, fmt.Errorf("failed to unmarshal marker comments: %w", err)
+		mergeCommentTags(&commentTags, aliasCommentTags)
+
+		// Move to the next type in the chain
+		currentT = currentT.Underlying
 	}
 
 	// Validate the parsed comment tags
@@ -227,10 +271,10 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (CommentT
 	}
 
 	if validationErrors != nil {
-		return CommentTags{}, fmt.Errorf("invalid marker comments: %w", validationErrors)
+		return nil, fmt.Errorf("invalid marker comments: %w", validationErrors)
 	}
 
-	return commentTags, nil
+	return commentTags.ValidationSchema()
 }
 
 var (
@@ -239,6 +283,81 @@ var (
 	valueAssign            = regexp.MustCompile(fmt.Sprintf(`^(%s*)=(.*)$`, allowedKeyCharacterSet))
 	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
 )
+
+func parseCommentTagsFromLines(comments []string, prefix string) (commentTags, error) {
+	if len(comments) == 0 {
+		return commentTags{}, nil
+	}
+
+	markers, err := parseMarkers(comments, prefix)
+	if err != nil {
+		return commentTags{}, fmt.Errorf("failed to parse marker comments: %w", err)
+	}
+	nested, err := nestMarkers(markers)
+	if err != nil {
+		return commentTags{}, fmt.Errorf("invalid marker comments: %w", err)
+	}
+
+	// Parse the map into a CommentTags type by marshalling and unmarshalling
+	// as JSON in leiu of an unstructured converter.
+	out, err := json.Marshal(nested)
+	if err != nil {
+		return commentTags{}, fmt.Errorf("failed to marshal marker comments: %w", err)
+	}
+
+	var result commentTags
+	if err = json.Unmarshal(out, &result); err != nil {
+		return commentTags{}, fmt.Errorf("failed to unmarshal marker comments: %w", err)
+	}
+	return result, nil
+}
+
+// Writes src values into dst if dst is nil, and src is non-nil
+// Does not override anythng already set in dst
+func mergeCommentTags(dst *commentTags, src commentTags) {
+	if src.MinLength != nil && dst.MinLength == nil {
+		dst.MinLength = src.MinLength
+	}
+	if src.MaxLength != nil && dst.MaxLength == nil {
+		dst.MaxLength = src.MaxLength
+	}
+	if src.MinItems != nil && dst.MinItems == nil {
+		dst.MinItems = src.MinItems
+	}
+	if src.MaxItems != nil && dst.MaxItems == nil {
+		dst.MaxItems = src.MaxItems
+	}
+	if src.MinProperties != nil && dst.MinProperties == nil {
+		dst.MinProperties = src.MinProperties
+	}
+	if src.MaxProperties != nil && dst.MaxProperties == nil {
+		dst.MaxProperties = src.MaxProperties
+	}
+	if src.Minimum != nil && dst.Minimum == nil {
+		dst.Minimum = src.Minimum
+	}
+	if src.Maximum != nil && dst.Maximum == nil {
+		dst.Maximum = src.Maximum
+	}
+	if src.MultipleOf != nil && dst.MultipleOf == nil {
+		dst.MultipleOf = src.MultipleOf
+	}
+	if src.Pattern != "" && dst.Pattern == "" {
+		dst.Pattern = src.Pattern
+	}
+	if src.ExclusiveMinimum && !dst.ExclusiveMinimum {
+		dst.ExclusiveMinimum = true
+	}
+	if src.ExclusiveMaximum && !dst.ExclusiveMaximum {
+		dst.ExclusiveMaximum = true
+	}
+	if src.UniqueItems && !dst.UniqueItems {
+		dst.UniqueItems = true
+	}
+	if len(src.CEL) > 0 {
+		dst.CEL = append(src.CEL, dst.CEL...)
+	}
+}
 
 // extractCommentTags parses comments for lines of the form:
 //

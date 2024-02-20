@@ -2045,7 +2045,7 @@ func TestCELMarkerComments(t *testing.T) {
 
 	assert.NoError(funcErr)
 	assert.NoError(callErr)
-	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`, `ptr "k8s.io/utils/ptr"`})
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
 
 	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
 		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
@@ -2059,17 +2059,7 @@ func TestCELMarkerComments(t *testing.T) {
 						"Field": {
 							VendorExtensible: spec.VendorExtensible{
 								Extensions: spec.Extensions{
-									"x-kubernetes-validations": []interface{}{
-										map[string]interface{}{
-											"rule": "self.length() > 0",
-											"message": "string message",
-										},
-										map[string]interface{}{
-											"rule": "self.length() % 2 == 0",
-											"messageExpression": "self + ' hello'",
-											"optionalOldSelf": ptr.To[bool](true),
-										},
-									},
+									"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "string message", "rule": "self.length() > 0"}, map[string]interface{}{"messageExpression": "self + ' hello'", "optionalOldSelf": true, "rule": "self.length() % 2 == 0"}},
 								},
 							},
 							SchemaProps: spec.SchemaProps{
@@ -2082,12 +2072,7 @@ func TestCELMarkerComments(t *testing.T) {
 				},
 				VendorExtensible: spec.VendorExtensible{
 					Extensions: spec.Extensions{
-						"x-kubernetes-validations": []interface{}{
-							map[string]interface{}{
-								"rule": "self == oldSelf",
-								"message": "message1",
-							},
-						},
+						"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "message1", "rule": "self == oldSelf"}},
 					},
 				},
 			},
