@@ -40,6 +40,7 @@ import (
 const tagName = "k8s:openapi-gen"
 const markerPrefix = "+k8s:validation:"
 const tagOptional = "optional"
+const tagRequired = "required"
 const tagDefault = "default"
 
 // Known values for the tag.
@@ -78,6 +79,11 @@ func hasOpenAPITagValue(comments []string, value string) bool {
 		}
 	}
 	return false
+}
+
+func hasRequiredTag(m *types.Member) bool {
+	return types.ExtractCommentTags(
+		"+", m.CommentLines)[tagRequired] != nil
 }
 
 // hasOptionalTag returns true if the member has +optional in its comments or
@@ -317,7 +323,10 @@ func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]
 		if name == "" {
 			continue
 		}
-		if !hasOptionalTag(&m) {
+		if isOptional, isRequired := hasOptionalTag(&m), hasRequiredTag(&m); isOptional && isRequired {
+			klog.Errorf("Error when generating: %v, %v\n", name, m)
+			return required, fmt.Errorf("member %s of type %s cannot be both optional and required", m.Name, t.Name)
+		} else if !isOptional || isRequired {
 			required = append(required, name)
 		}
 		if err = g.generateProperty(&m, t); err != nil {
