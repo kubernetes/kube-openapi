@@ -35,7 +35,7 @@ func TestParseCommentTags(t *testing.T) {
 		t        *types.Type
 		name     string
 		comments []string
-		expected generators.CommentTags
+		expected *spec.Schema
 
 		// regex pattern matching the error, or empty string/unset if no error
 		// is expected
@@ -59,7 +59,7 @@ func TestParseCommentTags(t *testing.T) {
 				"exclusiveMaximum=true",
 				"not+k8s:validation:Minimum=0.0",
 			},
-			expected: generators.CommentTags{
+			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Maximum:     ptr.To(20.0),
 					Minimum:     ptr.To(10.0),
@@ -74,8 +74,9 @@ func TestParseCommentTags(t *testing.T) {
 			},
 		},
 		{
-			t:    structKind,
-			name: "empty",
+			t:        structKind,
+			name:     "empty",
+			expected: &spec.Schema{},
 		},
 		{
 			t:    types.Float64,
@@ -83,7 +84,7 @@ func TestParseCommentTags(t *testing.T) {
 			comments: []string{
 				"+k8s:validation:minimum=10.0",
 			},
-			expected: generators.CommentTags{
+			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Minimum: ptr.To(10.0),
 				},
@@ -96,7 +97,7 @@ func TestParseCommentTags(t *testing.T) {
 				"+k8s:validation:minimum=10.0",
 				"+k8s:validation:maximum=20.0",
 			},
-			expected: generators.CommentTags{
+			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Maximum: ptr.To(20.0),
 					Minimum: ptr.To(10.0),
@@ -119,6 +120,7 @@ func TestParseCommentTags(t *testing.T) {
 			comments: []string{
 				"+ignored=30.0",
 			},
+			expected: &spec.Schema{},
 		},
 		{
 			t:    types.Float64,
@@ -134,7 +136,7 @@ func TestParseCommentTags(t *testing.T) {
 			comments: []string{
 				`+k8s:validation:minimum="asdf"`,
 			},
-			expectedError: `failed to unmarshal marker comments: json: cannot unmarshal string into Go struct field CommentTags.minimum of type float64`,
+			expectedError: `failed to unmarshal marker comments: json: cannot unmarshal string into Go struct field commentTags.minimum of type float64`,
 		},
 		{
 
@@ -152,6 +154,7 @@ func TestParseCommentTags(t *testing.T) {
 			comments: []string{
 				"+k8s:validation:pattern=ref(asdf)",
 			},
+			expected: &spec.Schema{},
 		},
 		{
 			t:    types.Float64,
@@ -160,11 +163,15 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:rule="oldSelf == self"`,
 				`+k8s:validation:cel[0]:message="immutable field"`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "oldSelf == self",
-						Message: "immutable field",
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "oldSelf == self",
+								"message": "immutable field",
+							},
+						},
 					},
 				},
 			},
@@ -192,16 +199,20 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[1]:optionalOldSelf=true`,
 				`+k8s:validation:cel[1]:message="must be greater than 5"`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "oldSelf == self",
-						Message: "immutable field",
-					},
-					{
-						Rule:            "self > 5",
-						Message:         "must be greater than 5",
-						OptionalOldSelf: ptr.To(true),
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "oldSelf == self",
+								"message": "immutable field",
+							},
+							map[string]interface{}{
+								"rule":            "self > 5",
+								"optionalOldSelf": true,
+								"message":         "must be greater than 5",
+							},
+						},
 					},
 				},
 			},
@@ -217,17 +228,21 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[1]:optionalOldSelf=true`,
 				`+k8s:validation:cel[1]:message="must be greater than 5"`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:              "oldSelf == self",
-						MessageExpression: "self + ' must be equal to old value'",
-						OptionalOldSelf:   ptr.To(true),
-					},
-					{
-						Rule:            "self > 5",
-						Message:         "must be greater than 5",
-						OptionalOldSelf: ptr.To(true),
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":              "oldSelf == self",
+								"optionalOldSelf":   true,
+								"messageExpression": "self + ' must be equal to old value'",
+							},
+							map[string]interface{}{
+								"rule":            "self > 5",
+								"optionalOldSelf": true,
+								"message":         "must be greater than 5",
+							},
+						},
 					},
 				},
 			},
@@ -304,15 +319,19 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:rule="string rule [1]"`,
 				`+k8s:validation:pattern="self[3] == 'hi'"`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "string rule [1]",
-						Message: "[3]string rule [1]",
-					},
-				},
+			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Pattern: "self[3] == 'hi'",
+					Pattern: `self[3] == 'hi'`,
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "string rule [1]",
+								"message": "[3]string rule [1]",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -324,15 +343,19 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:rule> raw string rule [1]`,
 				`+k8s:validation:pattern>"self[3] == 'hi'"`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "raw string rule [1]",
-						Message: "[3]raw string message with subscirpt [3]\"",
-					},
-				},
+			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Pattern: `"self[3] == 'hi'"`,
+				},
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "raw string rule [1]",
+								"message": "[3]raw string message with subscirpt [3]\"",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -369,16 +392,20 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[1]:message="must be greater than 5"`,
 				`+k8s:validation:cel[1]:optionalOldSelf`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "oldSelf == self",
-						Message: "cant change",
-					},
-					{
-						Rule:            "self > 5",
-						Message:         "must be greater than 5",
-						OptionalOldSelf: ptr.To(true),
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "oldSelf == self",
+								"message": "cant change",
+							},
+							map[string]interface{}{
+								"rule":            "self > 5",
+								"message":         "must be greater than 5",
+								"optionalOldSelf": true,
+							},
+						},
 					},
 				},
 			},
@@ -390,11 +417,15 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:rule> raw string rule`,
 				`+k8s:validation:cel[0]:message="raw string message"`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "raw string rule",
-						Message: "raw string message",
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "raw string rule",
+								"message": "raw string message",
+							},
+						},
 					},
 				},
 			},
@@ -408,11 +439,15 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:rule>   : self.field == self.name + ' is odd'`,
 				`+k8s:validation:cel[0]:message>raw string message`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "self.length() % 2 == 0\n? self.field == self.name + ' is even'\n: self.field == self.name + ' is odd'",
-						Message: "raw string message",
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "self.length() % 2 == 0\n? self.field == self.name + ' is even'\n: self.field == self.name + ' is odd'",
+								"message": "raw string message",
+							},
+						},
 					},
 				},
 			},
@@ -426,11 +461,15 @@ func TestParseCommentTags(t *testing.T) {
 				`+k8s:validation:cel[0]:rule>  ? self.field == self.name + ' is even'`,
 				`+k8s:validation:cel[0]:rule>  : self.field == self.name + ' is odd'`,
 			},
-			expected: generators.CommentTags{
-				CEL: []generators.CELTag{
-					{
-						Rule:    "self.length() % 2 == 0\n? self.field == self.name + ' is even'\n: self.field == self.name + ' is odd'",
-						Message: "raw string message",
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "self.length() % 2 == 0\n? self.field == self.name + ' is even'\n: self.field == self.name + ' is odd'",
+								"message": "raw string message",
+							},
+						},
 					},
 				},
 			},
