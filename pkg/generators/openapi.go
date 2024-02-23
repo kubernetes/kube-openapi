@@ -942,6 +942,10 @@ func (g openAPITypeWriter) generateMapProperty(t *types.Type) error {
 	typeString, format := openapi.OpenAPITypeFormat(elemType.String())
 	if typeString != "" {
 		g.generateSimpleProperty(typeString, format)
+		if enumType, isEnum := g.enumContext.EnumType(t.Elem); isEnum {
+			// original type is an enum, add "Enum: " and the values
+			g.Do("Enum: []interface{}{$.$},\n", strings.Join(enumType.ValueStrings(), ", "))
+		}
 		g.Do("},\n},\n},\n", nil)
 		return nil
 	}
@@ -975,6 +979,10 @@ func (g openAPITypeWriter) generateSliceProperty(t *types.Type) error {
 	typeString, format := openapi.OpenAPITypeFormat(elemType.String())
 	if typeString != "" {
 		g.generateSimpleProperty(typeString, format)
+		if enumType, isEnum := g.enumContext.EnumType(t.Elem); isEnum {
+			// original type is an enum, add "Enum: " and the values
+			g.Do("Enum: []interface{}{$.$},\n", strings.Join(enumType.ValueStrings(), ", "))
+		}
 		g.Do("},\n},\n},\n", nil)
 		return nil
 	}

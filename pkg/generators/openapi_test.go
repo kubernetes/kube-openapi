@@ -1640,6 +1640,8 @@ type Blah struct {
 	NoCommentEnum EnumType
   // +optional
 	OptionalEnum *EnumType
+	List []EnumType
+	Map map[string]EnumType
 }`)
 	if callErr != nil {
 		t.Fatal(callErr)
@@ -1681,8 +1683,39 @@ Format: "",
 Enum: []interface{}{"a", "b"},
 },
 },
+"List": {
+SchemaProps: spec.SchemaProps{
+Type: []string{"array"},
+Items: &spec.SchemaOrArray{
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Default: "",
+Type: []string{"string"},
+Format: "",
+Enum: []interface{}{"a", "b"},
 },
-Required: []string{"Value","NoCommentEnum"},
+},
+},
+},
+},
+"Map": {
+SchemaProps: spec.SchemaProps{
+Type: []string{"object"},
+AdditionalProperties: &spec.SchemaOrBool{
+Allows: true,
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Default: "",
+Type: []string{"string"},
+Format: "",
+Enum: []interface{}{"a", "b"},
+},
+},
+},
+},
+},
+},
+Required: []string{"Value","NoCommentEnum","List","Map"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
