@@ -167,6 +167,91 @@ func TestParseEnums(t *testing.T) {
 				"foo.Foo": {"different", "same"},
 			},
 		},
+		{
+			name: "aliasing and re-exporting enum from different package",
+			universe: types.Universe{
+				"foo": &types.Package{
+					Name: "foo",
+					Types: map[string]*types.Type{
+						"Foo": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "Foo",
+							},
+							Kind:         types.Alias,
+							Underlying:   types.String,
+							CommentLines: []string{"+enum"},
+						},
+					},
+					Constants: map[string]*types.Type{
+						"FooCase1": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "FooCase1",
+							},
+							Kind: types.DeclarationOf,
+							Underlying: &types.Type{
+								Name: types.Name{
+									Package: "foo",
+									Name:    "Foo",
+								},
+							},
+							ConstValue: &[]string{"case1"}[0],
+						},
+						"FooCase2": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "FooCase2",
+							},
+							Kind: types.DeclarationOf,
+							Underlying: &types.Type{
+								Name: types.Name{
+									Package: "foo",
+									Name:    "Foo",
+								},
+							},
+							ConstValue: &[]string{"case2"}[0],
+						},
+					},
+				},
+				"bar": &types.Package{
+					Name: "bar",
+					Constants: map[string]*types.Type{
+						"FooCase1": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "FooCase1",
+							},
+							Kind: types.DeclarationOf,
+							Underlying: &types.Type{
+								Name: types.Name{
+									Package: "foo",
+									Name:    "Foo",
+								},
+							},
+							ConstValue: &[]string{"case1"}[0],
+						},
+						"FooCase2": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "FooCase2",
+							},
+							Kind: types.DeclarationOf,
+							Underlying: &types.Type{
+								Name: types.Name{
+									Package: "foo",
+									Name:    "Foo",
+								},
+							},
+							ConstValue: &[]string{"case2"}[0],
+						},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"foo.Foo": {"case1", "case2"},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			enums := parseEnums(&generator.Context{Universe: tc.universe})
