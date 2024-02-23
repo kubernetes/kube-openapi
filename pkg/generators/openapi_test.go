@@ -2187,6 +2187,110 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 	}
 }
 
+func TestRequired(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+		package foo
+
+		// +k8s:openapi-gen=true
+		type Blah struct {
+			// +optional
+			OptionalField string
+
+			// +required
+			RequiredField string
+
+			// +required
+			RequiredPointerField *string `+"`json:\"requiredPointerField,omitempty\"`"+`
+
+			// +optional
+			OptionalPointerField *string `+"`json:\"optionalPointerField,omitempty\"`"+`
+
+			ImplicitlyRequiredField string
+			ImplicitlyOptionalField string `+"`json:\"implicitlyOptionalField,omitempty\"`"+`
+		}
+	`)
+
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
+
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+	} else {
+		formatted_expected, ree := format.Source([]byte(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+		return common.OpenAPIDefinition{
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: 			  []string{"object"},
+					Properties: map[string]spec.Schema{
+						"OptionalField": {
+							SchemaProps: spec.SchemaProps{
+								Default: "",
+								Type:    []string{"string"},
+								Format:  "",
+							},
+						},
+   						"RequiredField": {
+   							SchemaProps: spec.SchemaProps{
+   								Default: "",
+   								Type:    []string{"string"},
+   								Format:  "",
+   							},
+   						},
+   						"requiredPointerField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+   						"optionalPointerField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+   						"ImplicitlyRequiredField": {
+   							SchemaProps: spec.SchemaProps{
+   								Default: "",
+   								Type:    []string{"string"},
+   								Format:  "",
+   							},
+   						},
+   						"implicitlyOptionalField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+					},
+					Required: []string{"RequiredField", "requiredPointerField", "ImplicitlyRequiredField"},
+				},
+			},
+		}
+	}
+
+`))
+		if ree != nil {
+			t.Fatal(ree)
+		}
+		assert.Equal(string(formatted_expected), string(formatted))
+	}
+
+	// Show specifying both is an error
+	callErr, funcErr, assert, _, _, _ = testOpenAPITypeWriter(t, `
+	package foo
+
+	// +k8s:openapi-gen=true
+	type Blah struct {
+		// +optional
+		// +required
+		ConfusingField string
+	}
+`)
+	assert.NoError(callErr)
+	assert.ErrorContains(funcErr, "cannot be both optional and required")
+}
+
 func TestMarkerCommentsCustomDefsV3(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
