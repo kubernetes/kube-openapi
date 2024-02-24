@@ -49,10 +49,15 @@ func construct(t *testing.T, files map[string]string, testNamer namer.Namer) (*p
 }
 
 func testOpenAPITypeWriter(t *testing.T, code string) (error, error, *assert.Assertions, *bytes.Buffer, *bytes.Buffer, []string) {
+	return testOpenAPITypeWriterWithFiles(t, code, nil)
+}
+
+func testOpenAPITypeWriterWithFiles(t *testing.T, code string, testFiles map[string]string) (error, error, *assert.Assertions, *bytes.Buffer, *bytes.Buffer, []string) {
 	assert := assert.New(t)
-	var testFiles = map[string]string{
-		"base/foo/bar.go": code,
+	if testFiles == nil {
+		testFiles = map[string]string{}
 	}
+	testFiles["base/foo/bar.go"] = code
 	outputPackage := "base/output"
 	imports := generator.NewImportTrackerForPackage(outputPackage)
 	rawNamer := namer.NewRawNamer(outputPackage, imports)
@@ -1618,6 +1623,75 @@ map[string]interface{}{
 `, funcBuffer.String())
 }
 
+func TestEnumAlias(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer, _ := testOpenAPITypeWriterWithFiles(t, `
+	package foo
+
+	import "base/bar"
+
+	// EnumType is the enumType.
+	// +enum
+	type EnumType = bar.EnumType
+	
+	// EnumA is a.
+	const EnumA EnumType = bar.EnumA
+	// EnumB is b.
+	const EnumB EnumType = bar.EnumB
+	
+	// Blah is a test.
+	// +k8s:openapi-gen=true
+	type Blah struct {
+		// Value is the value.
+		Value EnumType
+	}
+
+	`, map[string]string{"base/bar/foo.go": `
+	package bar
+
+	// EnumType is the enumType.
+	// +enum
+	type EnumType string
+	
+	// EnumA is a.
+	const EnumA EnumType = "a"
+	// EnumB is b.
+	const EnumB EnumType = "b"
+	`})
+
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	_ = assert
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"Value": {
+SchemaProps: spec.SchemaProps{`+"\n"+
+		"Description: \"Value is the value.\\n\\nPossible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
+Default: "",
+Type: []string{"string"},
+Format: "",
+Enum: []interface{}{"a", "b"},
+},
+},
+},
+Required: []string{"Value"},
+},
+},
+}
+}
+
+`, funcBuffer.String())
+
+}
+
 func TestEnum(t *testing.T) {
 	callErr, funcErr, assert, _, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo
@@ -2185,6 +2259,110 @@ func TestMultilineCELMarkerComments(t *testing.T) {
 		}
 		assert.Equal(string(formatted_expected), string(formatted))
 	}
+}
+
+func TestRequired(t *testing.T) {
+	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+		package foo
+
+		// +k8s:openapi-gen=true
+		type Blah struct {
+			// +optional
+			OptionalField string
+
+			// +required
+			RequiredField string
+
+			// +required
+			RequiredPointerField *string `+"`json:\"requiredPointerField,omitempty\"`"+`
+
+			// +optional
+			OptionalPointerField *string `+"`json:\"optionalPointerField,omitempty\"`"+`
+
+			ImplicitlyRequiredField string
+			ImplicitlyOptionalField string `+"`json:\"implicitlyOptionalField,omitempty\"`"+`
+		}
+	`)
+
+	assert.NoError(funcErr)
+	assert.NoError(callErr)
+	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`})
+
+	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+	} else {
+		formatted_expected, ree := format.Source([]byte(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+		return common.OpenAPIDefinition{
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type: 			  []string{"object"},
+					Properties: map[string]spec.Schema{
+						"OptionalField": {
+							SchemaProps: spec.SchemaProps{
+								Default: "",
+								Type:    []string{"string"},
+								Format:  "",
+							},
+						},
+   						"RequiredField": {
+   							SchemaProps: spec.SchemaProps{
+   								Default: "",
+   								Type:    []string{"string"},
+   								Format:  "",
+   							},
+   						},
+   						"requiredPointerField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+   						"optionalPointerField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+   						"ImplicitlyRequiredField": {
+   							SchemaProps: spec.SchemaProps{
+   								Default: "",
+   								Type:    []string{"string"},
+   								Format:  "",
+   							},
+   						},
+   						"implicitlyOptionalField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+					},
+					Required: []string{"RequiredField", "requiredPointerField", "ImplicitlyRequiredField"},
+				},
+			},
+		}
+	}
+
+`))
+		if ree != nil {
+			t.Fatal(ree)
+		}
+		assert.Equal(string(formatted_expected), string(formatted))
+	}
+
+	// Show specifying both is an error
+	callErr, funcErr, assert, _, _, _ = testOpenAPITypeWriter(t, `
+	package foo
+
+	// +k8s:openapi-gen=true
+	type Blah struct {
+		// +optional
+		// +required
+		ConfusingField string
+	}
+`)
+	assert.NoError(callErr)
+	assert.ErrorContains(funcErr, "cannot be both optional and required")
 }
 
 func TestMarkerCommentsCustomDefsV3(t *testing.T) {

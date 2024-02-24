@@ -81,19 +81,25 @@ func hasOpenAPITagValue(comments []string, value string) bool {
 	return false
 }
 
-func hasRequiredTag(m *types.Member) bool {
-	return types.ExtractCommentTags(
-		"+", m.CommentLines)[tagRequired] != nil
-}
-
-// hasOptionalTag returns true if the member has +optional in its comments or
-// omitempty in its json tags.
-func hasOptionalTag(m *types.Member) bool {
+// isOptional returns error if the member has +optional and +required in
+// its comments. If +optional is present it returns true. If +required is present
+// it returns false. Otherwise, it returns true if `omitempty` JSON tag is present
+func isOptional(m *types.Member) (bool, error) {
 	hasOptionalCommentTag := types.ExtractCommentTags(
 		"+", m.CommentLines)[tagOptional] != nil
-	hasOptionalJsonTag := strings.Contains(
-		reflect.StructTag(m.Tags).Get("json"), "omitempty")
-	return hasOptionalCommentTag || hasOptionalJsonTag
+	hasRequiredCommentTag := types.ExtractCommentTags(
+		"+", m.CommentLines)[tagRequired] != nil
+	if hasOptionalCommentTag && hasRequiredCommentTag {
+		return false, fmt.Errorf("member %s cannot be both optional and required", m.Name)
+	} else if hasRequiredCommentTag {
+		return false, nil
+	} else if hasOptionalCommentTag {
+		return true, nil
+	}
+
+	// If neither +optional nor +required is present in the comments,
+	// infer optional from the json tags.
+	return strings.Contains(reflect.StructTag(m.Tags).Get("json"), "omitempty"), nil
 }
 
 func apiTypeFilterFunc(c *generator.Context, t *types.Type) bool {
@@ -323,10 +329,10 @@ func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]
 		if name == "" {
 			continue
 		}
-		if isOptional, isRequired := hasOptionalTag(&m), hasRequiredTag(&m); isOptional && isRequired {
+		if isOptional, err := isOptional(&m); err != nil {
 			klog.Errorf("Error when generating: %v, %v\n", name, m)
-			return required, fmt.Errorf("member %s of type %s cannot be both optional and required", m.Name, t.Name)
-		} else if !isOptional || isRequired {
+			return required, err
+		} else if !isOptional {
 			required = append(required, name)
 		}
 		if err = g.generateProperty(&m, t); err != nil {

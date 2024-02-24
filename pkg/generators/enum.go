@@ -121,7 +121,7 @@ func parseEnums(c *generator.Context) enumMap {
 					Value:   *c.ConstValue,
 					Comment: strings.Join(c.CommentLines, " "),
 				}
-				enumTypes[enumType.Name].appendValue(value)
+				enumTypes[enumType.Name].addIfNotPresent(value)
 			}
 		}
 	}
@@ -129,7 +129,15 @@ func parseEnums(c *generator.Context) enumMap {
 	return enumTypes
 }
 
-func (et *enumType) appendValue(value *enumValue) {
+func (et *enumType) addIfNotPresent(value *enumValue) {
+	// If we already have an enum case with the same value, then ignore this new
+	// one. This can happen if an enum aliases one from another package and
+	// re-exports the cases.
+	for _, existing := range et.Values {
+		if existing.Value == value.Value {
+			return
+		}
+	}
 	et.Values = append(et.Values, value)
 }
 
