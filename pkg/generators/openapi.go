@@ -271,6 +271,16 @@ func hasOpenAPIV3DefinitionMethod(t *types.Type) bool {
 	return false
 }
 
+func hasOpenAPISchemaJSONMethod(t *types.Type) bool {
+	for mn, mt := range t.Methods {
+		if mn != "OpenAPISchemaJSON" {
+			continue
+		}
+		return methodReturnsValue(mt, "encoding/json", "RawMessage")
+	}
+	return false
+}
+
 func hasOpenAPIDefinitionMethod(t *types.Type) bool {
 	for mn, mt := range t.Methods {
 		if mn != "OpenAPIDefinition" {
@@ -444,6 +454,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		hasV2DefinitionTypeAndFormat := hasOpenAPIDefinitionMethods(t)
 		hasV3OneOfTypes := hasOpenAPIV3OneOfMethod(t)
 		hasV3Definition := hasOpenAPIV3DefinitionMethod(t)
+		hasRawJSONSchema := hasOpenAPISchemaJSONMethod(t)
 
 		if hasV2Definition || (hasV3Definition && !hasV2DefinitionTypeAndFormat) {
 			// already invoked directly
@@ -528,6 +539,12 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		case hasV3OneOfTypes:
 			// having v3 oneOf types without custom v2 type or format does not make sense.
 			return fmt.Errorf("type %q has v3 one of types but not v2 type or format", t.Name)
+		case hasRawJSONSchema:
+			g.Do("schema := spec.Schema{}\n"+
+				"_ = schema.UnmarshalJSON( $.type|raw${}.OpenAPISchemaJSON())\n"+
+				"return common.OpenAPIDefinition{Schema: schema}\n", args)
+			g.Do("}\n\n", nil)
+			return nil
 		}
 
 		g.Do("return $.OpenAPIDefinition|raw${\nSchema: spec.Schema{\nSchemaProps: spec.SchemaProps{\n", args)

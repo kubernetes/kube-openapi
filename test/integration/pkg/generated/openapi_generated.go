@@ -40,6 +40,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/kube-openapi/test/integration/testdata/custom.Bak":                          custom.Bak{}.OpenAPIDefinition(),
 		"k8s.io/kube-openapi/test/integration/testdata/custom.Bal":                          custom.Bal{}.OpenAPIV3Definition(),
 		"k8s.io/kube-openapi/test/integration/testdata/custom.FooV3OneOf":                   schema_test_integration_testdata_custom_FooV3OneOf(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/custom.FooV3Raw":                     schema_test_integration_testdata_custom_FooV3Raw(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/defaults.Defaulted":                  schema_test_integration_testdata_defaults_Defaulted(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/defaults.SubStruct":                  schema_test_integration_testdata_defaults_SubStruct(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/dummytype.Bar":                       schema_test_integration_testdata_dummytype_Bar(ref),
@@ -101,6 +102,12 @@ func schema_test_integration_testdata_custom_FooV3OneOf(ref common.ReferenceCall
 			},
 		},
 	})
+}
+
+func schema_test_integration_testdata_custom_FooV3Raw(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	schema := spec.Schema{}
+	_ = schema.UnmarshalJSON(custom.FooV3Raw{}.OpenAPISchemaJSON())
+	return common.OpenAPIDefinition{Schema: schema}
 }
 
 func schema_test_integration_testdata_defaults_Defaulted(ref common.ReferenceCallback) common.OpenAPIDefinition {
@@ -1080,16 +1087,7 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 					"celField": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
-								"x-kubernetes-validations": []interface{}{
-									map[string]interface{}{
-										"rule":    "self.length() > 0",
-										"message": "string message",
-									},
-									map[string]interface{}{
-										"rule":              "self.length() % 2 == 0",
-										"messageExpression": "self + ' hello'",
-									},
-								},
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "string message", "rule": "self.length() > 0"}, map[string]interface{}{"messageExpression": "self + ' hello'", "rule": "self.length() % 2 == 0"}},
 							},
 						},
 						SchemaProps: spec.SchemaProps{
@@ -1103,12 +1101,7 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
-					"x-kubernetes-validations": []interface{}{
-						map[string]interface{}{
-							"rule":    "self == oldSelf",
-							"message": "foo",
-						},
-					},
+					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo", "rule": "self == oldSelf"}},
 				},
 			},
 		},
@@ -1126,12 +1119,7 @@ func schema_test_integration_testdata_valuevalidation_Foo2(ref common.ReferenceC
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
-					"x-kubernetes-validations": []interface{}{
-						map[string]interface{}{
-							"rule":    "self == oldSelf",
-							"message": "foo2",
-						},
-					},
+					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo2", "rule": "self == oldSelf"}},
 				},
 			},
 		},
@@ -1149,12 +1137,7 @@ func schema_test_integration_testdata_valuevalidation_Foo3(ref common.ReferenceC
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
-					"x-kubernetes-validations": []interface{}{
-						map[string]interface{}{
-							"rule":    "self == oldSelf",
-							"message": "foo3",
-						},
-					},
+					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo3", "rule": "self == oldSelf"}},
 				},
 			},
 		},
@@ -1168,12 +1151,7 @@ func schema_test_integration_testdata_valuevalidation_Foo3(ref common.ReferenceC
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
-					"x-kubernetes-validations": []interface{}{
-						map[string]interface{}{
-							"rule":    "self == oldSelf",
-							"message": "foo3",
-						},
-					},
+					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo3", "rule": "self == oldSelf"}},
 				},
 			},
 		},
@@ -1191,12 +1169,7 @@ func schema_test_integration_testdata_valuevalidation_Foo5(ref common.ReferenceC
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
-					"x-kubernetes-validations": []interface{}{
-						map[string]interface{}{
-							"rule":    "self == oldSelf",
-							"message": "foo5",
-						},
-					},
+					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo5", "rule": "self == oldSelf"}},
 				},
 			},
 		},

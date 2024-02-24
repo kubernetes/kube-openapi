@@ -1217,6 +1217,35 @@ Format:foo.Blah{}.OpenAPISchemaFormat(),
 `, funcBuffer.String())
 }
 
+func TestRawJSONSchemaDefs(t *testing.T) {
+	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
+package foo
+
+import "encoding/json"
+
+// Blah is a custom type
+type Blah struct {
+}
+
+func (_ Blah) OpenAPISchemaJSON() json.RawMessage { return json.RawMessage("{}") } // invalid
+`)
+	if callErr != nil {
+		t.Fatal(callErr)
+	}
+	if funcErr != nil {
+		t.Fatal(funcErr)
+	}
+	assert.Equal(`"base/foo.Blah": schema_base_foo_Blah(ref),
+`, callBuffer.String())
+	assert.Equal(`func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+schema := spec.Schema{}
+_ = schema.UnmarshalJSON( foo.Blah{}.OpenAPISchemaJSON())
+return common.OpenAPIDefinition{Schema: schema}
+}
+
+`, funcBuffer.String())
+}
+
 func TestPointer(t *testing.T) {
 	callErr, funcErr, assert, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, `
 package foo

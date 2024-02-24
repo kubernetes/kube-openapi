@@ -17,6 +17,8 @@ limitations under the License.
 package custom
 
 import (
+	"encoding/json"
+
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -90,4 +92,24 @@ func (FooV3OneOf) OpenAPISchemaType() []string {
 }
 func (FooV3OneOf) OpenAPISchemaFormat() string {
 	return "string"
+}
+
+// This one has a raw JSON schema
+// +k8s:openapi-gen=true
+type FooV3Raw struct{}
+
+func (FooV3Raw) OpenAPISchemaJSON() json.RawMessage {
+	return json.RawMessage(`{
+		"description": "something custom",
+		"type": "object",
+		"required": ["type", "value"],
+		"properties": {
+			"type": {
+				"type": "string"
+			},
+			"value": {
+				"type": "string"
+			}
+		}
+	}`)
 }
