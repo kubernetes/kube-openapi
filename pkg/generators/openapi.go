@@ -125,7 +125,7 @@ const (
 
 // openApiGen produces a file with auto-generated OpenAPI functions.
 type openAPIGen struct {
-	generator.GolangGenerator
+	generator.GoGenerator
 	// TargetPackage is the package that will get GetOpenAPIDefinitions function returns all open API definitions.
 	targetPackage string
 	imports       namer.ImportTracker
@@ -133,7 +133,7 @@ type openAPIGen struct {
 
 func newOpenAPIGen(outputFilename string, targetPackage string) generator.Generator {
 	return &openAPIGen{
-		GolangGenerator: generator.GolangGenerator{
+		GoGenerator: generator.GoGenerator{
 			OutputFilename: outputFilename,
 		},
 		imports:       generator.NewImportTrackerForPackage(targetPackage),
