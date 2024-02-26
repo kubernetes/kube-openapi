@@ -56,7 +56,7 @@ func (args *Args) AddFlags(fs *pflag.FlagSet) {
 		"the name of the file to be generated")
 	fs.StringVar(&args.GoHeaderFile, "go-header-file", "",
 		"the path to a file containing boilerplate header text; the string \"YEAR\" will be replaced with the current 4-digit year")
-	fs.StringVarP(&args.ReportFilename, "report-filename", "r", "-",
+	fs.StringVarP(&args.ReportFilename, "report-filename", "r", args.ReportFilename,
 		"Name of report file used by API linter to print API violations. Default \"-\" stands for standard output. NOTE that if valid filename other than \"-\" is specified, API linter won't return error on detected API violations. This allows further check of existing API violations without stopping the OpenAPI generation toolchain.")
 }
 
