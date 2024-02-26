@@ -28,24 +28,15 @@ import (
 )
 
 const (
-	headerFilePath = "../../boilerplate/boilerplate.go.txt"
-	testdataDir    = "./testdata"
-	testPkgDir     = "k8s.io/kube-openapi/test/integration/testdata"
-	inputDir       = testPkgDir + "/listtype" +
-		"," + testPkgDir + "/maptype" +
-		"," + testPkgDir + "/structtype" +
-		"," + testPkgDir + "/dummytype" +
-		"," + testPkgDir + "/uniontype" +
-		"," + testPkgDir + "/enumtype" +
-		"," + testPkgDir + "/custom" +
-		"," + testPkgDir + "/valuevalidation" +
-		"," + testPkgDir + "/defaults"
-	outputBase                 = "pkg"
-	outputPackage              = "generated"
-	outputBaseFileName         = "openapi_generated"
+	headerFilePath             = "../../boilerplate/boilerplate.go.txt"
+	testdataDir                = "./testdata"
+	testPkgRoot                = "k8s.io/kube-openapi/test/integration/testdata"
+	outputPkg                  = testPkgRoot + "/pkg/generated"
+	generatedCodeFileName      = "openapi_generated.go"
+	goldenCodeFilePath         = "pkg/generated/" + generatedCodeFileName
 	generatedSwaggerFileName   = "generated.v2.json"
-	generatedReportFileName    = "generated.v2.report"
 	goldenSwaggerFileName      = "golden.v2.json"
+	generatedReportFileName    = "generated.v2.report"
 	goldenReportFileName       = "golden.v2.report"
 	generatedOpenAPIv3FileName = "generated.v3.json"
 	goldenOpenAPIv3Filename    = "golden.v3.json"
@@ -58,6 +49,18 @@ var (
 	tempDir          string
 	terr             error
 	openAPIGenPath   string
+
+	inputDirs = []string{
+		filepath.Join(testPkgRoot, "listtype"),
+		filepath.Join(testPkgRoot, "maptype"),
+		filepath.Join(testPkgRoot, "structtype"),
+		filepath.Join(testPkgRoot, "dummytype"),
+		filepath.Join(testPkgRoot, "uniontype"),
+		filepath.Join(testPkgRoot, "enumtype"),
+		filepath.Join(testPkgRoot, "custom"),
+		filepath.Join(testPkgRoot, "valuevalidation"),
+		filepath.Join(testPkgRoot, "defaults"),
+	}
 )
 
 func generatedFile(filename string) string { return filepath.Join(tempDir, filename) }
@@ -84,18 +87,16 @@ var _ = BeforeSuite(func() {
 	Expect(berr).ShouldNot(HaveOccurred())
 	openAPIGenPath = binaryPath
 
-	// Run the OpenAPI code generator, creating OpenAPIDefinition code
-	// to be compiled into builder.
-	By("processing go idl with openapi-gen")
-	gr := generatedFile(generatedReportFileName)
-	command := exec.Command(openAPIGenPath,
-		"-i", inputDir,
-		"-o", outputBase,
-		"-p", outputPackage,
-		"-O", outputBaseFileName,
-		"-r", gr,
-		"-h", headerFilePath,
-	)
+	// Run the OpenAPI code generator.
+	By("running openapi-gen")
+	args := append([]string{
+		"--output-dir", tempDir,
+		"--output-pkg", outputPkg,
+		"--output-file", generatedCodeFileName,
+		"--report-filename", generatedFile(generatedReportFileName),
+		"--go-header-file", headerFilePath,
+	}, inputDirs...)
+	command := exec.Command(openAPIGenPath, args...)
 	command.Dir = workingDirectory
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
@@ -136,16 +137,13 @@ var _ = AfterSuite(func() {
 })
 
 var _ = Describe("Open API Definitions Generation", func() {
-	Describe("openapi-gen --verify", func() {
-		It("Verifies that the existing files are correct", func() {
-			command := exec.Command(openAPIGenPath,
-				"-i", inputDir,
-				"-o", outputBase,
-				"-p", outputPackage,
-				"-O", outputBaseFileName,
-				"-r", testdataFile(goldenReportFileName),
-				"-h", headerFilePath,
-				"--verify-only",
+	Describe("Validating generated code", func() {
+		It("Generated code should match golden files", func() {
+			// Diff the generated code against the golden code. Exit code should be zero.
+			command := exec.Command(
+				"diff", "-u",
+				goldenCodeFilePath,
+				generatedFile(generatedCodeFileName),
 			)
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
@@ -158,7 +156,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 		It("Generated OpenAPI swagger definitions should match golden files", func() {
 			// Diff the generated swagger against the golden swagger. Exit code should be zero.
 			command := exec.Command(
-				"diff",
+				"diff", "-u",
 				testdataFile(goldenSwaggerFileName),
 				generatedFile(generatedSwaggerFileName),
 			)
@@ -173,7 +171,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 		It("Generated OpenAPI swagger definitions should match golden files", func() {
 			// Diff the generated swagger against the golden swagger. Exit code should be zero.
 			command := exec.Command(
-				"diff",
+				"diff", "-u",
 				testdataFile(goldenOpenAPIv3Filename),
 				generatedFile(generatedOpenAPIv3FileName),
 			)
@@ -188,7 +186,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 		It("Generated API rule violations should match golden report files", func() {
 			// Diff the generated report against the golden report. Exit code should be zero.
 			command := exec.Command(
-				"diff",
+				"diff", "-u",
 				testdataFile(goldenReportFileName),
 				generatedFile(generatedReportFileName),
 			)
