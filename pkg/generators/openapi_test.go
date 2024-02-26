@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/format"
-	"path/filepath"
+	"path"
 	"strings"
 	"testing"
 
@@ -47,8 +47,9 @@ func construct(t *testing.T, cfg *packages.Config, nameSystems namer.NameSystems
 
 func testOpenAPITypeWriter(t *testing.T, cfg *packages.Config) (error, error, *bytes.Buffer, *bytes.Buffer, []string) {
 	pkgBase := "example.com/base"
-	inputPkg := filepath.Join(pkgBase, "foo")
-	outputPkg := filepath.Join(pkgBase, "output")
+	// `path` vs. `filepath` because packages use '/'
+	inputPkg := path.Join(pkgBase, "foo")
+	outputPkg := path.Join(pkgBase, "output")
 	imports := generator.NewImportTrackerForPackage(outputPkg)
 	rawNamer := namer.NewRawNamer(outputPkg, imports)
 	namers := namer.NameSystems{

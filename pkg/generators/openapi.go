@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"path/filepath"
+	"path"
 	"reflect"
 	"regexp"
 	"sort"
@@ -297,7 +297,8 @@ func hasOpenAPIV3OneOfMethod(t *types.Type) bool {
 
 // typeShortName returns short package name (e.g. the name x appears in package x definition) dot type name.
 func typeShortName(t *types.Type) string {
-	return filepath.Base(t.Name.Package) + "." + t.Name.Name
+	// `path` vs. `filepath` because packages use '/'
+	return path.Base(t.Name.Package) + "." + t.Name.Name
 }
 
 func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]string, error) {

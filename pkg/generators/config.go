@@ -17,7 +17,7 @@ limitations under the License.
 package generators
 
 import (
-	"path/filepath"
+	"path"
 
 	"k8s.io/gengo/v2"
 	"k8s.io/gengo/v2/generator"
@@ -65,7 +65,7 @@ func GetTargets(context *generator.Context, args *args.Args) []generator.Target 
 
 	return []generator.Target{
 		&generator.SimpleTarget{
-			PkgName:       filepath.Base(args.OutputPkg),
+			PkgName:       path.Base(args.OutputPkg), // `path` vs. `filepath` because packages use '/'
 			PkgPath:       args.OutputPkg,
 			PkgDir:        args.OutputDir,
 			HeaderComment: boilerplate,
