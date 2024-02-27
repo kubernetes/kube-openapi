@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi
 
-go 1.21.3
+go 1.20
 
 require (
 	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
@@ -22,8 +22,8 @@ require (
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/gengo/v2 v2.0.0-20240226174109-00c4be8627da
-	k8s.io/klog/v2 v2.80.1
+	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70
+	k8s.io/klog/v2 v2.120.1
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3
@@ -32,7 +32,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-logr/logr v1.2.0 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
