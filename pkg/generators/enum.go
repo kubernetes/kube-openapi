@@ -134,8 +134,14 @@ func (et *enumType) addIfNotPresent(value *enumValue) {
 	// If we already have an enum case with the same value, then ignore this new
 	// one. This can happen if an enum aliases one from another package and
 	// re-exports the cases.
-	for _, existing := range et.Values {
+	for i, existing := range et.Values {
 		if existing.Value == value.Value {
+
+			// Take the value of the longer comment (or some other deterministic tie breaker)
+			if len(existing.Comment) < len(value.Comment) || (len(existing.Comment) == len(value.Comment) && existing.Comment > value.Comment) {
+				et.Values[i] = value
+			}
+
 			return
 		}
 	}
