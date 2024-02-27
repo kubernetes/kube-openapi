@@ -19,6 +19,7 @@ package integration
 import (
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -51,15 +52,16 @@ var (
 	openAPIGenPath   string
 
 	inputDirs = []string{
-		filepath.Join(testPkgRoot, "listtype"),
-		filepath.Join(testPkgRoot, "maptype"),
-		filepath.Join(testPkgRoot, "structtype"),
-		filepath.Join(testPkgRoot, "dummytype"),
-		filepath.Join(testPkgRoot, "uniontype"),
-		filepath.Join(testPkgRoot, "enumtype"),
-		filepath.Join(testPkgRoot, "custom"),
-		filepath.Join(testPkgRoot, "valuevalidation"),
-		filepath.Join(testPkgRoot, "defaults"),
+		// `path` vs. `filepath` because packages use '/'
+		path.Join(testPkgRoot, "listtype"),
+		path.Join(testPkgRoot, "maptype"),
+		path.Join(testPkgRoot, "structtype"),
+		path.Join(testPkgRoot, "dummytype"),
+		path.Join(testPkgRoot, "uniontype"),
+		path.Join(testPkgRoot, "enumtype"),
+		path.Join(testPkgRoot, "custom"),
+		path.Join(testPkgRoot, "valuevalidation"),
+		path.Join(testPkgRoot, "defaults"),
 	}
 )
 
