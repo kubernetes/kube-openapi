@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi/test/integration
 
-go 1.21.3
+go 1.20
 
 require (
 	github.com/emicklei/go-restful/v3 v3.8.0
@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-logr/logr v1.2.0 // indirect
+	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
 	github.com/go-openapi/jsonreference v0.20.1 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
@@ -34,8 +34,8 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/gengo/v2 v2.0.0-20240226174109-00c4be8627da // indirect
-	k8s.io/klog/v2 v2.80.1 // indirect
+	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
+	k8s.io/klog/v2 v2.120.1 // indirect
 )
 
 // Use the relative local source of the github.com/google/cadvisor library to build
