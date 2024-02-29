@@ -2804,7 +2804,7 @@ func TestRequired(t *testing.T) {
 
 func TestNameFormatMarkerComments(t *testing.T) {
 
-	callErr, funcErr, assert, _, funcBuffer, imports := testOpenAPITypeWriter(t, `
+	inputFile := `
 package foo
 
 // +k8s:openapi-gen=true
@@ -2826,14 +2826,37 @@ type Blah struct {
 	// +k8s:validation:nameFormat="labelValue"
 	value string
 }
-	`)
-	assert.NoError(funcErr)
-	assert.NoError(callErr)
-	assert.ElementsMatch(imports, []string{`foo "base/foo"`, `common "k8s.io/kube-openapi/pkg/common"`, `spec "k8s.io/kube-openapi/pkg/validation/spec"`, `ptr "k8s.io/utils/ptr"`})
-	if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
-		t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
-	} else {
-		expectedStr := `func schema_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	`
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, _, funcBuffer, imports := testOpenAPITypeWriter(t, e.Config)
+		if funcErr != nil {
+			t.Fatalf("Unexpected funcErr: %v", funcErr)
+		}
+		if callErr != nil {
+			t.Fatalf("Unexpected callErr: %v", callErr)
+		}
+		expImports := []string{
+			`foo "example.com/base/foo"`,
+			`common "k8s.io/kube-openapi/pkg/common"`,
+			`spec "k8s.io/kube-openapi/pkg/validation/spec"`,
+			`ptr "k8s.io/utils/ptr"`,
+		}
+		if !cmp.Equal(imports, expImports) {
+			t.Errorf("wrong imports:\n%s", cmp.Diff(expImports, imports))
+		}
+
+		if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+			t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+		} else {
+			formatted_expected, ree := format.Source([]byte(`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
 			return common.OpenAPIDefinition{
 				Schema: spec.Schema{
 					SchemaProps: spec.SchemaProps{
@@ -2964,13 +2987,13 @@ type Blah struct {
 			}
 		}
 
-`
-		formatted_expected, ree := format.Source([]byte(expectedStr))
-		if ree != nil {
-			t.Fatal(ree)
+`))
+			if ree != nil {
+				t.Fatal(ree)
+			}
+			assertEqual(t, string(formatted_expected), string(formatted))
 		}
-		assert.Equal(string(formatted), string(formatted_expected))
-	}
+	})
 }
 
 func TestMarkerCommentsCustomDefsV3(t *testing.T) {
