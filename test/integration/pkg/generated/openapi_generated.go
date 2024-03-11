@@ -1178,7 +1178,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										MaxLength: ptr.To[int64](63),
 										Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$",
@@ -1193,7 +1193,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										MaxLength: ptr.To[int64](253),
 										Pattern:   "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$",
@@ -1208,7 +1208,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										Pattern: "^[A-Za-z0-9/\\-._~%!$&'()*+,;=:]+$",
 									},
@@ -1222,7 +1222,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										MaxLength: ptr.To[int64](63),
 										Pattern:   "^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$",
@@ -1237,7 +1237,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										MaxLength: ptr.To[int64](253),
 										Pattern:   "^\\*\\.[a-z]([-a-z0-9]*[a-z0-9])?$",
@@ -1252,7 +1252,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										Pattern: "^[A-Za-z_][A-Za-z0-9_]*$",
 									},
@@ -1266,7 +1266,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										MaxLength: ptr.To[int64](63),
 										Pattern:   "^[a-z]([-a-z0-9]*[a-z0-9])?$",
@@ -1281,7 +1281,7 @@ func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Default: "",
 							AllOf: []spec.Schema{
-								spec.Schema{
+								{
 									SchemaProps: spec.SchemaProps{
 										MaxLength: ptr.To[int64](63),
 										Pattern:   "^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$",

@@ -2866,7 +2866,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												MaxLength: ptr.To[int64](63),
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1123Label"].Pattern) + `,
@@ -2881,7 +2881,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												MaxLength: ptr.To[int64](253),
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1123Subdomain"].Pattern) + `,
@@ -2896,7 +2896,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["httpPath"].Pattern) + `,
 											},
@@ -2910,7 +2910,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												MaxLength: ptr.To[int64](63),
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["qualifiedName"].Pattern) + `,
@@ -2925,7 +2925,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												MaxLength: ptr.To[int64](253),
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["wildcardDNS1123Subdomain"].Pattern) + `,
@@ -2940,7 +2940,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["cIdentifier"].Pattern) + `,
 											},
@@ -2954,7 +2954,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												MaxLength: ptr.To[int64](63),
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1035Label"].Pattern) + `,
@@ -2969,7 +2969,7 @@ type Blah struct {
 								SchemaProps: spec.SchemaProps{
 									Default:   "",
 									AllOf: []spec.Schema{
-										spec.Schema{
+										{
 											SchemaProps: spec.SchemaProps{
 												MaxLength: ptr.To[int64](63),
 												Pattern: ` + fmt.Sprintf("%#v", NameFormats["labelValue"].Pattern) + `,
