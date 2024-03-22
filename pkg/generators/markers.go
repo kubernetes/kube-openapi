@@ -77,7 +77,8 @@ func (c *CELTag) Validate() error {
 type commentTags struct {
 	spec.SchemaProps
 
-	CEL []CELTag `json:"cel,omitempty"`
+	NameFormat string   `json:"nameFormat,omitempty"`
+	CEL        []CELTag `json:"cel,omitempty"`
 
 	// Future markers can all be parsed into this centralized struct...
 	// Optional bool `json:"optional,omitempty"`
@@ -89,6 +90,17 @@ type commentTags struct {
 func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 	res := spec.Schema{
 		SchemaProps: c.SchemaProps,
+	}
+
+	if res.AllOf != nil {
+		res.AllOf = append([]spec.Schema{}, res.AllOf...)
+		if c.NameFormat != "" {
+			res.AllOf = append(res.AllOf, NameFormats[c.NameFormat].ToSchema())
+		}
+	} else {
+		if c.NameFormat != "" {
+			res.AllOf = append([]spec.Schema{}, NameFormats[c.NameFormat].ToSchema())
+		}
 	}
 
 	if len(c.CEL) > 0 {
@@ -106,6 +118,62 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 	}
 
 	return &res, nil
+}
+
+type NameFormat struct {
+	Pattern   string
+	MaxLength int64
+}
+
+var NameFormats = map[string]NameFormat{
+	"dns1123Label": {
+		Pattern:   `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`,
+		MaxLength: 63,
+	},
+	"dns1123Subdomain": {
+		Pattern:   `^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`,
+		MaxLength: 253,
+	},
+	"httpPath": {
+		Pattern:   `^[A-Za-z0-9/\-._~%!$&'()*+,;=:]+$`,
+		MaxLength: -1,
+	},
+	"qualifiedName": {
+		Pattern:   `^([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]$`,
+		MaxLength: 63,
+	},
+	"wildcardDNS1123Subdomain": {
+		Pattern:   `^\*\.[a-z]([-a-z0-9]*[a-z0-9])?$`,
+		MaxLength: 253,
+	},
+	"cIdentifier": {
+		Pattern:   `^[A-Za-z_][A-Za-z0-9_]*$`,
+		MaxLength: -1,
+	},
+	"dns1035Label": {
+		Pattern:   `^[a-z]([-a-z0-9]*[a-z0-9])?$`,
+		MaxLength: 63,
+	},
+	"labelValue": {
+		Pattern:   `^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$`,
+		MaxLength: 63,
+	},
+}
+
+func (nf NameFormat) ToSchema() spec.Schema {
+	if nf.MaxLength == -1 {
+		return spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Pattern: nf.Pattern,
+			},
+		}
+	}
+	return spec.Schema{
+		SchemaProps: spec.SchemaProps{
+			Pattern:   nf.Pattern,
+			MaxLength: &nf.MaxLength,
+		},
+	}
 }
 
 // validates the parameters in a CommentTags instance. Returns any errors encountered.
@@ -162,6 +230,13 @@ func (c commentTags) Validate() error {
 			continue
 		}
 		err = errors.Join(err, fmt.Errorf("invalid CEL tag at index %d: %w", i, celError))
+	}
+
+	if c.NameFormat != "" {
+		_, ok := NameFormats[c.NameFormat]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("invalid nameFormat: %v", c.NameFormat))
+		}
 	}
 
 	return err
@@ -226,6 +301,9 @@ func (c commentTags) ValidateType(t *types.Type) error {
 	if c.ExclusiveMaximum && !isInt && !isFloat {
 		err = errors.Join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
 	}
+	if c.NameFormat != "" && !isString {
+		err = errors.Join(err, fmt.Errorf("nameFormat can only be used on string types"))
+	}
 
 	return err
 }
@@ -235,26 +313,27 @@ func (c commentTags) ValidateType(t *types.Type) error {
 // Accepts a prefix to filter out markers not related to validation.
 // Returns any errors encountered while parsing or validating the comment tags.
 func ParseCommentTags(t *types.Type, comments []string, prefix string) (*spec.Schema, error) {
-
-	markers, err := parseMarkers(comments, prefix)
+	// Parse the comment tags
+	commentTags, err := parseCommentTagsFromLines(comments, prefix)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse marker comments: %w", err)
-	}
-	nested, err := nestMarkers(markers)
-	if err != nil {
-		return nil, fmt.Errorf("invalid marker comments: %w", err)
+		return nil, err
 	}
 
-	// Parse the map into a CommentTags type by marshalling and unmarshalling
-	// as JSON in leiu of an unstructured converter.
-	out, err := json.Marshal(nested)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal marker comments: %w", err)
-	}
+	// If t is an alias then parse each of the underlying types' comment tags
+	// and merge them into a single schema. Aliases closest to t should take
+	// precedence (e.g. minLength specified in the alias closest to t should override
+	// any minLength specified in an alias further away from t).
+	currentT := t
+	for currentT != nil {
+		aliasCommentTags, err := parseCommentTagsFromLines(currentT.CommentLines, prefix)
+		if err != nil {
+			return nil, err
+		}
 
-	var commentTags commentTags
-	if err = json.Unmarshal(out, &commentTags); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal marker comments: %w", err)
+		mergeCommentTags(&commentTags, aliasCommentTags)
+
+		// Move to the next type in the chain
+		currentT = currentT.Underlying
 	}
 
 	// Validate the parsed comment tags
@@ -277,6 +356,81 @@ var (
 	valueAssign            = regexp.MustCompile(fmt.Sprintf(`^(%s*)=(.*)$`, allowedKeyCharacterSet))
 	valueRawString         = regexp.MustCompile(fmt.Sprintf(`^(%s*)>(.*)$`, allowedKeyCharacterSet))
 )
+
+func parseCommentTagsFromLines(comments []string, prefix string) (commentTags, error) {
+	if len(comments) == 0 {
+		return commentTags{}, nil
+	}
+
+	markers, err := parseMarkers(comments, prefix)
+	if err != nil {
+		return commentTags{}, fmt.Errorf("failed to parse marker comments: %w", err)
+	}
+	nested, err := nestMarkers(markers)
+	if err != nil {
+		return commentTags{}, fmt.Errorf("invalid marker comments: %w", err)
+	}
+
+	// Parse the map into a CommentTags type by marshalling and unmarshalling
+	// as JSON in leiu of an unstructured converter.
+	out, err := json.Marshal(nested)
+	if err != nil {
+		return commentTags{}, fmt.Errorf("failed to marshal marker comments: %w", err)
+	}
+
+	var result commentTags
+	if err = json.Unmarshal(out, &result); err != nil {
+		return commentTags{}, fmt.Errorf("failed to unmarshal marker comments: %w", err)
+	}
+	return result, nil
+}
+
+// Writes src values into dst if dst is nil, and src is non-nil
+// Does not override anythng already set in dst
+func mergeCommentTags(dst *commentTags, src commentTags) {
+	if src.MinLength != nil && dst.MinLength == nil {
+		dst.MinLength = src.MinLength
+	}
+	if src.MaxLength != nil && dst.MaxLength == nil {
+		dst.MaxLength = src.MaxLength
+	}
+	if src.MinItems != nil && dst.MinItems == nil {
+		dst.MinItems = src.MinItems
+	}
+	if src.MaxItems != nil && dst.MaxItems == nil {
+		dst.MaxItems = src.MaxItems
+	}
+	if src.MinProperties != nil && dst.MinProperties == nil {
+		dst.MinProperties = src.MinProperties
+	}
+	if src.MaxProperties != nil && dst.MaxProperties == nil {
+		dst.MaxProperties = src.MaxProperties
+	}
+	if src.Minimum != nil && dst.Minimum == nil {
+		dst.Minimum = src.Minimum
+	}
+	if src.Maximum != nil && dst.Maximum == nil {
+		dst.Maximum = src.Maximum
+	}
+	if src.MultipleOf != nil && dst.MultipleOf == nil {
+		dst.MultipleOf = src.MultipleOf
+	}
+	if src.Pattern != "" && dst.Pattern == "" {
+		dst.Pattern = src.Pattern
+	}
+	if src.ExclusiveMinimum && !dst.ExclusiveMinimum {
+		dst.ExclusiveMinimum = true
+	}
+	if src.ExclusiveMaximum && !dst.ExclusiveMaximum {
+		dst.ExclusiveMaximum = true
+	}
+	if src.UniqueItems && !dst.UniqueItems {
+		dst.UniqueItems = true
+	}
+	if len(src.CEL) > 0 {
+		dst.CEL = append(src.CEL, dst.CEL...)
+	}
+}
 
 // extractCommentTags parses comments for lines of the form:
 //

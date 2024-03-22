@@ -16,6 +16,7 @@ limitations under the License.
 package generators_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -494,6 +495,69 @@ func TestParseCommentTags(t *testing.T) {
 			},
 			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
 		},
+		{
+			name: "alias type without any comments",
+			t:    &types.Type{Kind: types.Slice, Elem: &types.Type{Kind: types.Alias, Name: types.Name{Name: "PersistentVolumeAccessMode"}, Underlying: types.String}},
+			comments: []string{
+				`+k8s:validation:cel[0]:rule>!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+				`+k8s:validation:cel[0]:message>may not use ReadWriteOncePod with other access modes`,
+				`+k8s:validation:cel[0]:reason>FieldForbidden`,
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    `!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+								"message": "may not use ReadWriteOncePod with other access modes",
+								"reason":  "FieldForbidden",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "alias type with comments",
+			t: &types.Type{
+				Kind: types.Alias,
+				Name: types.Name{Name: "PersistentVolumeAccessModeList"},
+				CommentLines: []string{
+					`+k8s:validation:cel[0]:rule>self.all(c, ["ReadWriteOncePod","ReadOnlyMany","ReadWriteMany","ReadWriteOnce"].contains(c))`,
+					`+k8s:validation:cel[0]:message>must follow enum`,
+				},
+				Underlying: &types.Type{
+					Kind: types.Slice,
+					Elem: &types.Type{
+						Kind:       types.Alias,
+						Name:       types.Name{Name: "PersistentVolumeAccessMode"},
+						Underlying: types.String,
+					},
+				},
+			},
+			comments: []string{
+				`+k8s:validation:cel[0]:rule>!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+				`+k8s:validation:cel[0]:message>may not use ReadWriteOncePod with other access modes`,
+				`+k8s:validation:cel[0]:reason>FieldForbidden`,
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    `self.all(c, ["ReadWriteOncePod","ReadOnlyMany","ReadWriteMany","ReadWriteOnce"].contains(c))`,
+								"message": "must follow enum",
+							},
+							map[string]interface{}{
+								"rule":    `!self.exists(c, c == "ReadWriteOncePod") || self.size() == 1`,
+								"message": "may not use ReadWriteOncePod with other access modes",
+								"reason":  "FieldForbidden",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -502,6 +566,115 @@ func TestParseCommentTags(t *testing.T) {
 			if tc.expectedError != "" {
 				require.Error(t, err)
 				require.EqualError(t, err, tc.expectedError)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestNameFormat(t *testing.T) {
+
+	formatNames := []string{
+		"dns1123Label",
+		"dns1123Subdomain",
+		"httpPath",
+		"qualifiedName",
+		"wildcardDNS1123Subdomain",
+		"cIdentifier",
+		"dns1035Label",
+		"labelValue",
+	}
+
+	cases := []struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      *spec.Schema
+		expectedError string
+	}{}
+
+	for _, formatName := range formatNames {
+
+		var schemaProps spec.SchemaProps
+		if generators.NameFormats[formatName].MaxLength != -1 {
+			schemaProps = spec.SchemaProps{
+				AllOf: []spec.Schema{
+					{
+						SchemaProps: spec.SchemaProps{
+							Pattern:   generators.NameFormats[formatName].Pattern,
+							MaxLength: ptr.To[int64](generators.NameFormats[formatName].MaxLength),
+						},
+					},
+				},
+			}
+		} else {
+			schemaProps = spec.SchemaProps{
+				AllOf: []spec.Schema{
+					{
+						SchemaProps: spec.SchemaProps{
+							Pattern: generators.NameFormats[formatName].Pattern,
+						},
+					},
+				},
+			}
+		}
+
+		cases = append(cases, struct {
+			t             *types.Type
+			name          string
+			comments      []string
+			expected      *spec.Schema
+			expectedError string
+		}{
+			t:    types.String,
+			name: formatName,
+			comments: []string{
+				fmt.Sprintf("+k8s:validation:nameFormat=\"%s\"", formatName),
+			},
+			expected: &spec.Schema{
+				SchemaProps: schemaProps,
+			},
+		})
+	}
+
+	cases = append(cases, struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      *spec.Schema
+		expectedError string
+	}{
+		t:    types.String,
+		name: "nameFormat with custom length",
+		comments: []string{
+			"+k8s:validation:nameFormat=\"dns1123Label\"",
+			"+k8s:validation:maxLength=5",
+		},
+		expected: &spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				MaxLength: ptr.To[int64](5),
+				AllOf: []spec.Schema{
+					{
+						SchemaProps: spec.SchemaProps{
+							Pattern:   generators.NameFormats["dns1123Label"].Pattern,
+							MaxLength: ptr.To[int64](63),
+						},
+					},
+				},
+			},
+		},
+	})
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				require.Regexp(t, tc.expectedError, err.Error())
 				return
 			} else {
 				require.NoError(t, err)

@@ -401,11 +401,7 @@ func (g openAPITypeWriter) generateValueValidations(vs *spec.SchemaProps) error 
 		g.Do("MaxProperties: $.ptrTo|raw$[int64]($.spec.MaxProperties$),\n", args)
 	}
 	if len(vs.Pattern) > 0 {
-		p, err := json.Marshal(vs.Pattern)
-		if err != nil {
-			return err
-		}
-		g.Do("Pattern: $.$,\n", string(p))
+		g.Do("Pattern: $.$,\n", fmt.Sprintf("%#v", vs.Pattern))
 	}
 	if vs.MultipleOf != nil {
 		g.Do("MultipleOf: $.ptrTo|raw$[float64]($.spec.MultipleOf$),\n", args)
@@ -420,6 +416,23 @@ func (g openAPITypeWriter) generateValueValidations(vs *spec.SchemaProps) error 
 		g.Do("UniqueItems: true,\n", nil)
 	}
 
+	allOfSchemas := vs.AllOf
+	if len(allOfSchemas) > 0 {
+		g.Do("AllOf: []spec.Schema{\n", nil)
+		for _, s := range allOfSchemas {
+			g.Do("{\n", nil)
+			g.Do("SchemaProps: spec.SchemaProps{\n", nil)
+			err := g.generateValueValidations(&s.SchemaProps)
+			if err != nil {
+				return err
+			}
+			g.Do("},\n", nil)
+			g.Do("},\n", nil)
+		}
+
+		g.Do("},\n", nil)
+	}
+
 	return nil
 }
 
@@ -427,7 +440,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	// Only generate for struct type and ignore the rest
 	switch t.Kind {
 	case types.Struct:
-		validationSchema, err := ParseCommentTags(t, t.CommentLines, markerPrefix)
+		validationSchema, err := ParseCommentTags(t, nil, markerPrefix)
 		if err != nil {
 			return err
 		}

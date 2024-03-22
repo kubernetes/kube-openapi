@@ -2444,7 +2444,7 @@ func TestMarkerComments(t *testing.T) {
 								Default:	 "",
 								MinLength:	 ptr.To[int64](1),
 								MaxLength:	 ptr.To[int64](10),
-								Pattern:	 "^foo$[0-9]+",
+								Pattern:	 ` + fmt.Sprintf("%#v", "^foo$[0-9]+") + `,
 								Type:        []string{"string"},
 								Format:	  	 "",
 							},
@@ -2798,6 +2798,200 @@ func TestRequired(t *testing.T) {
 		}
 		if !strings.Contains(funcErr.Error(), "cannot be both optional and required") {
 			t.Errorf("Unexpected error: %v", funcErr)
+		}
+	})
+}
+
+func TestNameFormatMarkerComments(t *testing.T) {
+
+	inputFile := `
+package foo
+
+// +k8s:openapi-gen=true
+type Blah struct {
+	// +k8s:validation:nameFormat="dns1123Label"
+	dns string
+	// +k8s:validation:nameFormat="dns1123Subdomain"
+	subdomain string
+	// +k8s:validation:nameFormat="httpPath"
+	path string
+	// +k8s:validation:nameFormat="qualifiedName"
+	qualified string
+	// +k8s:validation:nameFormat="wildcardDNS1123Subdomain"
+	wildcard string
+	// +k8s:validation:nameFormat="cIdentifier"
+	identifier string
+	// +k8s:validation:nameFormat="dns1035Label"
+	label string
+	// +k8s:validation:nameFormat="labelValue"
+	value string
+}
+	`
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, _, funcBuffer, imports := testOpenAPITypeWriter(t, e.Config)
+		if funcErr != nil {
+			t.Fatalf("Unexpected funcErr: %v", funcErr)
+		}
+		if callErr != nil {
+			t.Fatalf("Unexpected callErr: %v", callErr)
+		}
+		expImports := []string{
+			`foo "example.com/base/foo"`,
+			`common "k8s.io/kube-openapi/pkg/common"`,
+			`spec "k8s.io/kube-openapi/pkg/validation/spec"`,
+			`ptr "k8s.io/utils/ptr"`,
+		}
+		if !cmp.Equal(imports, expImports) {
+			t.Errorf("wrong imports:\n%s", cmp.Diff(expImports, imports))
+		}
+
+		if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+			t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+		} else {
+			formatted_expected, ree := format.Source([]byte(`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+			return common.OpenAPIDefinition{
+				Schema: spec.Schema{
+					SchemaProps: spec.SchemaProps{
+						Type:   []string{"object"},
+						Properties: map[string]spec.Schema{
+							"dns": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												MaxLength: ptr.To[int64](63),
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1123Label"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"subdomain": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												MaxLength: ptr.To[int64](253),
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1123Subdomain"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"path": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["httpPath"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"qualified": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												MaxLength: ptr.To[int64](63),
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["qualifiedName"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"wildcard": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												MaxLength: ptr.To[int64](253),
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["wildcardDNS1123Subdomain"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"identifier": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["cIdentifier"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"label": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												MaxLength: ptr.To[int64](63),
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["dns1035Label"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+							"value": {
+								SchemaProps: spec.SchemaProps{
+									Default:   "",
+									AllOf: []spec.Schema{
+										{
+											SchemaProps: spec.SchemaProps{
+												MaxLength: ptr.To[int64](63),
+												Pattern: ` + fmt.Sprintf("%#v", NameFormats["labelValue"].Pattern) + `,
+											},
+										},
+									},
+									Type:   []string{"string"},
+									Format: "",
+								},
+							},
+						},
+						Required: []string{"dns", "subdomain", "path", "qualified", "wildcard", "identifier", "label", "value"},
+					},
+				},
+			}
+		}
+
+`))
+			if ree != nil {
+				t.Fatal(ree)
+			}
+			assertEqual(t, string(formatted_expected), string(formatted))
 		}
 	})
 }
