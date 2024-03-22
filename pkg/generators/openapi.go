@@ -704,7 +704,7 @@ func defaultFromComments(comments []string, commentPath string, t *types.Type) (
 
 	var i interface{}
 	if id, ok := parseSymbolReference(tag, commentPath); ok {
-		klog.Errorf("%v, %v", id, commentPath)
+		klog.V(5).Infof("%v, %v", id, commentPath)
 		return nil, &id, nil
 	} else if err := json.Unmarshal([]byte(tag), &i); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal default: %v", err)
