@@ -1092,7 +1092,7 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
-					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo", "rule": "self == oldSelf"}},
+					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo", "rule": "self == oldSelf"}, map[string]interface{}{"fieldPath": ".metadata.namespace", "reason": "FieldValueRequired", "rule": "has(self.metadata.__namespace__) && self.metadata.__namespace__.size() > 0"}},
 				},
 			},
 		},
