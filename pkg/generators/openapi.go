@@ -644,7 +644,15 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 	}
 
 	if len(otherExtensions) > 0 {
-		for k, v := range otherExtensions {
+		// Sort extension keys to generate deterministic output
+		keys := []string{}
+		for k := range otherExtensions {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			v := otherExtensions[k]
 			g.Do("$.key$: $.value$,\n", map[string]interface{}{
 				"key":   fmt.Sprintf("%#v", k),
 				"value": fmt.Sprintf("%#v", v),
