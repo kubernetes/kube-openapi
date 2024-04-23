@@ -844,15 +844,9 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 		}
 	}
 
-	postDoc := strings.TrimLeft(buffer.String(), "\n")
-	postDoc = strings.TrimRight(postDoc, "\n")
-	postDoc = strings.Replace(postDoc, "\\\"", "\"", -1) // replace user's \" to "
-	postDoc = strings.Replace(postDoc, "\"", "\\\"", -1) // Escape "
-	postDoc = strings.Replace(postDoc, "\n", "\\n", -1)
-	postDoc = strings.Replace(postDoc, "\t", "\\t", -1)
-	postDoc = strings.Trim(postDoc, " ")
-	if postDoc != "" {
-		g.Do("Description: \"$.$\",\n", postDoc)
+	postDoc := strings.TrimSpace(buffer.String())
+	if len(postDoc) > 0 {
+		g.Do("Description: $.$,\n", fmt.Sprintf("%#v", postDoc))
 	}
 }
 
