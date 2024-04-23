@@ -25,7 +25,6 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"k8s.io/gengo/v2"
@@ -846,9 +845,8 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 	}
 
 	postDoc := strings.TrimSpace(buffer.String())
-	postDoc = strconv.Quote(postDoc)
-	if postDoc != `""` {
-		g.Do("Description: $.$,\n", postDoc)
+	if len(postDoc) > 0 {
+		g.Do("Description: $.$,\n", fmt.Sprintf("%#v", postDoc))
 	}
 }
 
