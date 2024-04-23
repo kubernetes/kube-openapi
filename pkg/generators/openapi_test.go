@@ -150,6 +150,9 @@ func TestSimple(t *testing.T) {
 			// an int member with a default
 			// +default=1
 			OmittedInt int ` + "`" + `json:"omitted,omitempty"` + "`" + `
+			// a field with an invalid escape sequence in comment
+			// ex) regexp:^.*\.yaml$
+			InvalidEscapeSequenceInComment string
 		}`
 
 	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
@@ -384,8 +387,16 @@ Type: []string{"integer"},
 Format: "int32",
 },
 },
+"InvalidEscapeSequenceInComment": {
+SchemaProps: spec.SchemaProps{
+Description: "a field with an invalid escape sequence in comment ex) regexp:^.*\\.yaml$",
+Default: "",
+Type: []string{"string"},
+Format: "",
 },
-Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListType","Map","StringPointer"},
+},
+},
+Required: []string{"String","Int64","Int32","Int16","Int8","Uint","Uint64","Uint32","Uint16","Uint8","Byte","Bool","Float64","Float32","ByteArray","WithExtension","WithStructTagExtension","WithListType","Map","StringPointer","InvalidEscapeSequenceInComment"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
