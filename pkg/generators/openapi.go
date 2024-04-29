@@ -523,7 +523,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	case types.Struct:
 		validationSchema, err := ParseCommentTags(t, t.CommentLines, markerPrefix)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed parsing comment tags for %v: %w", t.String(), err)
 		}
 
 		hasV2Definition := hasOpenAPIDefinitionMethod(t)
