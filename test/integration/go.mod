@@ -6,7 +6,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/getkin/kin-openapi v0.76.0
 	github.com/onsi/ginkgo/v2 v2.17.2
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	k8s.io/kube-openapi v0.0.0
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 )
