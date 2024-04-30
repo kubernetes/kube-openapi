@@ -3,7 +3,7 @@ module k8s.io/kube-openapi
 go 1.20
 
 require (
-	github.com/NYTimes/gziphandler v0.0.0-20170623195520-56545f4a5d46
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/emicklei/go-restful/v3 v3.8.0
 	github.com/go-openapi/jsonreference v0.20.1
