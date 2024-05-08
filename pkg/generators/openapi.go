@@ -401,11 +401,7 @@ func (g openAPITypeWriter) generateValueValidations(vs *spec.SchemaProps) error 
 		g.Do("MaxProperties: $.ptrTo|raw$[int64]($.spec.MaxProperties$),\n", args)
 	}
 	if len(vs.Pattern) > 0 {
-		p, err := json.Marshal(vs.Pattern)
-		if err != nil {
-			return err
-		}
-		g.Do("Pattern: $.$,\n", string(p))
+		g.Do("Pattern: $.$,\n", fmt.Sprintf("%#v", vs.Pattern))
 	}
 	if vs.MultipleOf != nil {
 		g.Do("MultipleOf: $.ptrTo|raw$[float64]($.spec.MultipleOf$),\n", args)
