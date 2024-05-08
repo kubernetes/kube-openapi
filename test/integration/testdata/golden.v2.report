@@ -38,4 +38,12 @@ API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/va
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,MapValue
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,NumberValue
 API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,Foo,StringValue
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,dns
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,identifier
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,label
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,path
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,qualified
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,subdomain
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,value
+API rule violation: names_match,k8s.io/kube-openapi/test/integration/testdata/valuevalidation,NameFormats,wildcard
 API rule violation: omitempty_match_case,k8s.io/kube-openapi/test/integration/testdata/listtype,Item,C

@@ -91,9 +91,17 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 		SchemaProps: c.SchemaProps,
 	}
 
-	if len(c.CEL) > 0 {
+	if res.AllOf != nil {
+		res.AllOf = append([]spec.Schema{}, res.AllOf...)
+	}
+	ccel := append([]CELTag{}, c.CEL...)
+	if _, exists := NameFormats[c.Format]; exists {
+		ccel = append([]CELTag{{Rule: "!format." + c.Format + "().validate(self).hasValue()", MessageExpression: "format." + c.Format + "().validate(self).value()"}}, ccel...)
+	}
+
+	if len(ccel) > 0 {
 		// Convert the CELTag to a map[string]interface{} via JSON
-		celTagJSON, err := json.Marshal(c.CEL)
+		celTagJSON, err := json.Marshal(ccel)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal CEL tag: %w", err)
 		}
@@ -106,6 +114,17 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 	}
 
 	return &res, nil
+}
+
+var NameFormats = map[string]struct{}{
+	"dns1123Label":             struct{}{},
+	"dns1123Subdomain":         struct{}{},
+	"httpPath":                 struct{}{},
+	"qualifiedName":            struct{}{},
+	"wildcardDNS1123Subdomain": struct{}{},
+	"cIdentifier":              struct{}{},
+	"dns1035Label":             struct{}{},
+	"labelValue":               struct{}{},
 }
 
 // validates the parameters in a CommentTags instance. Returns any errors encountered.
@@ -162,6 +181,13 @@ func (c commentTags) Validate() error {
 			continue
 		}
 		err = errors.Join(err, fmt.Errorf("invalid CEL tag at index %d: %w", i, celError))
+	}
+
+	if c.Format != "" {
+		_, ok := NameFormats[c.Format]
+		if !ok {
+			err = errors.Join(err, fmt.Errorf("invalid nameFormat: %v", c.Format))
+		}
 	}
 
 	return err
@@ -225,6 +251,9 @@ func (c commentTags) ValidateType(t *types.Type) error {
 	}
 	if c.ExclusiveMaximum && !isInt && !isFloat {
 		err = errors.Join(err, fmt.Errorf("exclusiveMaximum can only be used on numeric types"))
+	}
+	if c.Format != "" && !isString {
+		err = errors.Join(err, fmt.Errorf("Format can only be used on string types"))
 	}
 
 	return err

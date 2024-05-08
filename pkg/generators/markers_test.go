@@ -16,6 +16,7 @@ limitations under the License.
 package generators_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -502,6 +503,75 @@ func TestParseCommentTags(t *testing.T) {
 			if tc.expectedError != "" {
 				require.Error(t, err)
 				require.EqualError(t, err, tc.expectedError)
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
+func TestFormat(t *testing.T) {
+
+	formatNames := []string{
+		"dns1123Label",
+		"dns1123Subdomain",
+		"httpPath",
+		"qualifiedName",
+		"wildcardDNS1123Subdomain",
+		"cIdentifier",
+		"dns1035Label",
+		"labelValue",
+	}
+
+	cases := []struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      *spec.Schema
+		expectedError string
+	}{}
+
+	for _, formatName := range formatNames {
+
+		cases = append(cases, struct {
+			t             *types.Type
+			name          string
+			comments      []string
+			expected      *spec.Schema
+			expectedError string
+		}{
+			t:    types.String,
+			name: formatName,
+			comments: []string{
+				fmt.Sprintf("+k8s:validation:format=\"%s\"", formatName),
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"messageExpression": "format." + formatName + "().validate(self).value()",
+								"rule":              "!format." + formatName + "().validate(self).hasValue()",
+							},
+						},
+					},
+				},
+				SchemaProps: spec.SchemaProps{
+					Format: formatName,
+				},
+			},
+		})
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				require.Regexp(t, tc.expectedError, err.Error())
 				return
 			} else {
 				require.NoError(t, err)

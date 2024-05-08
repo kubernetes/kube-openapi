@@ -2455,7 +2455,7 @@ func TestMarkerComments(t *testing.T) {
 								Default:	 "",
 								MinLength:	 ptr.To[int64](1),
 								MaxLength:	 ptr.To[int64](10),
-								Pattern:	 "^foo$[0-9]+",
+								Pattern:	 ` + fmt.Sprintf("%#v", "^foo$[0-9]+") + `,
 								Type:        []string{"string"},
 								Format:	  	 "",
 							},
@@ -2809,6 +2809,177 @@ func TestRequired(t *testing.T) {
 		}
 		if !strings.Contains(funcErr.Error(), "cannot be both optional and required") {
 			t.Errorf("Unexpected error: %v", funcErr)
+		}
+	})
+}
+
+func TestFormatMarkerComments(t *testing.T) {
+
+	inputFile := `
+package foo
+
+// +k8s:openapi-gen=true
+type Blah struct {
+	// +k8s:validation:format="dns1123Label"
+	dns string
+	// +k8s:validation:format="dns1123Subdomain"
+	subdomain string
+	// +k8s:validation:format="httpPath"
+	path string
+	// +k8s:validation:format="qualifiedName"
+	qualified string
+	// +k8s:validation:format="wildcardDNS1123Subdomain"
+	wildcard string
+	// +k8s:validation:format="cIdentifier"
+	identifier string
+	// +k8s:validation:format="dns1035Label"
+	label string
+	// +k8s:validation:format="labelValue"
+	value string
+}
+	`
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, _, funcBuffer, imports := testOpenAPITypeWriter(t, e.Config)
+		if funcErr != nil {
+			t.Fatalf("Unexpected funcErr: %v", funcErr)
+		}
+		if callErr != nil {
+			t.Fatalf("Unexpected callErr: %v", callErr)
+		}
+		expImports := []string{
+			`foo "example.com/base/foo"`,
+			`common "k8s.io/kube-openapi/pkg/common"`,
+			`spec "k8s.io/kube-openapi/pkg/validation/spec"`,
+		}
+		if !cmp.Equal(imports, expImports) {
+			t.Errorf("wrong imports:\n%s", cmp.Diff(expImports, imports))
+		}
+
+		if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+			t.Fatalf("%v\n%v", err, string(funcBuffer.Bytes()))
+		} else {
+			formatted_expected, ree := format.Source([]byte(`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+				return common.OpenAPIDefinition{
+					Schema: spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							Properties: map[string]spec.Schema{
+								"dns": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.dns1123Label().validate(self).value()", "rule": "!format.dns1123Label().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"subdomain": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.dns1123Subdomain().validate(self).value()", "rule": "!format.dns1123Subdomain().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"path": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.httpPath().validate(self).value()", "rule": "!format.httpPath().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"qualified": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.qualifiedName().validate(self).value()", "rule": "!format.qualifiedName().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"wildcard": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.wildcardDNS1123Subdomain().validate(self).value()", "rule": "!format.wildcardDNS1123Subdomain().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"identifier": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.cIdentifier().validate(self).value()", "rule": "!format.cIdentifier().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"label": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.dns1035Label().validate(self).value()", "rule": "!format.dns1035Label().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+								"value": {
+									VendorExtensible: spec.VendorExtensible{
+										Extensions: spec.Extensions{
+											"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.labelValue().validate(self).value()", "rule": "!format.labelValue().validate(self).hasValue()"}},
+										},
+									},
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+							Required: []string{"dns", "subdomain", "path", "qualified", "wildcard", "identifier", "label", "value"},
+						},
+					},
+				}
+			}
+			
+			`))
+			if ree != nil {
+				t.Fatal(ree)
+			}
+			assertEqual(t, string(formatted_expected), string(formatted))
 		}
 	})
 }
