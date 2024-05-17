@@ -91,9 +91,6 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 		SchemaProps: c.SchemaProps,
 	}
 
-	if res.AllOf != nil {
-		res.AllOf = append([]spec.Schema{}, res.AllOf...)
-	}
 	ccel := append([]CELTag{}, c.CEL...)
 	if _, exists := NameFormats[c.Format]; exists {
 		ccel = append([]CELTag{{Rule: "!format." + c.Format + "().validate(self).hasValue()", MessageExpression: "format." + c.Format + "().validate(self).value()"}}, ccel...)
@@ -114,6 +111,33 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 	}
 
 	return &res, nil
+}
+
+var Formats = map[string]struct{}{
+	"bsonobjectid": struct{}{}, // bson object ID
+	"uri":          struct{}{}, // an URI as parsed by Golang net/url.ParseRequestURI
+	"email":        struct{}{}, // an email address as parsed by Golang net/mail.ParseAddress
+	"hostname":     struct{}{}, // a valid representation for an Internet host name, as defined by RFC 1034, section 3.1 [RFC1034].
+	"ipv4":         struct{}{}, // an IPv4 IP as parsed by Golang net.ParseIP
+	"ipv6":         struct{}{}, // an IPv6 IP as parsed by Golang net.ParseIP
+	"cidr":         struct{}{}, // a CIDR as parsed by Golang net.ParseCIDR
+	"mac":          struct{}{}, // a MAC address as parsed by Golang net.ParseMAC
+	"uuid":         struct{}{}, // an UUID that allows uppercase defined by the regex (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$
+	"uuid3":        struct{}{}, // an UUID3 that allows uppercase defined by the regex (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?3[0-9a-f]{3}-?[0-9a-f]{4}-?[0-9a-f]{12}$
+	"uuid4":        struct{}{}, // an UUID4 that allows uppercase defined by the regex (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?4[0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$
+	"uuid5":        struct{}{}, // an UUID6 that allows uppercase defined by the regex (?i)^[0-9a-f]{8}-?[0-9a-f]{4}-?5[0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$
+	"isbn":         struct{}{}, // an ISBN10 or ISBN13 number string like "0321751043" or "978-0321751041"
+	"isbn10":       struct{}{}, // an ISBN10 number string like "0321751043"
+	"isbn13":       struct{}{}, // an ISBN13 number string like "978-0321751041"
+	"creditcard":   struct{}{}, // a credit card number defined by the regex ^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9][0-9])[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|(?:2131|1800|35\\d{3})\\d{11})$ with any non digit characters mixed in
+	"ssn":          struct{}{}, // a U.S. social security number following the regex ^\\d{3}[- ]?\\d{2}[- ]?\\d{4}$
+	"hexcolor":     struct{}{}, // an hexadecimal color code like "#FFFFFF", following the regex ^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$
+	"rgbcolor":     struct{}{}, // an RGB color code like rgb like "rgb(255,255,2559"
+	"byte":         struct{}{}, // base64 encoded binary data
+	"password":     struct{}{}, // any kind of string
+	"date":         struct{}{}, // a date string like "2006-01-02" as defined by full-date in RFC3339
+	"duration":     struct{}{}, // a duration string like "22 ns" as parsed by Golang time.ParseDuration or compatible with Scala duration format
+	"datetime":     struct{}{}, // a date time string like "2014-12-15T19:30:20.000Z" as defined by date-time in RFC3339
 }
 
 var NameFormats = map[string]struct{}{
@@ -185,7 +209,8 @@ func (c commentTags) Validate() error {
 
 	if c.Format != "" {
 		_, ok := NameFormats[c.Format]
-		if !ok {
+		_, alsoOk := Formats[c.Format]
+		if !ok && !alsoOk {
 			err = errors.Join(err, fmt.Errorf("invalid nameFormat: %v", c.Format))
 		}
 	}

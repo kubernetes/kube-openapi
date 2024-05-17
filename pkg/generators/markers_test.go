@@ -515,17 +515,6 @@ func TestParseCommentTags(t *testing.T) {
 
 func TestFormat(t *testing.T) {
 
-	formatNames := []string{
-		"dns1123Label",
-		"dns1123Subdomain",
-		"httpPath",
-		"qualifiedName",
-		"wildcardDNS1123Subdomain",
-		"cIdentifier",
-		"dns1035Label",
-		"labelValue",
-	}
-
 	cases := []struct {
 		t             *types.Type
 		name          string
@@ -534,7 +523,7 @@ func TestFormat(t *testing.T) {
 		expectedError string
 	}{}
 
-	for _, formatName := range formatNames {
+	for formatName := range generators.NameFormats {
 
 		cases = append(cases, struct {
 			t             *types.Type
@@ -559,6 +548,28 @@ func TestFormat(t *testing.T) {
 						},
 					},
 				},
+				SchemaProps: spec.SchemaProps{
+					Format: formatName,
+				},
+			},
+		})
+	}
+
+	for formatName := range generators.Formats {
+
+		cases = append(cases, struct {
+			t             *types.Type
+			name          string
+			comments      []string
+			expected      *spec.Schema
+			expectedError string
+		}{
+			t:    types.String,
+			name: formatName,
+			comments: []string{
+				fmt.Sprintf("+k8s:validation:format=\"%s\"", formatName),
+			},
+			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Format: formatName,
 				},
@@ -822,6 +833,14 @@ func TestCommentTags_Validate(t *testing.T) {
 			},
 			t:            types.String,
 			errorMessage: "",
+		},
+		{
+			name: "format not supported",
+			comments: []string{
+				`+k8s:validation:format="not-supported"`,
+			},
+			t:            types.String,
+			errorMessage: "invalid nameFormat: not-supported",
 		},
 	}
 
