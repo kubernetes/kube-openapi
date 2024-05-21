@@ -59,17 +59,85 @@ func TestParseCommentTags(t *testing.T) {
 				"exclusiveMaximum=true",
 				"not+k8s:validation:Minimum=0.0",
 			},
+			expectedError: `invalid marker comments: maxItems can only be used on array types
+minItems can only be used on array types
+uniqueItems can only be used on array types
+minLength can only be used on string types
+maxLength can only be used on string types
+pattern can only be used on string types
+minimum can only be used on numeric types
+maximum can only be used on numeric types
+multipleOf can only be used on numeric types`,
+		},
+		{
+			t:    arrayType,
+			name: "basic array example",
+			comments: []string{
+				"comment",
+				"another + comment",
+				"+k8s:validation:minItems=1",
+				"+k8s:validation:maxItems=2",
+				"+k8s:validation:uniqueItems=true",
+			},
 			expected: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Maximum:     ptr.To(20.0),
-					Minimum:     ptr.To(10.0),
-					MinLength:   ptr.To[int64](20),
-					MaxLength:   ptr.To[int64](30),
-					Pattern:     "asdf",
-					MultipleOf:  ptr.To(1.0),
 					MinItems:    ptr.To[int64](1),
 					MaxItems:    ptr.To[int64](2),
 					UniqueItems: true,
+				},
+			},
+		},
+		{
+			t:    mapType,
+			name: "basic map example",
+			comments: []string{
+				"comment",
+				"another + comment",
+				"+k8s:validation:minProperties=1",
+				"+k8s:validation:maxProperties=2",
+			},
+			expected: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					MinProperties: ptr.To[int64](1),
+					MaxProperties: ptr.To[int64](2),
+				},
+			},
+		},
+		{
+			t:    types.String,
+			name: "basic string example",
+			comments: []string{
+				"comment",
+				"another + comment",
+				"+k8s:validation:minLength=20",
+				"+k8s:validation:maxLength=30",
+				`+k8s:validation:pattern="asdf"`,
+			},
+			expected: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					MinLength: ptr.To[int64](20),
+					MaxLength: ptr.To[int64](30),
+					Pattern:   "asdf",
+				},
+			},
+		},
+		{
+			t:    types.Int,
+			name: "basic int example",
+			comments: []string{
+				"comment",
+				"another + comment",
+				"+k8s:validation:minimum=10.0",
+				"+k8s:validation:maximum=20.0",
+				"+k8s:validation:multipleOf=1.0",
+				"exclusiveMaximum=true",
+				"not+k8s:validation:Minimum=0.0",
+			},
+			expected: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Maximum:    ptr.To(20.0),
+					Minimum:    ptr.To(10.0),
+					MultipleOf: ptr.To(1.0),
 				},
 			},
 		},
@@ -494,6 +562,44 @@ func TestParseCommentTags(t *testing.T) {
 			},
 			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
 		},
+		{
+			name: "nested cel",
+			comments: []string{
+				`+k8s:validation:items:cel[0]:rule="self.length() % 2 == 0"`,
+				`+k8s:validation:items:cel[0]:message="must be even"`,
+			},
+			t: &types.Type{
+				Kind: types.Alias,
+				Underlying: &types.Type{
+					Kind: types.Slice,
+					Elem: types.String,
+				},
+			},
+			expected: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					AllOf: []spec.Schema{
+						{
+							SchemaProps: spec.SchemaProps{
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										VendorExtensible: spec.VendorExtensible{
+											Extensions: map[string]interface{}{
+												"x-kubernetes-validations": []interface{}{
+													map[string]interface{}{
+														"rule":    "self.length() % 2 == 0",
+														"message": "must be even",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -752,6 +858,107 @@ func TestCommentTags_Validate(t *testing.T) {
 			},
 			t:            types.String,
 			errorMessage: "",
+		},
+		{
+			name: "additionalProperties on non-map",
+			comments: []string{
+				`+k8s:validation:additionalProperties:pattern=".*"`,
+			},
+			t:            types.String,
+			errorMessage: "additionalProperties can only be used on map types",
+		},
+		{
+			name: "properties on non-struct",
+			comments: []string{
+				`+k8s:validation:properties:name:pattern=".*"`,
+			},
+			t:            types.String,
+			errorMessage: "properties can only be used on struct types",
+		},
+		{
+			name: "items on non-array",
+			comments: []string{
+				`+k8s:validation:items:pattern=".*"`,
+			},
+			t:            types.String,
+			errorMessage: "items can only be used on array types",
+		},
+		{
+			name: "property missing from struct",
+			comments: []string{
+				`+k8s:validation:properties:name:pattern=".*"`,
+			},
+			t: &types.Type{
+				Kind: types.Struct,
+				Name: types.Name{Name: "struct"},
+				Members: []types.Member{
+					{
+						Name: "notname",
+						Type: types.String,
+						Tags: `json:"notname"`,
+					},
+				},
+			},
+			errorMessage: `property used in comment tag "name" not found in struct struct`,
+		},
+		{
+			name: "nested comments also type checked",
+			comments: []string{
+				`+k8s:validation:properties:name:items:pattern=".*"`,
+			},
+			t: &types.Type{
+				Kind: types.Struct,
+				Name: types.Name{Name: "struct"},
+				Members: []types.Member{
+					{
+						Name: "name",
+						Type: types.String,
+						Tags: `json:"name"`,
+					},
+				},
+			},
+			errorMessage: `failed to validate property "name": items can only be used on array types`,
+		},
+		{
+			name: "nested comments also type checked - passing",
+			comments: []string{
+				`+k8s:validation:properties:name:pattern=".*"`,
+			},
+			t: &types.Type{
+				Kind: types.Struct,
+				Name: types.Name{Name: "struct"},
+				Members: []types.Member{
+					{
+						Name: "name",
+						Type: types.String,
+						Tags: `json:"name"`,
+					},
+				},
+			},
+		},
+		{
+			name: "nested marker type checking through alias",
+			comments: []string{
+				`+k8s:validation:properties:name:pattern=".*"`,
+			},
+			t: &types.Type{
+				Kind: types.Struct,
+				Name: types.Name{Name: "struct"},
+				Members: []types.Member{
+					{
+						Name: "name",
+						Tags: `json:"name"`,
+						Type: &types.Type{
+							Kind: types.Alias,
+							Underlying: &types.Type{
+								Kind: types.Slice,
+								Elem: types.String,
+							},
+						},
+					},
+				},
+			},
+			errorMessage: `failed to validate property "name": pattern can only be used on string types`,
 		},
 	}
 

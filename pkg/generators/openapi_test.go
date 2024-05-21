@@ -2371,8 +2371,6 @@ func TestMarkerComments(t *testing.T) {
 		// +k8s:openapi-gen=true
 		// +k8s:validation:maxProperties=10
 		// +k8s:validation:minProperties=1
-		// +k8s:validation:exclusiveMinimum
-		// +k8s:validation:exclusiveMaximum
 		type Blah struct {
 
 			// Integer with min and max values
@@ -2432,10 +2430,8 @@ func TestMarkerComments(t *testing.T) {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Type: 			  []string{"object"},
-					ExclusiveMinimum: true,
-					ExclusiveMaximum: true,
-					MinProperties:    ptr.To[int64](1),
-					MaxProperties:    ptr.To[int64](10),
+					MinProperties:	  ptr.To[int64](1),
+					MaxProperties:	  ptr.To[int64](10),
 					Properties: map[string]spec.Schema{
 						"IntValue": {
 							SchemaProps: spec.SchemaProps{
@@ -2929,4 +2925,179 @@ MaxLength: ptr.To[int64](10),
 })
 }`)
 	})
+}
+
+func TestNestedMarkers(t *testing.T) {
+	inputFile := `
+		package foo
+
+		// +k8s:openapi-gen=true
+		// +k8s:validation:properties:field:items:maxLength=10
+		// +k8s:validation:properties:aliasMap:additionalProperties:pattern>^foo$
+		type Blah struct {
+			// +k8s:validation:items:cel[0]:rule="self.length() % 2 == 0"
+			Field MyAlias ` + "`json:\"field,omitempty\"`" + `
+
+			// +k8s:validation:additionalProperties:maxLength=10
+			AliasMap MyAliasMap ` + "`json:\"aliasMap,omitempty\"`" + `
+		}
+		
+		type MyAliasMap map[string]MyAlias
+		type MyAlias []string`
+
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, _, funcBuffer, imports := testOpenAPITypeWriter(t, e.Config)
+		if funcErr != nil {
+			t.Fatalf("Unexpected funcErr: %v", funcErr)
+		}
+		if callErr != nil {
+			t.Fatalf("Unexpected callErr: %v", callErr)
+		}
+		expImports := []string{
+			`foo "example.com/base/foo"`,
+			`common "k8s.io/kube-openapi/pkg/common"`,
+			`spec "k8s.io/kube-openapi/pkg/validation/spec"`,
+			`ptr "k8s.io/utils/ptr"`,
+		}
+		if !cmp.Equal(imports, expImports) {
+			t.Errorf("wrong imports:\n%s", cmp.Diff(expImports, imports))
+		}
+
+		if formatted, err := format.Source(funcBuffer.Bytes()); err != nil {
+			t.Fatalf("%v\n%v", err, funcBuffer.String())
+		} else {
+			formatted_expected, ree := format.Source([]byte(`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+                return common.OpenAPIDefinition{
+                        Schema: spec.Schema{
+                                SchemaProps: spec.SchemaProps{
+                                        Type: []string{"object"},
+                                        AllOf: []spec.Schema{
+                                                {
+                                                        SchemaProps: spec.SchemaProps{
+                                                                Properties: map[string]spec.Schema{
+                                                                        "aliasMap": {
+                                                                                SchemaProps: spec.SchemaProps{
+                                                                                                AllOf: []spec.Schema{
+                                                                                                 {
+                                                                                                 SchemaProps: spec.SchemaProps{
+                                                                                                 AdditionalProperties: &spec.SchemaOrBool{
+																							     Allows: true,
+                                                                                                 Schema: &spec.Schema{
+                                                                                                 SchemaProps: spec.SchemaProps{
+                                                                                                 Pattern: "^foo$",
+                                                                                                 },
+                                                                                                 },
+                                                                                                 },
+                                                                                                 },
+                                                                                                 },
+                                                                                                },
+                                                                                },
+                                                                        },
+                                                                        "field": {
+                                                                                SchemaProps: spec.SchemaProps{
+                                                                                                AllOf: []spec.Schema{
+                                                                                                 {
+                                                                                                 SchemaProps: spec.SchemaProps{
+                                                                                                 Items: &spec.SchemaOrArray{
+                                                                                                 Schema: &spec.Schema{
+                                                                                                 SchemaProps: spec.SchemaProps{
+                                                                                                 MaxLength: ptr.To[int64](10),
+                                                                                                 },
+                                                                                                 },
+                                                                                                 },
+                                                                                                 },
+                                                                                                 },
+                                                                                                },
+                                                                                },
+                                                                        },
+                                                                },
+                                                        },
+                                                },
+                                        },
+                                        Properties: map[string]spec.Schema{
+                                                "field": {
+                                                        SchemaProps: spec.SchemaProps{
+                                                                AllOf: []spec.Schema{
+                                                                        {
+                                                                                SchemaProps: spec.SchemaProps{
+                                                                                        Items: &spec.SchemaOrArray{
+                                                                                                Schema: &spec.Schema{
+                                                                                                 VendorExtensible: spec.VendorExtensible{
+                                                                                                 Extensions: spec.Extensions{
+                                                                                                 "x-kubernetes-validations": []interface{}{map[string]interface{}{"rule": "self.length() % 2 == 0"}},
+                                                                                                 },
+                                                                                                 },
+                                                                                                },
+                                                                                        },
+                                                                                },
+                                                                        },
+                                                                },
+                                                                Type: []string{"array"},
+                                                                Items: &spec.SchemaOrArray{
+                                                                        Schema: &spec.Schema{
+                                                                                SchemaProps: spec.SchemaProps{
+                                                                                        Default: "",
+                                                                                        Type:    []string{"string"},
+                                                                                        Format:  "",
+                                                                                },
+                                                                        },
+                                                                },
+                                                        },
+                                                },
+                                                "aliasMap": {
+                                                        SchemaProps: spec.SchemaProps{
+                                                                AllOf: []spec.Schema{
+                                                                        {
+                                                                                SchemaProps: spec.SchemaProps{
+                                                                                        AdditionalProperties: &spec.SchemaOrBool{
+																							    Allows: true,
+                                                                                                Schema: &spec.Schema{
+                                                                                                 SchemaProps: spec.SchemaProps{
+                                                                                                 MaxLength: ptr.To[int64](10),
+                                                                                                 },
+                                                                                                },
+                                                                                        },
+                                                                                },
+                                                                        },
+                                                                },
+                                                                Type: []string{"object"},
+                                                                AdditionalProperties: &spec.SchemaOrBool{
+                                                                        Allows: true,
+                                                                        Schema: &spec.Schema{
+                                                                                SchemaProps: spec.SchemaProps{
+                                                                                        Type: []string{"array"},
+                                                                                        Items: &spec.SchemaOrArray{
+                                                                                                Schema: &spec.Schema{
+                                                                                                 SchemaProps: spec.SchemaProps{
+                                                                                                 Default: "",
+                                                                                                 Type:    []string{"string"},
+                                                                                                 Format:  "",
+                                                                                                 },
+                                                                                                },
+                                                                                        },
+                                                                                },
+                                                                        },
+                                                                },
+                                                        },
+                                                },
+                                        },
+                                },
+                        },
+                }
+        }`))
+			if ree != nil {
+				t.Fatal(ree)
+			}
+			assertEqual(t, string(formatted), string(formatted_expected))
+		}
+	})
+
 }
