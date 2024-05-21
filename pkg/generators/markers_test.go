@@ -494,6 +494,45 @@ func TestParseCommentTags(t *testing.T) {
 			},
 			expectedError: `failed to parse marker comments: concatenations to key 'cel[0]:message' must be consecutive with its assignment`,
 		},
+		{
+			name: "namespaced scope",
+			t:    structKind,
+			comments: []string{
+				`+k8s:validation:scope>Namespaced`,
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":   "self.metadata.namespace.size() > 0",
+								"reason": "FieldValueRequired",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "cluster scope",
+			t:    structKind,
+			comments: []string{
+				`+k8s:validation:scope>Cluster`,
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: map[string]interface{}{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"rule":    "self.metadata.namespace.size() == 0",
+								"message": "not allowed on this type",
+								"reason":  "FieldValueForbidden",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {

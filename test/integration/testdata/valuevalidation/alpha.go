@@ -14,6 +14,7 @@ import (
 // +k8s:openapi-gen=true
 // +k8s:validation:cel[0]:rule="self == oldSelf"
 // +k8s:validation:cel[0]:message="foo"
+// +k8s:validation:scope>Namespaced
 type Foo struct {
 	// +k8s:validation:maxLength=5
 	// +k8s:validation:minLength=1

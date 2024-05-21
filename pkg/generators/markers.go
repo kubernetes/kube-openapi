@@ -61,6 +61,13 @@ func (c *CELTag) Validate() error {
 	return nil
 }
 
+type KindScope string
+
+var (
+	KindScopeNamespaced KindScope = "Namespaced"
+	KindScopeCluster    KindScope = "Cluster"
+)
+
 // commentTags represents the parsed comment tags for a given type. These types are then used to generate schema validations.
 // These only include the newer prefixed tags. The older tags are still supported,
 // but are not included in this struct. Comment Tags are transformed into a
@@ -77,7 +84,8 @@ func (c *CELTag) Validate() error {
 type commentTags struct {
 	spec.SchemaProps
 
-	CEL []CELTag `json:"cel,omitempty"`
+	CEL   []CELTag   `json:"cel,omitempty"`
+	Scope *KindScope `json:"scope,omitempty"`
 
 	// Future markers can all be parsed into this centralized struct...
 	// Optional bool `json:"optional,omitempty"`
@@ -91,9 +99,32 @@ func (c commentTags) ValidationSchema() (*spec.Schema, error) {
 		SchemaProps: c.SchemaProps,
 	}
 
-	if len(c.CEL) > 0 {
+	celRules := c.CEL
+
+	if c.Scope != nil {
+		switch *c.Scope {
+		case KindScopeCluster:
+			celRules = append(celRules, CELTag{
+				Rule:      "!has(self.metadata.__namespace__) || self.metadata.__namespace__.size() == 0",
+				Message:   "not allowed on this type",
+				Reason:    "FieldValueForbidden",
+				FieldPath: ".metadata.namespace",
+			})
+		case KindScopeNamespaced:
+			celRules = append(celRules, CELTag{
+				Rule:      "has(self.metadata.__namespace__) && self.metadata.__namespace__.size() > 0",
+				Message:   "",
+				Reason:    "FieldValueRequired",
+				FieldPath: ".metadata.namespace",
+			})
+		default:
+			return nil, fmt.Errorf("invalid scope %q", *c.Scope)
+		}
+	}
+
+	if len(celRules) > 0 {
 		// Convert the CELTag to a map[string]interface{} via JSON
-		celTagJSON, err := json.Marshal(c.CEL)
+		celTagJSON, err := json.Marshal(celRules)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal CEL tag: %w", err)
 		}
@@ -162,6 +193,10 @@ func (c commentTags) Validate() error {
 			continue
 		}
 		err = errors.Join(err, fmt.Errorf("invalid CEL tag at index %d: %w", i, celError))
+	}
+
+	if c.Scope != nil && *c.Scope != KindScopeNamespaced && *c.Scope != KindScopeCluster {
+		err = errors.Join(err, fmt.Errorf("invalid scope %q", *c.Scope))
 	}
 
 	return err
@@ -252,23 +287,48 @@ func ParseCommentTags(t *types.Type, comments []string, prefix string) (*spec.Sc
 		return nil, fmt.Errorf("failed to marshal marker comments: %w", err)
 	}
 
-	var commentTags commentTags
-	if err = json.Unmarshal(out, &commentTags); err != nil {
+	var parsed commentTags
+	if err = json.Unmarshal(out, &parsed); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal marker comments: %w", err)
 	}
 
+	// isEmpty := reflect.DeepEqual(parsed, commentTags{})
+
+	// Take some defaults from non k8s:validation prefixed tags
+	// Only take defaults from non k8s:validation tags if there are other
+	// k8s:validation tags present on the type. This is to prevent a lot of ripple
+	// effects while this feature is still being tried out
+	if parsed.Scope == nil {
+		hasGenClient := false
+		hasGenClientNonNamespaced := false
+		for _, c := range comments {
+			c := strings.TrimSpace(c)
+			if c == "+genclient" {
+				hasGenClient = true
+			} else if c == "+genclient:nonNamespaced" {
+				hasGenClientNonNamespaced = true
+			}
+		}
+
+		if hasGenClientNonNamespaced {
+			parsed.Scope = &KindScopeCluster
+		} else if hasGenClient {
+			parsed.Scope = &KindScopeNamespaced
+		}
+	}
+
 	// Validate the parsed comment tags
-	validationErrors := commentTags.Validate()
+	validationErrors := parsed.Validate()
 
 	if t != nil {
-		validationErrors = errors.Join(validationErrors, commentTags.ValidateType(t))
+		validationErrors = errors.Join(validationErrors, parsed.ValidateType(t))
 	}
 
 	if validationErrors != nil {
 		return nil, fmt.Errorf("invalid marker comments: %w", validationErrors)
 	}
 
-	return commentTags.ValidationSchema()
+	return parsed.ValidationSchema()
 }
 
 var (

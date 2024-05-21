@@ -1247,6 +1247,11 @@
       {
        "message": "foo",
        "rule": "self == oldSelf"
+      },
+      {
+       "fieldPath": ".metadata.namespace",
+       "reason": "FieldValueRequired",
+       "rule": "has(self.metadata.__namespace__) \u0026\u0026 self.metadata.__namespace__.size() \u003e 0"
       }
      ]
     },
