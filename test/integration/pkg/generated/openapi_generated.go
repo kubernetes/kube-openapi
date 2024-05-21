@@ -67,6 +67,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo3":                schema_test_integration_testdata_valuevalidation_Foo3(ref),
 		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo4":                valuevalidation.Foo4{}.OpenAPIDefinition(),
 		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.Foo5":                schema_test_integration_testdata_valuevalidation_Foo5(ref),
+		"k8s.io/kube-openapi/test/integration/testdata/valuevalidation.NameFormats":         schema_test_integration_testdata_valuevalidation_NameFormats(ref),
 	}
 }
 
@@ -1165,4 +1166,113 @@ func schema_test_integration_testdata_valuevalidation_Foo5(ref common.ReferenceC
 			},
 		},
 	})
+}
+
+func schema_test_integration_testdata_valuevalidation_NameFormats(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"dns": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.dns1123Label().validate(self).value()", "rule": "!format.dns1123Label().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"subdomain": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.dns1123Subdomain().validate(self).value()", "rule": "!format.dns1123Subdomain().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"path": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.httpPath().validate(self).value()", "rule": "!format.httpPath().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"qualified": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.qualifiedName().validate(self).value()", "rule": "!format.qualifiedName().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"wildcard": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.wildcardDNS1123Subdomain().validate(self).value()", "rule": "!format.wildcardDNS1123Subdomain().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"identifier": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.cIdentifier().validate(self).value()", "rule": "!format.cIdentifier().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"label": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.dns1035Label().validate(self).value()", "rule": "!format.dns1035Label().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+					"value": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-validations": []interface{}{map[string]interface{}{"messageExpression": "format.labelValue().validate(self).value()", "rule": "!format.labelValue().validate(self).hasValue()"}},
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Default: "",
+							Type:    []string{"string"},
+							Format:  "",
+						},
+					},
+				},
+				Required: []string{"dns", "subdomain", "path", "qualified", "wildcard", "identifier", "label", "value"},
+			},
+		},
+	}
 }

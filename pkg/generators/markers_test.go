@@ -16,6 +16,7 @@ limitations under the License.
 package generators_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -512,6 +513,86 @@ func TestParseCommentTags(t *testing.T) {
 	}
 }
 
+func TestFormat(t *testing.T) {
+
+	cases := []struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      *spec.Schema
+		expectedError string
+	}{}
+
+	for formatName := range generators.NameFormats {
+
+		cases = append(cases, struct {
+			t             *types.Type
+			name          string
+			comments      []string
+			expected      *spec.Schema
+			expectedError string
+		}{
+			t:    types.String,
+			name: formatName,
+			comments: []string{
+				fmt.Sprintf("+k8s:validation:format=\"%s\"", formatName),
+			},
+			expected: &spec.Schema{
+				VendorExtensible: spec.VendorExtensible{
+					Extensions: spec.Extensions{
+						"x-kubernetes-validations": []interface{}{
+							map[string]interface{}{
+								"messageExpression": "format." + formatName + "().validate(self).value()",
+								"rule":              "!format." + formatName + "().validate(self).hasValue()",
+							},
+						},
+					},
+				},
+				SchemaProps: spec.SchemaProps{
+					Format: formatName,
+				},
+			},
+		})
+	}
+
+	for formatName := range generators.Formats {
+
+		cases = append(cases, struct {
+			t             *types.Type
+			name          string
+			comments      []string
+			expected      *spec.Schema
+			expectedError string
+		}{
+			t:    types.String,
+			name: formatName,
+			comments: []string{
+				fmt.Sprintf("+k8s:validation:format=\"%s\"", formatName),
+			},
+			expected: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Format: formatName,
+				},
+			},
+		})
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
+			if tc.expectedError != "" {
+				require.Error(t, err)
+				require.Regexp(t, tc.expectedError, err.Error())
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			require.Equal(t, tc.expected, actual)
+		})
+	}
+}
+
 // Test comment tag validation function
 func TestCommentTags_Validate(t *testing.T) {
 
@@ -752,6 +833,14 @@ func TestCommentTags_Validate(t *testing.T) {
 			},
 			t:            types.String,
 			errorMessage: "",
+		},
+		{
+			name: "format not supported",
+			comments: []string{
+				`+k8s:validation:format="not-supported"`,
+			},
+			t:            types.String,
+			errorMessage: "invalid nameFormat: not-supported",
 		},
 	}
 

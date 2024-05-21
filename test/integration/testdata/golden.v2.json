@@ -613,12 +613,12 @@
      "schemes": [
       "https"
      ],
-     "operationId": "create-valuevalidation.Foo",
+     "operationId": "create-valuevalidation.NameFormats",
      "responses": {
       "201": {
        "description": "Created",
        "schema": {
-        "$ref": "#/definitions/valuevalidation.Foo"
+        "$ref": "#/definitions/valuevalidation.NameFormats"
        }
       },
       "404": {
@@ -729,6 +729,28 @@
        "description": "OK",
        "schema": {
         "$ref": "#/definitions/valuevalidation.Foo5"
+       }
+      },
+      "404": {
+       "$ref": "#/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/nameformats": {
+    "get": {
+     "produces": [
+      "application/json"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "operationId": "get-valuevalidation.NameFormats",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/valuevalidation.NameFormats"
        }
       },
       "404": {
@@ -1326,6 +1348,101 @@
       "rule": "self == oldSelf"
      }
     ]
+   },
+   "valuevalidation.NameFormats": {
+    "type": "object",
+    "required": [
+     "dns",
+     "subdomain",
+     "path",
+     "qualified",
+     "wildcard",
+     "identifier",
+     "label",
+     "value"
+    ],
+    "properties": {
+     "dns": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.dns1123Label().validate(self).value()",
+        "rule": "!format.dns1123Label().validate(self).hasValue()"
+       }
+      ]
+     },
+     "identifier": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.cIdentifier().validate(self).value()",
+        "rule": "!format.cIdentifier().validate(self).hasValue()"
+       }
+      ]
+     },
+     "label": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.dns1035Label().validate(self).value()",
+        "rule": "!format.dns1035Label().validate(self).hasValue()"
+       }
+      ]
+     },
+     "path": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.httpPath().validate(self).value()",
+        "rule": "!format.httpPath().validate(self).hasValue()"
+       }
+      ]
+     },
+     "qualified": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.qualifiedName().validate(self).value()",
+        "rule": "!format.qualifiedName().validate(self).hasValue()"
+       }
+      ]
+     },
+     "subdomain": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.dns1123Subdomain().validate(self).value()",
+        "rule": "!format.dns1123Subdomain().validate(self).hasValue()"
+       }
+      ]
+     },
+     "value": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.labelValue().validate(self).value()",
+        "rule": "!format.labelValue().validate(self).hasValue()"
+       }
+      ]
+     },
+     "wildcard": {
+      "type": "string",
+      "default": "",
+      "x-kubernetes-validations": [
+       {
+        "messageExpression": "format.wildcardDNS1123Subdomain().validate(self).value()",
+        "rule": "!format.wildcardDNS1123Subdomain().validate(self).hasValue()"
+       }
+      ]
+     }
+    }
    }
   },
   "responses": {
