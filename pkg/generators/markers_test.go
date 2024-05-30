@@ -523,6 +523,21 @@ func TestFormat(t *testing.T) {
 		expectedError string
 	}{}
 
+	cases = append(cases, struct {
+		t             *types.Type
+		name          string
+		comments      []string
+		expected      *spec.Schema
+		expectedError string
+	}{
+		t:    types.String,
+		name: "invalid format",
+		comments: []string{
+			"+k8s:validation:format=5",
+		},
+		expectedError: "failed to unmarshal marker comments: json: cannot unmarshal number into Go struct field commentTags.format of type string",
+	})
+
 	for formatName := range generators.NameFormats {
 
 		cases = append(cases, struct {
