@@ -1265,6 +1265,7 @@
        "type": "string"
       }
      ],
+     "x-kubernetes-int-or-string": true,
      "x-kubernetes-validations": [
       {
        "message": "foo3",
