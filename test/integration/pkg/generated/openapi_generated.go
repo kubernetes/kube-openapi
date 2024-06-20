@@ -89,6 +89,8 @@ func schema_test_integration_testdata_custom_FooV3OneOf(ref common.ReferenceCall
 				OneOf:       common.GenerateOpenAPIV3OneOfSchema(custom.FooV3OneOf{}.OpenAPIV3OneOfTypes()),
 				Format:      custom.FooV3OneOf{}.OpenAPISchemaFormat(),
 			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: common.MaybePopulateIntOrString(custom.FooV3OneOf{}.OpenAPIV3OneOfTypes(), spec.Extensions{})},
 		},
 	}, common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1127,10 +1129,10 @@ func schema_test_integration_testdata_valuevalidation_Foo3(ref common.ReferenceC
 				MaxProperties: ptr.To[int64](5),
 			},
 			VendorExtensible: spec.VendorExtensible{
-				Extensions: spec.Extensions{
+				Extensions: common.MaybePopulateIntOrString(valuevalidation.Foo3{}.OpenAPIV3OneOfTypes(), spec.Extensions{
 					"x-kubernetes-validations": []interface{}{map[string]interface{}{"message": "foo3", "rule": "self == oldSelf"}},
 				},
-			},
+				)},
 		},
 	}, common.OpenAPIDefinition{
 		Schema: spec.Schema{
