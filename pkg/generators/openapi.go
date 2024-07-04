@@ -50,6 +50,8 @@ const (
 	tagValueFalse = "false"
 )
 
+const codeBlockDelimiter = "```"
+
 // Used for temporary validation of patch struct tags.
 // TODO: Remove patch struct tag validation because they we are now consuming OpenAPI on server.
 var tempPatchTags = [...]string{
@@ -922,6 +924,7 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 		}
 	}
 
+	inCodeBlock := false
 	for _, line := range CommentLines {
 		// Ignore all lines after ---
 		if line == "---" {
@@ -929,6 +932,24 @@ func (g openAPITypeWriter) generateDescription(CommentLines []string) {
 		}
 		line = strings.TrimRight(line, " ")
 		leading := strings.TrimLeft(line, " ")
+
+		if leading == codeBlockDelimiter {
+			if !inCodeBlock {
+				delPrevChar()
+				buffer.WriteString("\n" + leading + "\n")
+				inCodeBlock = true
+			} else {
+				buffer.WriteString(leading + "\n")
+				inCodeBlock = false
+			}
+			continue
+		} else if inCodeBlock {
+			// code blocks should be outputted as is with no left trimming
+			line = line + "\n"
+			buffer.WriteString(line)
+			continue
+		}
+
 		switch {
 		case len(line) == 0: // Keep paragraphs
 			delPrevChar()
