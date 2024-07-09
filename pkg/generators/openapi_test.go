@@ -1454,6 +1454,10 @@ Description: "Blah is a custom type",
 OneOf:common.GenerateOpenAPIV3OneOfSchema(foo.Blah{}.OpenAPIV3OneOfTypes()),
 Format:foo.Blah{}.OpenAPISchemaFormat(),
 },
+VendorExtensible: spec.VendorExtensible{
+Extensions: common.MaybePopulateIntOrString(foo.Blah{}.OpenAPIV3OneOfTypes(), spec.Extensions{
+},
+)},
 },
 },common.OpenAPIDefinition{
 Schema: spec.Schema{
@@ -2913,6 +2917,10 @@ OneOf:common.GenerateOpenAPIV3OneOfSchema(foo.Blah{}.OpenAPIV3OneOfTypes()),
 Format:foo.Blah{}.OpenAPISchemaFormat(),
 MaxLength: ptr.To[int64](10),
 },
+VendorExtensible: spec.VendorExtensible{
+Extensions: common.MaybePopulateIntOrString(foo.Blah{}.OpenAPIV3OneOfTypes(), spec.Extensions{
+},
+)},
 },
 },common.OpenAPIDefinition{
 Schema: spec.Schema{

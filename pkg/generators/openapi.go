@@ -551,7 +551,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				return err
 			}
 			g.Do("},\n", nil)
-			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
+			if err := g.generateStructExtensions(t, validationSchema.Extensions, false, args); err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
@@ -570,7 +570,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				return err
 			}
 			g.Do("},\n", nil)
-			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
+			if err := g.generateStructExtensions(t, validationSchema.Extensions, true, args); err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
@@ -587,7 +587,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				return err
 			}
 			g.Do("},\n", nil)
-			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
+			if err := g.generateStructExtensions(t, validationSchema.Extensions, false, args); err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
@@ -605,7 +605,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 				return err
 			}
 			g.Do("},\n", nil)
-			if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
+			if err := g.generateStructExtensions(t, validationSchema.Extensions, false, args); err != nil {
 				return err
 			}
 			g.Do("},\n", nil)
@@ -643,7 +643,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			g.Do("Required: []string{\"$.$\"},\n", strings.Join(required, "\",\""))
 		}
 		g.Do("},\n", nil)
-		if err := g.generateStructExtensions(t, validationSchema.Extensions); err != nil {
+		if err := g.generateStructExtensions(t, validationSchema.Extensions, false, args); err != nil {
 			return err
 		}
 		g.Do("},\n", nil)
@@ -676,7 +676,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 	return nil
 }
 
-func (g openAPITypeWriter) generateStructExtensions(t *types.Type, otherExtensions map[string]interface{}) error {
+func (g openAPITypeWriter) generateStructExtensions(t *types.Type, otherExtensions map[string]interface{}, checkIntOrString bool, args generator.Args) error {
 	extensions, errors := parseExtensions(t.CommentLines)
 	// Initially, we will only log struct extension errors.
 	if len(errors) > 0 {
@@ -692,7 +692,7 @@ func (g openAPITypeWriter) generateStructExtensions(t *types.Type, otherExtensio
 	}
 
 	// TODO(seans3): Validate struct extensions here.
-	g.emitExtensions(extensions, unions, otherExtensions)
+	g.emitExtensions(extensions, unions, otherExtensions, checkIntOrString, args)
 	return nil
 }
 
@@ -707,16 +707,20 @@ func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *typ
 			klog.V(2).Infof("%s %s\n", errorPrefix, e)
 		}
 	}
-	g.emitExtensions(extensions, nil, otherExtensions)
+	g.emitExtensions(extensions, nil, otherExtensions, false, generator.Args{})
 	return nil
 }
 
-func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union, otherExtensions map[string]interface{}) {
+func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union, otherExtensions map[string]interface{}, checkIntOrString bool, args generator.Args) {
 	// If any extensions exist, then emit code to create them.
-	if len(extensions) == 0 && len(unions) == 0 && len(otherExtensions) == 0 {
+	if len(extensions) == 0 && len(unions) == 0 && len(otherExtensions) == 0 && !checkIntOrString {
 		return
 	}
-	g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: spec.Extensions{\n", nil)
+	if checkIntOrString {
+		g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: common.MaybePopulateIntOrString($.type|raw${}.OpenAPIV3OneOfTypes(), spec.Extensions{\n", args)
+	} else {
+		g.Do("VendorExtensible: spec.VendorExtensible{\nExtensions: spec.Extensions{\n", nil)
+	}
 	for _, extension := range extensions {
 		g.Do("\"$.$\": ", extension.xName)
 		if extension.hasMultipleValues() || extension.isAlwaysArrayFormat() {
@@ -753,8 +757,12 @@ func (g openAPITypeWriter) emitExtensions(extensions []extension, unions []union
 			})
 		}
 	}
+	g.Do("},\n", nil)
+	if checkIntOrString {
+		g.Do(")", nil)
+	}
 
-	g.Do("},\n},\n", nil)
+	g.Do("},\n", nil)
 }
 
 // TODO(#44005): Move this validation outside of this generator (probably to policy verifier)
