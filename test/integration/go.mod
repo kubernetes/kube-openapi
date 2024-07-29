@@ -7,14 +7,14 @@ replace k8s.io/kube-openapi => ../../
 require (
 	github.com/emicklei/go-restful/v3 v3.12.1
 	github.com/getkin/kin-openapi v0.103.0
-	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/ginkgo/v2 v2.19.1
+	github.com/onsi/gomega v1.34.0
 	k8s.io/kube-openapi v0.0.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 )
 
 require (
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
