@@ -8,7 +8,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.1
 	github.com/getkin/kin-openapi v0.103.0
 	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/gomega v1.34.1
 	k8s.io/kube-openapi v0.0.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 )
@@ -28,6 +28,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/net v0.27.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
