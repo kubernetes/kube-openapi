@@ -22,7 +22,7 @@ require (
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70
+	k8s.io/gengo/v2 v2.0.0-20240812201722-3b05ca7b6e59
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd

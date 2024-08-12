@@ -37,6 +37,6 @@ require (
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
+	k8s.io/gengo/v2 v2.0.0-20240812201722-3b05ca7b6e59 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 )
