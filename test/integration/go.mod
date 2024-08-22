@@ -7,7 +7,7 @@ replace k8s.io/kube-openapi => ../../
 require (
 	github.com/emicklei/go-restful/v3 v3.12.1
 	github.com/getkin/kin-openapi v0.103.0
-	github.com/onsi/ginkgo/v2 v2.20.0
+	github.com/onsi/ginkgo/v2 v2.20.1
 	github.com/onsi/gomega v1.34.1
 	k8s.io/kube-openapi v0.0.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
