@@ -24,6 +24,39 @@ import (
 )
 
 func TestNamesMatch(t *testing.T) {
+	someStruct := &types.Type{
+		Name: types.Name{Name: "SomeStruct"},
+		Kind: types.Struct,
+	}
+	someStructPtr := &types.Type{
+		Name:       types.Name{Name: "SomeStructPtr"},
+		Kind:       types.Pointer,
+		Underlying: someStruct,
+	}
+	intPtr := &types.Type{
+		Name:       types.Name{Name: "IntPtr"},
+		Kind:       types.Pointer,
+		Underlying: types.Int,
+	}
+	listMeta := &types.Type{
+		Name: types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ListMeta"},
+		Kind: types.Struct,
+	}
+	listMetaPtr := &types.Type{
+		Name:       types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ListMetaPtr"},
+		Kind:       types.Pointer,
+		Underlying: listMeta,
+	}
+	objectMeta := &types.Type{
+		Name: types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ObjectMeta"},
+		Kind: types.Struct,
+	}
+	objectMetaPtr := &types.Type{
+		Name:       types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ObjectMetaPtr"},
+		Kind:       types.Pointer,
+		Underlying: objectMeta,
+	}
+
 	tcs := []struct {
 		// name of test case
 		name string
@@ -337,6 +370,92 @@ func TestNamesMatch(t *testing.T) {
 				},
 			},
 			expected: []string{"Pod_Spec"},
+		},
+		{
+			name: "empty_JSON_name",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "Int",
+						Tags: `json:""`, // Not okay!
+						Type: types.Int,
+					},
+					{
+						Name: "Struct",
+						Tags: `json:""`, // Okay, inlined.
+						Type: someStruct,
+					},
+					{
+						Name: "IntPtr",
+						Tags: `json:""`, // Not okay!
+						Type: intPtr,
+					},
+					{
+						Name: "StructPtr",
+						Tags: `json:""`, // Okay, inlined.
+						Type: someStructPtr,
+					},
+				},
+			},
+			expected: []string{
+				// "Int", TODO: should be reported!
+				// "IntPtr", TODO: should be reported!
+			},
+		},
+		{
+			name: "metadata_no_pointers",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "ListMeta",
+						Tags: `json:"listMeta"`, // Not okay, should be "metadata"!
+						Type: listMeta,
+					},
+					{
+						Name: "ObjectMeta",
+						Tags: `json:"objectMeta"`, // Not okay, should be metadata"!
+						Type: objectMeta,
+					},
+					{
+						Name: "SomeStruct",
+						Tags: `json:"metadata"`, // Not okay, name mismatch!
+						Type: someStruct,
+					},
+				},
+			},
+			expected: []string{
+				// "ListMeta", TODO: should be reported!
+				// "ObjectMeta", TODO: should be reported!
+				// "SomeStruct", TODO: should be reported!
+			},
+		},
+		{
+			name: "metadata_pointers",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "ListMeta",
+						Tags: `json:"listMeta"`, // Okay, convention only applies to struct.
+						Type: listMetaPtr,
+					},
+					{
+						Name: "ObjectMeta",
+						Tags: `json:"objectMeta"`, // Okay, convention only applies to struct.
+						Type: objectMetaPtr,
+					},
+					{
+						Name: "SomeStruct",
+						Tags: `json:"metadata"`, // Not okay, name mismatch!
+						Type: someStructPtr,
+					},
+				},
+			},
+			expected: []string{
+				// "SomeStruct", TODO: should be reported!
+			},
 		},
 	}
 
