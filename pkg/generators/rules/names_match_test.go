@@ -29,32 +29,32 @@ func TestNamesMatch(t *testing.T) {
 		Kind: types.Struct,
 	}
 	someStructPtr := &types.Type{
-		Name:       types.Name{Name: "SomeStructPtr"},
-		Kind:       types.Pointer,
-		Underlying: someStruct,
+		Name: types.Name{Name: "SomeStructPtr"},
+		Kind: types.Pointer,
+		Elem: someStruct,
 	}
 	intPtr := &types.Type{
-		Name:       types.Name{Name: "IntPtr"},
-		Kind:       types.Pointer,
-		Underlying: types.Int,
+		Name: types.Name{Name: "IntPtr"},
+		Kind: types.Pointer,
+		Elem: types.Int,
 	}
 	listMeta := &types.Type{
 		Name: types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ListMeta"},
 		Kind: types.Struct,
 	}
 	listMetaPtr := &types.Type{
-		Name:       types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ListMetaPtr"},
-		Kind:       types.Pointer,
-		Underlying: listMeta,
+		Name: types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ListMetaPtr"},
+		Kind: types.Pointer,
+		Elem: listMeta,
 	}
 	objectMeta := &types.Type{
 		Name: types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ObjectMeta"},
 		Kind: types.Struct,
 	}
 	objectMetaPtr := &types.Type{
-		Name:       types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ObjectMetaPtr"},
-		Kind:       types.Pointer,
-		Underlying: objectMeta,
+		Name: types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "ObjectMetaPtr"},
+		Kind: types.Pointer,
+		Elem: objectMeta,
 	}
 
 	tcs := []struct {
@@ -264,36 +264,7 @@ func TestNamesMatch(t *testing.T) {
 			},
 			expected: []string{"PodSpec"},
 		},
-		// NOTE: JSON names in jsonNameBlacklist should skip evaluation
-		// {"", "", true},
-		{
-			name: "unspecified",
-			t: &types.Type{
-				Kind: types.Struct,
-				Members: []types.Member{
-					{
-						Name: "",
-						Tags: `json:""`,
-					},
-				},
-			},
-			expected: []string{},
-		},
-		// {"podSpec", "", true},
-		{
-			name: "blacklist_empty",
-			t: &types.Type{
-				Kind: types.Struct,
-				Members: []types.Member{
-					{
-						Name: "podSpec",
-						Tags: `json:""`,
-					},
-				},
-			},
-			expected: []string{},
-		},
-		// {"podSpec", "metadata", true},
+		// {"podSpec", "metadata", false},
 		{
 			name: "blacklist_metadata",
 			t: &types.Type{
@@ -305,7 +276,7 @@ func TestNamesMatch(t *testing.T) {
 					},
 				},
 			},
-			expected: []string{},
+			expected: []string{"podSpec"},
 		},
 		{
 			name: "non_struct",
@@ -399,8 +370,8 @@ func TestNamesMatch(t *testing.T) {
 				},
 			},
 			expected: []string{
-				// "Int", TODO: should be reported!
-				// "IntPtr", TODO: should be reported!
+				"Int",
+				"IntPtr",
 			},
 		},
 		{
@@ -426,9 +397,9 @@ func TestNamesMatch(t *testing.T) {
 				},
 			},
 			expected: []string{
-				// "ListMeta", TODO: should be reported!
-				// "ObjectMeta", TODO: should be reported!
-				// "SomeStruct", TODO: should be reported!
+				"ListMeta",
+				"ObjectMeta",
+				"SomeStruct",
 			},
 		},
 		{
@@ -454,7 +425,7 @@ func TestNamesMatch(t *testing.T) {
 				},
 			},
 			expected: []string{
-				// "SomeStruct", TODO: should be reported!
+				"SomeStruct",
 			},
 		},
 	}
