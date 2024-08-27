@@ -7,8 +7,8 @@ replace k8s.io/kube-openapi => ../../
 require (
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/getkin/kin-openapi v0.103.0
-	github.com/onsi/ginkgo/v2 v2.20.0
-	github.com/onsi/gomega v1.34.1
+	github.com/onsi/ginkgo/v2 v2.19.0
+	github.com/onsi/gomega v1.33.1
 	k8s.io/kube-openapi v0.0.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 )
@@ -31,7 +31,6 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/mod v0.20.0 // indirect
 	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
