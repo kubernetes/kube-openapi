@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	yaml "gopkg.in/yaml.v2"
+	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
 	"k8s.io/kube-openapi/pkg/util/proto"
 	prototesting "k8s.io/kube-openapi/pkg/util/proto/testing"
