@@ -22,7 +22,7 @@ import (
 	"os"
 
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
-	yaml "gopkg.in/yaml.v2"
+	yaml "sigs.k8s.io/yaml/goyaml.v2"
 
 	"k8s.io/kube-openapi/pkg/schemaconv"
 	"k8s.io/kube-openapi/pkg/util/proto"
