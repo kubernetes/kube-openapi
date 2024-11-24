@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi
 
-go 1.20
+go 1.21
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
@@ -8,8 +8,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/go-openapi/jsonreference v0.20.1
 	github.com/go-openapi/swag v0.23.0
-	github.com/golang/protobuf v1.5.4
-	github.com/google/gnostic-models v0.6.8
+	github.com/google/gnostic-models v0.6.9
 	github.com/google/go-cmp v0.6.0
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.6.0
@@ -19,7 +18,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/tools v0.24.0
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.35.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/gengo/v2 v2.0.0-20240826214909-a7b603a56eb7
 	k8s.io/klog/v2 v2.130.1
