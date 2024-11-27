@@ -8,7 +8,7 @@ jobs:
   ci:
     strategy:
       matrix:
-        go-version: [ '1.20', '1.21', '1.22', '1.23' ]
+        go-version: [ '1.21', '1.22', '1.23' ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -32,12 +32,12 @@ jobs:
         cd test/integration
         go mod tidy && git diff --exit-code
         go test ./...
-    # We set the maximum version of the go directive as 1.20 here
-    # because the oldest go directive that exists on our supported
-    # release branches in k/k is 1.20.
+    # We set the maximum version of the go directive here according to
+    # the oldest go directive that exists on our supported release branches
+    # in k/k.
     - name: Run verify scripts
       run: |
-        ./hack/verify-go-directive.sh 1.20
+        ./hack/verify-go-directive.sh 1.21
   required:
     # The name of the ci jobs above change based on the golang version.
     # Use this as a stable required job that depends on the above jobs.
