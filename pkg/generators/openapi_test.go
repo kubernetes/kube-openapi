@@ -409,6 +409,72 @@ Extensions: spec.Extensions{
 	})
 }
 
+func TestDescription(t *testing.T) {
+	inputFile := `
+		package foo
+
+		// Blah is a test.
+		// +k8s:openapi-gen=true
+		type Blah struct {
+			// Should
+			// render
+			// one
+			// line.
+			// ` + "```" + `
+			// func foo() {
+			// 	indents
+			// }
+			// ` + "```" + `
+			// normal
+			// plain
+			// text.
+			String string
+		}`
+
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, e.Config)
+		if callErr != nil {
+			t.Fatal(callErr)
+		}
+		if funcErr != nil {
+			t.Fatal(funcErr)
+		}
+		assertEqual(t, callBuffer.String(),
+			`"example.com/base/foo.Blah": schema_examplecom_base_foo_Blah(ref),`)
+
+		assertEqual(t, funcBuffer.String(),
+			`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah is a test.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"String": {
+SchemaProps: spec.SchemaProps{
+Description: "Should render one line.\n`+"```"+`\nfunc foo() {\n\tindents\n}\n`+"```"+`\nnormal plain text.",
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String"},
+},
+},
+}
+}`)
+	})
+}
+
 func TestEmptyProperties(t *testing.T) {
 	inputFile := `
 		package foo
