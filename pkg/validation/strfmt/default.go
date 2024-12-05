@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/asaskevich/govalidator"
+	"k8s.io/kube-openapi/third_party/forked/govalidator"
 
 	netutils "k8s.io/utils/net"
 )
