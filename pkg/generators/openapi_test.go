@@ -27,6 +27,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/packages/packagestest"
+
 	"k8s.io/gengo/v2/generator"
 	"k8s.io/gengo/v2/namer"
 	"k8s.io/gengo/v2/parser"
@@ -2386,7 +2387,7 @@ func TestMarkerComments(t *testing.T) {
 			// +k8s:validation:pattern="^foo$[0-9]+"
 			StringValue string
 
-			// +k8s:validation:maxitems=10
+			// +k8s:validation:maxItems=10
 			// +k8s:validation:minItems=1
 			// +k8s:validation:uniqueItems
 			ArrayValue []string
