@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"k8s.io/gengo/v2/types"
 	"k8s.io/kube-openapi/pkg/generators"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -626,6 +627,7 @@ func TestCommentTags_Validate(t *testing.T) {
 		comments     []string
 		t            *types.Type
 		errorMessage string
+		options      []generators.ParseCommentTagsOptions
 	}{
 		{
 			name: "invalid minimum type",
@@ -960,11 +962,29 @@ func TestCommentTags_Validate(t *testing.T) {
 			},
 			errorMessage: `failed to validate property "name": pattern can only be used on string types`,
 		},
+		{
+			name: "ignore unknown field with unparsable value",
+			comments: []string{
+				`+k8s:validation:xyz=a=b`, // a=b is not a valid value
+			},
+			t: &types.Type{
+				Kind: types.Struct,
+				Name: types.Name{Name: "struct"},
+				Members: []types.Member{
+					{
+						Name: "name",
+						Type: types.String,
+						Tags: `json:"name"`,
+					},
+				},
+			},
+			options: []generators.ParseCommentTagsOptions{generators.IgnoreUnknown()},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:")
+			_, err := generators.ParseCommentTags(tc.t, tc.comments, "+k8s:validation:", tc.options...)
 			if tc.errorMessage != "" {
 				require.Error(t, err)
 				require.Equal(t, "invalid marker comments: "+tc.errorMessage, err.Error())
