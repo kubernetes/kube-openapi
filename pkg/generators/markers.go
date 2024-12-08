@@ -20,9 +20,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"k8s.io/gengo/v2/types"
 	openapi "k8s.io/kube-openapi/pkg/common"
@@ -60,6 +62,26 @@ func (c *CELTag) Validate() error {
 
 	return nil
 }
+
+func isKnownTagCommentKey(key string) bool {
+	commentTag, _, _ := strings.Cut(key, ":")
+	_, ok := tagKeys()[commentTag]
+	return ok
+}
+
+var tagKeys = sync.OnceValue(func() map[string]struct{} {
+	result := map[string]struct{}{}
+	t := reflect.TypeOf(commentTags{})
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if jsonTag := field.Tag.Get("json"); jsonTag != "" {
+			if key, _, _ := strings.Cut(jsonTag, ","); key != "" {
+				result[key] = struct{}{}
+			}
+		}
+	}
+	return result
+})
 
 // commentTags represents the parsed comment tags for a given type. These types are then used to generate schema validations.
 // These only include the newer prefixed tags. The older tags are still supported,
@@ -385,13 +407,30 @@ func memberWithJSONName(t *types.Type, key string) *types.Member {
 	return nil
 }
 
-// Parses the given comments into a CommentTags type. Validates the parsed comment tags, and returns the result.
+type commentTagsOptions struct {
+	ignoreUnknown bool
+}
+
+type ParseCommentTagsOptions func(*commentTagsOptions)
+
+// IgnoreUnknown returns a ParseCommentTagsOptions that will ignore unknown comment tags.
+func IgnoreUnknown() ParseCommentTagsOptions {
+	return func(o *commentTagsOptions) {
+		o.ignoreUnknown = true
+	}
+}
+
+// ParseCommentTags parses the given comments into a CommentTags type. Validates the parsed comment tags, and returns the result.
 // Accepts an optional type to validate against, and a prefix to filter out markers not related to validation.
 // Accepts a prefix to filter out markers not related to validation.
 // Returns any errors encountered while parsing or validating the comment tags.
-func ParseCommentTags(t *types.Type, comments []string, prefix string) (*spec.Schema, error) {
+func ParseCommentTags(t *types.Type, comments []string, prefix string, opts ...ParseCommentTagsOptions) (*spec.Schema, error) {
+	options := commentTagsOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
 
-	markers, err := parseMarkers(comments, prefix)
+	markers, err := parseMarkers(comments, prefix, options.ignoreUnknown)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse marker comments: %w", err)
 	}
@@ -597,7 +636,7 @@ func extractCommentTags(marker string, lines []string) (map[string]string, error
 // Accepts a prefix to filter out markers not related to validation.
 // The prefix is removed from the key in the returned map.
 // Empty keys and invalid values will return errors, refs are currently unsupported and will be skipped.
-func parseMarkers(markerComments []string, prefix string) (map[string]any, error) {
+func parseMarkers(markerComments []string, prefix string, ignoreUnknown bool) (map[string]any, error) {
 	markers, err := extractCommentTags(prefix, markerComments)
 	if err != nil {
 		return nil, err
@@ -606,6 +645,9 @@ func parseMarkers(markerComments []string, prefix string) (map[string]any, error
 	// Parse the values as JSON
 	result := map[string]any{}
 	for key, value := range markers {
+		if ignoreUnknown && !isKnownTagCommentKey(key) {
+			continue
+		}
 		var unmarshalled interface{}
 
 		if len(key) == 0 {
