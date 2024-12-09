@@ -22,9 +22,9 @@ import (
 	"regexp"
 	"strings"
 
-	"k8s.io/kube-openapi/third_party/forked/govalidator"
-
 	netutils "k8s.io/utils/net"
+
+	"k8s.io/kube-openapi/pkg/internal/third_party/govalidator"
 )
 
 const (
