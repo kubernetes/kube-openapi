@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/emicklei/go-restful/v3 v3.11.0
 	github.com/go-openapi/jsonreference v0.20.1
 	github.com/go-openapi/swag v0.23.0
