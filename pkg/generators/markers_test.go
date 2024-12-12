@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
 	"k8s.io/gengo/v2/types"
 	"k8s.io/kube-openapi/pkg/generators"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -959,6 +960,23 @@ func TestCommentTags_Validate(t *testing.T) {
 				},
 			},
 			errorMessage: `failed to validate property "name": pattern can only be used on string types`,
+		},
+		{
+			name: "ignore unknown field with unparsable value",
+			comments: []string{
+				`+k8s:validation:xyz=a=b`, // a=b is not a valid value
+			},
+			t: &types.Type{
+				Kind: types.Struct,
+				Name: types.Name{Name: "struct"},
+				Members: []types.Member{
+					{
+						Name: "name",
+						Type: types.String,
+						Tags: `json:"name"`,
+					},
+				},
+			},
 		},
 	}
 
