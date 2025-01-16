@@ -253,6 +253,76 @@ definitions:
 	ast.Equal(DebugSpec{orig_spec1}, DebugSpec{spec1}, "unexpected mutation of input")
 }
 
+var trailingSlashesTestCases = []struct {
+	input      string
+	prefix     string
+	shouldKeep bool
+}{
+	{"/test", "/test", true},
+	{"/test/", "/test/", true},
+	{"/test", "/test/", true},
+	{"/test/", "/test", true},
+	{"/testv1", "/test", false},
+	{"/testv1", "/test/", false},
+}
+
+func TestFilterSpecsTrailingSlashes(t *testing.T) {
+	specTemplate := `
+swagger: "2.0"
+paths:
+  %s:
+    post:
+      tags:
+      - "test"
+      summary: "Test API"
+      operationId: "addTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "test object"
+        required: true
+        schema:
+          $ref: "#/definitions/Test"
+      responses:
+        405:
+          description: "Invalid input"
+          $ref: "#/definitions/InvalidInput"
+definitions:
+  Test:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      status:
+        type: "string"
+        description: "Status"
+  InvalidInput:
+    type: "string"
+    format: "string"
+  Unused:
+    type: "object"
+  `
+
+	for _, tc := range trailingSlashesTestCases {
+		var spec, specFiltered *spec.Swagger
+
+		yaml.Unmarshal([]byte(fmt.Sprintf(specTemplate, tc.input)), &spec)
+		yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+`), &specFiltered)
+
+		ast := assert.New(t)
+		filtered := FilterSpecByPathsWithoutSideEffects(spec, []string{tc.prefix})
+		if tc.shouldKeep {
+			ast.Equal(DebugSpec{filtered}, DebugSpec{spec}, "input=%q, prefix=%q, should be included", tc.input, tc.prefix)
+		} else {
+			ast.Equal(DebugSpec{spec}, DebugSpec{spec}, "input=%q, prefix=%q, should not be included", tc.input, tc.prefix)
+		}
+	}
+}
+
 func TestMergeSpecsSimple(t *testing.T) {
 	var spec1, spec2, expected *spec.Swagger
 	require.NoError(t, yaml.Unmarshal([]byte(`
