@@ -23,11 +23,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/kube-openapi/pkg/internal"
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
+	"sigs.k8s.io/randfill"
 )
 
 var spec = Swagger{
@@ -165,7 +165,7 @@ func TestSwaggerRoundtrip(t *testing.T) {
 }
 
 func TestSwaggerSpec_Marshalv2Fuzzed(t *testing.T) {
-	fuzzer := fuzz.
+	fuzzer := randfill.
 		NewWithSeed(1646791953).
 		NilChance(0.075).
 		MaxDepth(13).
@@ -178,7 +178,7 @@ func TestSwaggerSpec_Marshalv2Fuzzed(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			swagger := Swagger{}
-			fuzzer.Fuzz(&swagger)
+			fuzzer.Fill(&swagger)
 
 			internal.UseOptimizedJSONMarshaling = false
 			want, err := json.Marshal(swagger)
@@ -252,7 +252,7 @@ func TestUnmarshalAdditionalProperties(t *testing.T) {
 }
 
 func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
-	fuzzer := fuzz.
+	fuzzer := randfill.
 		NewWithSeed(1646791953).
 		NilChance(0.01).
 		MaxDepth(10).
@@ -263,7 +263,7 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 	)
 
 	expected := Swagger{}
-	fuzzer.Fuzz(&expected)
+	fuzzer.Fill(&expected)
 
 	// Serialize into JSON
 	jsonBytes, err := json.Marshal(expected)

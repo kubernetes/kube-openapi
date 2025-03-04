@@ -9,10 +9,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/kube-openapi/pkg/internal"
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/randfill"
 )
 
 // cmp.Diff panics when reflecting unexported fields under jsonreference.Ref
@@ -22,13 +22,13 @@ var swaggerDiffOptions = []cmp.Option{cmp.Comparer(func(a spec.Ref, b spec.Ref) 
 })}
 
 func TestOpenAPIV3RoundTrip(t *testing.T) {
-	var fuzzer *fuzz.Fuzzer
-	fuzzer = fuzz.NewWithSeed(1646791953)
+	var fuzzer *randfill.Filler
+	fuzzer = randfill.NewWithSeed(1646791953)
 	// Make sure we have enough depth such that maps do not yield nil elements
 	fuzzer.MaxDepth(22).NilChance(0.5).NumElements(1, 7)
 	fuzzer.Funcs(OpenAPIV3FuzzFuncs...)
 	expected := &OpenAPI{}
-	fuzzer.Fuzz(expected)
+	fuzzer.Fill(expected)
 
 	j, err := json.Marshal(expected)
 	if err != nil {
@@ -103,14 +103,14 @@ func TestOpenAPIV3Serialize(t *testing.T) {
 }
 
 func TestOpenAPIV3SerializeFuzzed(t *testing.T) {
-	var fuzzer *fuzz.Fuzzer
-	fuzzer = fuzz.NewWithSeed(1646791953)
+	var fuzzer *randfill.Filler
+	fuzzer = randfill.NewWithSeed(1646791953)
 	fuzzer.MaxDepth(13).NilChance(0.075).NumElements(1, 2)
 	fuzzer.Funcs(OpenAPIV3FuzzFuncs...)
 
 	for i := 0; i < 100; i++ {
 		openapi := &OpenAPI{}
-		fuzzer.Fuzz(openapi)
+		fuzzer.Fill(openapi)
 
 		internal.UseOptimizedJSONUnmarshalingV3 = false
 		want, err := json.Marshal(openapi)
