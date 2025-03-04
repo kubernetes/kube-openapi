@@ -72,7 +72,7 @@ func (r *Ref) IsValidURI(basepaths ...string) bool {
 		if err != nil {
 			return false
 		}
-
+		rr.Body.Close()
 		return rr.StatusCode/100 == 2
 	}
 
