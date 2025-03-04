@@ -27,21 +27,21 @@ import (
 	"github.com/google/gnostic-models/compiler"
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	"github.com/google/go-cmp/cmp"
-	fuzz "github.com/google/gofuzz"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	. "k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/randfill"
 )
 
-func gnosticCommonTest(t testing.TB, fuzzer *fuzz.Fuzzer) {
+func gnosticCommonTest(t testing.TB, fuzzer *randfill.Filler) {
 	fuzzer.Funcs(
 		SwaggerFuzzFuncs...,
 	)
 
 	expected := Swagger{}
-	fuzzer.Fuzz(&expected)
+	fuzzer.Fill(&expected)
 
 	// Convert to gnostic via JSON to compare
 	jsonBytes, err := expected.MarshalJSON()
@@ -70,7 +70,7 @@ func gnosticCommonTest(t testing.TB, fuzzer *fuzz.Fuzzer) {
 func TestGnosticConversionSmallDeterministic(t *testing.T) {
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(15).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -83,7 +83,7 @@ func TestGnosticConversionSmallDeterministic2(t *testing.T) {
 	// which failed during development/testing loop
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(1646770841).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -96,7 +96,7 @@ func TestGnosticConversionSmallDeterministic3(t *testing.T) {
 	// which failed during development/testing loop
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(1646772024).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -109,7 +109,7 @@ func TestGnosticConversionSmallDeterministic4(t *testing.T) {
 	// which failed during development/testing loop
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(1646791953).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -122,7 +122,7 @@ func TestGnosticConversionSmallDeterministic5(t *testing.T) {
 	// which failed during development/testing loop
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(1646940131).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -135,7 +135,7 @@ func TestGnosticConversionSmallDeterministic6(t *testing.T) {
 	// which failed during development/testing loop
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(1646941926).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -150,7 +150,7 @@ func TestGnosticConversionSmallDeterministic7(t *testing.T) {
 	// correctly
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(1647297721085690000).
 			NilChance(0.8).
 			MaxDepth(10).
@@ -161,7 +161,7 @@ func TestGnosticConversionSmallDeterministic7(t *testing.T) {
 func TestGnosticConversionSmallRandom(t *testing.T) {
 	seed := time.Now().UnixNano()
 	t.Log("Using seed: ", seed)
-	fuzzer := fuzz.
+	fuzzer := randfill.
 		NewWithSeed(seed).
 		NilChance(0.8).
 		MaxDepth(10).
@@ -178,7 +178,7 @@ func TestGnosticConversionSmallRandom(t *testing.T) {
 func TestGnosticConversionMediumDeterministic(t *testing.T) {
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(15).
 			NilChance(0.4).
 			MaxDepth(12).
@@ -189,7 +189,7 @@ func TestGnosticConversionMediumDeterministic(t *testing.T) {
 func TestGnosticConversionLargeDeterministic(t *testing.T) {
 	gnosticCommonTest(
 		t,
-		fuzz.
+		randfill.
 			NewWithSeed(15).
 			NilChance(0.1).
 			MaxDepth(15).
@@ -200,7 +200,7 @@ func TestGnosticConversionLargeDeterministic(t *testing.T) {
 func TestGnosticConversionLargeRandom(t *testing.T) {
 	var seed int64 = time.Now().UnixNano()
 	t.Log("Using seed: ", seed)
-	fuzzer := fuzz.
+	fuzzer := randfill.
 		NewWithSeed(seed).
 		NilChance(0).
 		MaxDepth(15).

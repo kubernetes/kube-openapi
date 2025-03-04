@@ -27,13 +27,13 @@ import (
 	"testing"
 	"time"
 
-	fuzz "github.com/google/gofuzz"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/util/sets"
 	"k8s.io/kube-openapi/pkg/validation/spec"
+	"sigs.k8s.io/randfill"
 )
 
-func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visible bool)) {
+func fuzzFuncs(f *randfill.Filler, refFunc func(ref *spec.Ref, c randfill.Continue, visible bool)) {
 	invisible := 0 // == 0 means visible, > 0 means invisible
 	depth := 0
 	maxDepth := 3
@@ -45,14 +45,14 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 		f.NumElements(0, max(0, maxDepth-depth))
 	}
 	updateFuzzer(depth)
-	enter := func(o interface{}, recursive bool, c fuzz.Continue) {
+	enter := func(o interface{}, recursive bool, c randfill.Continue) {
 		if recursive {
 			depth++
 			updateFuzzer(depth)
 		}
 
 		invisible++
-		c.FuzzNoCustom(o)
+		c.FillNoCustom(o)
 		invisible--
 	}
 	leave := func(recursive bool) {
@@ -62,79 +62,79 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 		}
 	}
 	f.Funcs(
-		func(ref *spec.Ref, c fuzz.Continue) {
+		func(ref *spec.Ref, c randfill.Continue) {
 			refFunc(ref, c, invisible == 0)
 		},
-		func(sa *spec.SchemaOrStringArray, c fuzz.Continue) {
+		func(sa *spec.SchemaOrStringArray, c randfill.Continue) {
 			*sa = spec.SchemaOrStringArray{}
-			if c.RandBool() {
-				c.Fuzz(&sa.Schema)
+			if c.Bool() {
+				c.Fill(&sa.Schema)
 			} else {
-				c.Fuzz(&sa.Property)
+				c.Fill(&sa.Property)
 			}
 			if sa.Schema == nil && len(sa.Property) == 0 {
 				*sa = spec.SchemaOrStringArray{Schema: &spec.Schema{}}
 			}
 		},
-		func(url *spec.SchemaURL, c fuzz.Continue) {
+		func(url *spec.SchemaURL, c randfill.Continue) {
 			*url = spec.SchemaURL("http://url")
 		},
-		func(s *spec.Swagger, c fuzz.Continue) {
+		func(s *spec.Swagger, c randfill.Continue) {
 			enter(s, false, c)
 			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
-			c.Fuzz(&s.Parameters)
-			c.Fuzz(&s.Responses)
-			c.Fuzz(&s.Definitions)
-			c.Fuzz(&s.Paths)
+			c.Fill(&s.Parameters)
+			c.Fill(&s.Responses)
+			c.Fill(&s.Definitions)
+			c.Fill(&s.Paths)
 		},
-		func(p *spec.PathItem, c fuzz.Continue) {
+		func(p *spec.PathItem, c randfill.Continue) {
 			enter(p, false, c)
 			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
-			c.Fuzz(&p.Parameters)
-			c.Fuzz(&p.Delete)
-			c.Fuzz(&p.Get)
-			c.Fuzz(&p.Head)
-			c.Fuzz(&p.Options)
-			c.Fuzz(&p.Patch)
-			c.Fuzz(&p.Post)
-			c.Fuzz(&p.Put)
+			c.Fill(&p.Parameters)
+			c.Fill(&p.Delete)
+			c.Fill(&p.Get)
+			c.Fill(&p.Head)
+			c.Fill(&p.Options)
+			c.Fill(&p.Patch)
+			c.Fill(&p.Post)
+			c.Fill(&p.Put)
 		},
-		func(p *spec.Parameter, c fuzz.Continue) {
+		func(p *spec.Parameter, c randfill.Continue) {
 			enter(p, false, c)
 			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
-			c.Fuzz(&p.Ref)
-			c.Fuzz(&p.Schema)
-			if c.RandBool() {
+			c.Fill(&p.Ref)
+			c.Fill(&p.Schema)
+			if c.Bool() {
 				p.Items = &spec.Items{}
-				c.Fuzz(&p.Items.Ref)
+				c.Fill(&p.Items.Ref)
 			} else {
 				p.Items = nil
 			}
 		},
-		func(s *spec.Response, c fuzz.Continue) {
+		func(s *spec.Response, c randfill.Continue) {
 			enter(s, false, c)
 			defer leave(false)
 
 			// only fuzz those fields we walk into with invisible==false
-			c.Fuzz(&s.Ref)
-			c.Fuzz(&s.Description)
-			c.Fuzz(&s.Schema)
-			c.Fuzz(&s.Examples)
+			c.Fill(&s.Ref)
+			c.Fill(&s.Description)
+			c.Fill(&s.Schema)
+			c.Fill(&s.Examples)
 		},
-		func(s *spec.Dependencies, c fuzz.Continue) {
+		func(s *spec.Dependencies, c randfill.Continue) {
 			enter(s, false, c)
 			defer leave(false)
 
 			// and nothing with invisible==false
 		},
-		func(p *spec.SimpleSchema, c fuzz.Continue) {
-			// gofuzz is broken and calls this even for *SimpleSchema fields, ignoring NilChance, leading to infinite recursion
+		func(p *spec.SimpleSchema, c randfill.Continue) {
+			// randfill is broken and calls this even for *SimpleSchema fields, ignoring NilChance, leading to infinite recursion
 			if c.Float64() > nilChance(depth) {
 				return
 			}
@@ -142,10 +142,10 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			enter(p, true, c)
 			defer leave(true)
 
-			c.FuzzNoCustom(p)
+			c.FillNoCustom(p)
 		},
-		func(s *spec.SchemaProps, c fuzz.Continue) {
-			// gofuzz is broken and calls this even for *SchemaProps fields, ignoring NilChance, leading to infinite recursion
+		func(s *spec.SchemaProps, c randfill.Continue) {
+			// randfill is broken and calls this even for *SchemaProps fields, ignoring NilChance, leading to infinite recursion
 			if c.Float64() > nilChance(depth) {
 				return
 			}
@@ -153,9 +153,9 @@ func fuzzFuncs(f *fuzz.Fuzzer, refFunc func(ref *spec.Ref, c fuzz.Continue, visi
 			enter(s, true, c)
 			defer leave(true)
 
-			c.FuzzNoCustom(s)
+			c.FillNoCustom(s)
 		},
-		func(i *interface{}, c fuzz.Continue) {
+		func(i *interface{}, c randfill.Continue) {
 			// do nothing for examples and defaults. These are free form JSON fields.
 		},
 	)
@@ -180,7 +180,7 @@ func TestReplaceReferences(t *testing.T) {
 			visibleRefs = sets.NewString()
 			invisibleRefs = sets.NewString()
 
-			f := fuzz.New()
+			f := randfill.New()
 			seed = time.Now().UnixNano()
 			//seed = int64(1549012506261785182)
 			randSource = rand.New(rand.NewSource(seed))
@@ -189,7 +189,7 @@ func TestReplaceReferences(t *testing.T) {
 			visibleRefsNum := 0
 			invisibleRefsNum := 0
 			fuzzFuncs(f,
-				func(ref *spec.Ref, c fuzz.Continue, visible bool) {
+				func(ref *spec.Ref, c randfill.Continue, visible bool) {
 					var url string
 					if visible {
 						// this is a ref that is seen by the walker (we have some exceptions where we don't walk into)
@@ -211,7 +211,7 @@ func TestReplaceReferences(t *testing.T) {
 
 			// create random swagger spec with random URL references, but at least one ref
 			s = &spec.Swagger{}
-			f.Fuzz(s)
+			f.Fill(s)
 
 			// clone spec to normalize (fuzz might generate objects which do not roundtrip json marshalling
 			var err error
@@ -298,57 +298,57 @@ func TestReplaceSchema(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		t.Run(fmt.Sprintf("iteration-%d", i), func(t *testing.T) {
 			seed := time.Now().UnixNano()
-			f := fuzz.NewWithSeed(seed).NilChance(0).MaxDepth(5)
+			f := randfill.NewWithSeed(seed).NilChance(0).MaxDepth(5)
 			rootSchema := &spec.Schema{}
-			f.Funcs(func(s *spec.Schema, c fuzz.Continue) {
-				c.Fuzz(&s.Description)
+			f.Funcs(func(s *spec.Schema, c randfill.Continue) {
+				c.Fill(&s.Description)
 				s.Description += " original"
-				if c.RandBool() {
+				if c.Bool() {
 					// append enums
 					var enums []string
-					c.Fuzz(&enums)
+					c.Fill(&enums)
 					for _, enum := range enums {
 						s.Enum = append(s.Enum, enum)
 					}
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.Properties)
+				if c.Bool() {
+					c.Fill(&s.Properties)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.AdditionalProperties)
+				if c.Bool() {
+					c.Fill(&s.AdditionalProperties)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.PatternProperties)
+				if c.Bool() {
+					c.Fill(&s.PatternProperties)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.AdditionalItems)
+				if c.Bool() {
+					c.Fill(&s.AdditionalItems)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.AnyOf)
+				if c.Bool() {
+					c.Fill(&s.AnyOf)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.AllOf)
+				if c.Bool() {
+					c.Fill(&s.AllOf)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.OneOf)
+				if c.Bool() {
+					c.Fill(&s.OneOf)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.Not)
+				if c.Bool() {
+					c.Fill(&s.Not)
 				}
-				if c.RandBool() {
-					c.Fuzz(&s.Definitions)
+				if c.Bool() {
+					c.Fill(&s.Definitions)
 				}
-				if c.RandBool() {
+				if c.Bool() {
 					items := new(spec.SchemaOrArray)
-					if c.RandBool() {
-						c.Fuzz(&items.Schema)
+					if c.Bool() {
+						c.Fill(&items.Schema)
 					} else {
-						c.Fuzz(&items.Schemas)
+						c.Fill(&items.Schemas)
 					}
 					s.Items = items
 				}
 			})
-			f.Fuzz(rootSchema)
+			f.Fill(rootSchema)
 			w := &Walker{SchemaCallback: func(schema *spec.Schema) *spec.Schema {
 				s := *schema
 				s.Description = strings.Replace(s.Description, "original", "modified", -1)
