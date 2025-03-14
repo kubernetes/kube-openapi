@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
 
@@ -124,6 +125,11 @@ func TestType_schemaInfoForType(t *testing.T) {
 			value:                 strfmt.SSN("111-11-1111"),
 			expectedJSONType:      stringType,
 			expectedSwaggerFormat: "ssn",
+		},
+		{
+			value:                 strfmt.Semver("1.0.0-alpha+001"),
+			expectedJSONType:      stringType,
+			expectedSwaggerFormat: "semver",
 		},
 		{
 			value:                 strfmt.HexColor("#FFFFFF"),

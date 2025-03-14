@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
+
 	"k8s.io/kube-openapi/pkg/validation/errors"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
@@ -71,6 +72,8 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 		return stringType, stringFormatRGBColor
 	case strfmt.SSN, *strfmt.SSN:
 		return stringType, stringFormatSSN
+	case strfmt.Semver, *strfmt.Semver:
+		return stringType, stringFormatSemver
 	case strfmt.URI, *strfmt.URI:
 		return stringType, stringFormatURI
 	case strfmt.UUID, *strfmt.UUID:

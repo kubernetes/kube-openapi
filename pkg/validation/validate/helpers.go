@@ -60,6 +60,7 @@ const (
 	stringFormatISBN13     = "isbn13"
 	stringFormatMAC        = "mac"
 	stringFormatRGBColor   = "rgbcolor"
+	stringFormatSemver     = "semver"
 	stringFormatSSN        = "ssn"
 	stringFormatURI        = "uri"
 	stringFormatUUID       = "uuid"
