@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package idl
+package idl_test
+
+import (
+	_ "k8s.io/kube-openapi/pkg/idl"
+)
 
 // This example shows how to use the mapType atomic attribute to
 // specify that this map should be treated as a whole.
