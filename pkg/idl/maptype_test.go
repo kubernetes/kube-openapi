@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package idl_test
+package idl
 
 // This example shows how to use the mapType atomic attribute to
 // specify that this map should be treated as a whole.
