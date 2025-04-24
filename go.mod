@@ -17,7 +17,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/tools v0.24.0
 	google.golang.org/protobuf v1.35.1
-	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/gengo/v2 v2.0.0-20240826214909-a7b603a56eb7
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
@@ -45,4 +44,5 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.23.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -22,7 +22,7 @@ import (
 	"strings"
 
 	openapi_v3 "github.com/google/gnostic-models/openapiv3"
-	"gopkg.in/yaml.v3"
+	"sigs.k8s.io/yaml/goyaml.v3"
 )
 
 // Temporary parse implementation to be used until gnostic->kube-openapi conversion
@@ -288,7 +288,8 @@ func (d *Definitions) parseV3BaseSchema(s *openapi_v3.Schema, path *Path) (*Base
 		return nil, fmt.Errorf("cannot initialize BaseSchema from nil")
 	}
 
-	def, err := parseV3Interface(s.GetDefault().ToRawInfo())
+	schemdDefault := s.GetDefault()
+	def, err := parseV3Interface(toRawInfo(schemdDefault))
 	if err != nil {
 		return nil, err
 	}

@@ -29,10 +29,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	. "k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/randfill"
+	"sigs.k8s.io/yaml/goyaml.v3"
 )
 
 func gnosticCommonTest(t testing.TB, fuzzer *randfill.Filler) {
