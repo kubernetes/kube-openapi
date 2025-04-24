@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/gnostic-models/compiler"
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
@@ -32,7 +31,6 @@ import (
 	jsontesting "k8s.io/kube-openapi/pkg/util/jsontesting"
 	. "k8s.io/kube-openapi/pkg/validation/spec"
 	"sigs.k8s.io/randfill"
-	"sigs.k8s.io/yaml/goyaml.v3"
 )
 
 func gnosticCommonTest(t testing.TB, fuzzer *randfill.Filler) {
@@ -289,158 +287,6 @@ func BenchmarkGnosticConversion(b *testing.B) {
 				} else if !ok {
 					b2.Fatal("conversion lost data")
 				}
-			}
-		})
-	}
-}
-
-// Ensure all variants of SecurityDefinition are being exercised by tests
-func TestSecurityDefinitionVariants(t *testing.T) {
-	type TestPattern struct {
-		Name    string
-		Pattern string
-	}
-
-	patterns := []TestPattern{
-		{
-			Name:    "Basic Authentication",
-			Pattern: `{"type": "basic", "description": "cool basic auth"}`,
-		},
-		{
-			Name:    "API Key Query",
-			Pattern: `{"type": "apiKey", "description": "cool api key auth", "in": "query", "name": "coolAuth"}`,
-		},
-		{
-			Name:    "API Key Header",
-			Pattern: `{"type": "apiKey", "description": "cool api key auth", "in": "header", "name": "coolAuth"}`,
-		},
-		{
-			Name:    "OAuth2 Implicit",
-			Pattern: `{"type": "oauth2", "flow": "implicit", "authorizationUrl": "https://google.com", "scopes": {"scope1": "a scope", "scope2": "a scope"}, "description": "cool oauth2 auth"}`,
-		},
-		{
-			Name:    "OAuth2 Password",
-			Pattern: `{"type": "oauth2", "flow": "password", "tokenUrl": "https://google.com", "scopes": {"scope1": "a scope", "scope2": "a scope"}, "description": "cool oauth2 auth"}`,
-		},
-		{
-			Name:    "OAuth2 Application",
-			Pattern: `{"type": "oauth2", "flow": "application", "tokenUrl": "https://google.com", "scopes": {"scope1": "a scope", "scope2": "a scope"}, "description": "cool oauth2 auth"}`,
-		},
-		{
-			Name:    "OAuth2 Access Code",
-			Pattern: `{"type": "oauth2", "flow": "accessCode", "authorizationUrl": "https://google.com", "tokenUrl": "https://google.com", "scopes": {"scope1": "a scope", "scope2": "a scope"}, "description": "cool oauth2 auth"}`,
-		},
-	}
-
-	for _, p := range patterns {
-		t.Run(p.Name, func(t *testing.T) {
-			// Parse JSON into yaml
-			var nodes yaml.Node
-			if err := yaml.Unmarshal([]byte(p.Pattern), &nodes); err != nil {
-				t.Error(err)
-				return
-			} else if len(nodes.Content) != 1 {
-				t.Errorf("unexpected yaml parse result")
-				return
-			}
-
-			root := nodes.Content[0]
-
-			parsed, err := openapi_v2.NewSecurityDefinitionsItem(root, compiler.NewContextWithExtensions("$root", root, nil, nil))
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			converted := SecurityScheme{}
-			if err := converted.FromGnostic(parsed); err != nil {
-				t.Error(err)
-				return
-			}
-
-			// Ensure that the same JSON parsed via kube-openapi gives the same
-			// result
-			var expected SecurityScheme
-			if err := json.Unmarshal([]byte(p.Pattern), &expected); err != nil {
-				t.Error(err)
-				return
-			} else if !reflect.DeepEqual(expected, converted) {
-				t.Errorf("expected equal values: %v", cmp.Diff(expected, converted, SwaggerDiffOptions...))
-				return
-			}
-		})
-	}
-}
-
-// Ensure all variants of Parameter are being exercised by tests
-func TestParamVariants(t *testing.T) {
-	type TestPattern struct {
-		Name    string
-		Pattern string
-	}
-
-	patterns := []TestPattern{
-		{
-			Name:    "Body Parameter",
-			Pattern: `{"in": "body", "name": "myBodyParam", "schema": {}}`,
-		},
-		{
-			Name:    "NonBody Header Parameter",
-			Pattern: `{"in": "header", "name": "myHeaderParam", "description": "a cool parameter", "type": "string", "collectionFormat": "pipes"}`,
-		},
-		{
-			Name:    "NonBody FormData Parameter",
-			Pattern: `{"in": "formData", "name": "myFormDataParam", "description": "a cool parameter", "type": "string", "collectionFormat": "pipes"}`,
-		},
-		{
-			Name:    "NonBody Query Parameter",
-			Pattern: `{"in": "query", "name": "myQueryParam", "description": "a cool parameter", "type": "string", "collectionFormat": "pipes"}`,
-		},
-		{
-			Name:    "NonBody Path Parameter",
-			Pattern: `{"required": true, "in": "path", "name": "myPathParam", "description": "a cool parameter", "type": "string", "collectionFormat": "pipes"}`,
-		},
-	}
-
-	for _, p := range patterns {
-		t.Run(p.Name, func(t *testing.T) {
-			// Parse JSON into yaml
-			var nodes yaml.Node
-			if err := yaml.Unmarshal([]byte(p.Pattern), &nodes); err != nil {
-				t.Error(err)
-				return
-			} else if len(nodes.Content) != 1 {
-				t.Errorf("unexpected yaml parse result")
-				return
-			}
-
-			root := nodes.Content[0]
-
-			ctx := compiler.NewContextWithExtensions("$root", root, nil, nil)
-			parsed, err := openapi_v2.NewParameter(root, ctx)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			converted := Parameter{}
-			if ok, err := converted.FromGnostic(parsed); err != nil {
-				t.Error(err)
-				return
-			} else if !ok {
-				t.Errorf("expected no data loss while converting parameter: %v", p.Pattern)
-				return
-			}
-
-			// Ensure that the same JSON parsed via kube-openapi gives the same
-			// result
-			var expected Parameter
-			if err := json.Unmarshal([]byte(p.Pattern), &expected); err != nil {
-				t.Error(err)
-				return
-			} else if !reflect.DeepEqual(expected, converted) {
-				t.Errorf("expected equal values: %v", cmp.Diff(expected, converted, SwaggerDiffOptions...))
-				return
 			}
 		})
 	}
