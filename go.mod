@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi
 
-go 1.21
+go 1.22
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
