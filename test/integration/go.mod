@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi/test/integration
 
-go 1.21
+go 1.22
 
 replace k8s.io/kube-openapi => ../../
 

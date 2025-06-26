@@ -8,7 +8,7 @@ jobs:
   ci:
     strategy:
       matrix:
-        go-version: [ '1.21', '1.22', '1.23', '1.24']
+        go-version: ['1.22', '1.23', '1.24']
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -37,7 +37,7 @@ jobs:
     # in k/k.
     - name: Run verify scripts
       run: |
-        ./hack/verify-go-directive.sh 1.21
+        ./hack/verify-go-directive.sh 1.22
   required:
     # The name of the ci jobs above change based on the golang version.
     # Use this as a stable required job that depends on the above jobs.
