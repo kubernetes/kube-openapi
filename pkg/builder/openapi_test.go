@@ -59,7 +59,7 @@ type TestOutput struct {
 
 type TestExtensionV2Schema struct{}
 
-func (_ TestExtensionV2Schema) OpenAPIDefinition() *openapi.OpenAPIDefinition {
+func (_ TestExtensionV2Schema) OpenAPIDefinition() openapi.OpenAPIDefinition {
 	schema := spec.Schema{
 		VendorExtensible: spec.VendorExtensible{
 			Extensions: map[string]interface{}{
@@ -81,13 +81,13 @@ func (_ TestExtensionV2Schema) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 			},
 		},
 	}
-	return &openapi.OpenAPIDefinition{
+	return openapi.OpenAPIDefinition{
 		Schema:       schema,
 		Dependencies: []string{},
 	}
 }
 
-func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
+func (_ TestInput) OpenAPIDefinition() openapi.OpenAPIDefinition {
 	schema := spec.Schema{}
 	schema.Description = "Test input"
 	schema.Properties = map[string]spec.Schema{
@@ -121,13 +121,13 @@ func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 		},
 	}
 	schema.Extensions = spec.Extensions{"x-test": "test"}
-	return &openapi.OpenAPIDefinition{
+	return openapi.OpenAPIDefinition{
 		Schema:       schema,
 		Dependencies: []string{},
 	}
 }
 
-func (_ TestOutput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
+func (_ TestOutput) OpenAPIDefinition() openapi.OpenAPIDefinition {
 	schema := spec.Schema{}
 	schema.Description = "Test output"
 	schema.Properties = map[string]spec.Schema{
@@ -146,7 +146,7 @@ func (_ TestOutput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 			},
 		},
 	}
-	return &openapi.OpenAPIDefinition{
+	return openapi.OpenAPIDefinition{
 		Schema:       schema,
 		Dependencies: []string{},
 	}
@@ -214,9 +214,9 @@ func getConfig(fullMethods bool) (*openapi.Config, *restful.Container) {
 		},
 		GetDefinitions: func(_ openapi.ReferenceCallback) map[string]openapi.OpenAPIDefinition {
 			return map[string]openapi.OpenAPIDefinition{
-				"k8s.io/kube-openapi/pkg/builder.TestInput":             *TestInput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder.TestOutput":            *TestOutput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder.TestExtensionV2Schema": *TestExtensionV2Schema{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder.TestInput":             TestInput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder.TestOutput":            TestOutput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder.TestExtensionV2Schema": TestExtensionV2Schema{}.OpenAPIDefinition(),
 			}
 		},
 		GetDefinitionName: func(name string) (string, spec.Extensions) {

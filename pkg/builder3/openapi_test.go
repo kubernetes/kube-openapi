@@ -58,7 +58,7 @@ type TestOutput struct {
 	Count int `json:"count,omitempty"`
 }
 
-func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
+func (_ TestInput) OpenAPIDefinition() openapi.OpenAPIDefinition {
 	schema := spec.Schema{}
 	schema.Description = "Test input"
 	schema.Properties = map[string]spec.Schema{
@@ -118,10 +118,10 @@ func (_ TestInput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 	}, openapi.OpenAPIDefinition{
 		// this empty embedded v2 definition should not appear in the result
 	})
-	return &def
+	return def
 }
 
-func (_ TestOutput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
+func (_ TestOutput) OpenAPIDefinition() openapi.OpenAPIDefinition {
 	schema := spec.Schema{}
 	schema.Description = "Test output"
 	schema.Properties = map[string]spec.Schema{
@@ -140,7 +140,7 @@ func (_ TestOutput) OpenAPIDefinition() *openapi.OpenAPIDefinition {
 			},
 		},
 	}
-	return &openapi.OpenAPIDefinition{
+	return openapi.OpenAPIDefinition{
 		Schema:       schema,
 		Dependencies: []string{},
 	}
@@ -203,8 +203,8 @@ func getConfig(fullMethods bool) (*openapi.OpenAPIV3Config, *restful.Container) 
 		},
 		GetDefinitions: func(_ openapi.ReferenceCallback) map[string]openapi.OpenAPIDefinition {
 			return map[string]openapi.OpenAPIDefinition{
-				"k8s.io/kube-openapi/pkg/builder3.TestInput":  *TestInput{}.OpenAPIDefinition(),
-				"k8s.io/kube-openapi/pkg/builder3.TestOutput": *TestOutput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder3.TestInput":  TestInput{}.OpenAPIDefinition(),
+				"k8s.io/kube-openapi/pkg/builder3.TestOutput": TestOutput{}.OpenAPIDefinition(),
 			}
 		},
 		GetDefinitionName: func(name string) (string, spec.Extensions) {
