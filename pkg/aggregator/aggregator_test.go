@@ -45,7 +45,9 @@ func (d DebugSpec) String() string {
 }
 func TestFilterSpecs(t *testing.T) {
 	var spec1, spec1_filtered *spec.Swagger
-	yaml.Unmarshal([]byte(`
+	ast := assert.New(t)
+
+	err := yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -65,6 +67,11 @@ paths:
         405:
           description: "Invalid input"
           $ref: "#/definitions/InvalidInput"
+    delete:
+      summary: "Test API Delete"
+      operationId: "deleteTest"
+      parameters:
+      - $ref: "#/parameters/body-deleteoptions"
   /othertest:
     post:
       tags:
@@ -82,6 +89,12 @@ paths:
         required: true
         schema:
           $ref: "#/definitions/Test2"
+    delete:
+      summary: "Test2 API Delete"
+      operationId: "deleteTest2"
+      parameters:
+      - schema:
+          $ref: "#/definitions/DeleteOptions"
 definitions:
   Test:
     type: "object"
@@ -102,9 +115,24 @@ definitions:
         $ref: "#/definitions/Other"
   Other:
     type: "string"
+  DeleteOptions:
+    type: "object"
+    properties:
+      preconditions:
+        $ref: "#/definitions/Preconditions"
+  Preconditions:
+    type: "string"
+parameters:
+  body-deleteoptions:
+    name: body
+    in: body
+    schema:
+      $ref: "#/definitions/DeleteOptions"
 `), &spec1)
 
-	yaml.Unmarshal([]byte(`
+	ast.NoError(err)
+
+	err = yaml.Unmarshal([]byte(`
 swagger: "2.0"
 paths:
   /test:
@@ -124,6 +152,11 @@ paths:
         405:
           description: "Invalid input"
           $ref: "#/definitions/InvalidInput"
+    delete:
+      summary: "Test API Delete"
+      operationId: "deleteTest"
+      parameters:
+      - $ref: "#/parameters/body-deleteoptions"
 definitions:
   Test:
     type: "object"
@@ -137,9 +170,22 @@ definitions:
   InvalidInput:
     type: "string"
     format: "string"
+  DeleteOptions:
+    type: "object"
+    properties:
+      preconditions:
+        $ref: "#/definitions/Preconditions"
+  Preconditions:
+    type: "string"
+parameters:
+  body-deleteoptions:
+    name: body
+    in: body
+    schema:
+      $ref: "#/definitions/DeleteOptions"
 `), &spec1_filtered)
+	ast.NoError(err)
 
-	ast := assert.New(t)
 	orig_spec1, _ := cloneSpec(spec1)
 	new_spec1 := FilterSpecByPathsWithoutSideEffects(spec1, []string{"/test"})
 	ast.Equal(DebugSpec{spec1_filtered}, DebugSpec{new_spec1})
