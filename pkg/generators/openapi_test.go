@@ -68,11 +68,11 @@ func testOpenAPITypeWriter(t *testing.T, cfg *packages.Config) (error, error, *b
 
 	callBuffer := &bytes.Buffer{}
 	callSW := generator.NewSnippetWriter(callBuffer, context, "$", "$")
-	callError := newOpenAPITypeWriter(callSW, context).generateCall(blahT)
+	callError := newOpenAPITypeWriter(callSW, context, false).generateCall(blahT)
 
 	funcBuffer := &bytes.Buffer{}
 	funcSW := generator.NewSnippetWriter(funcBuffer, context, "$", "$")
-	funcError := newOpenAPITypeWriter(funcSW, context).generate(blahT)
+	funcError := newOpenAPITypeWriter(funcSW, context, false).generate(blahT)
 
 	return callError, funcError, callBuffer, funcBuffer, imports.ImportLines()
 }
