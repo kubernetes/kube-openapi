@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi
 
-go 1.22
+go 1.23
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
@@ -24,7 +24,7 @@ require (
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
 	sigs.k8s.io/randfill v1.0.0
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0
+	sigs.k8s.io/structured-merge-diff/v6 v6.1.1-0.20250627211631-630be75af37c
 	sigs.k8s.io/yaml v1.4.0
 )
 
