@@ -81,6 +81,8 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 		return stringType, stringFormatUUID4
 	case strfmt.UUID5, *strfmt.UUID5:
 		return stringType, stringFormatUUID5
+	case strfmt.Quantity, *strfmt.Quantity:
+		return stringType, stringFormatQuantity
 	// TODO: missing binary (io.ReadCloser)
 	// TODO: missing json.Number
 	default:
