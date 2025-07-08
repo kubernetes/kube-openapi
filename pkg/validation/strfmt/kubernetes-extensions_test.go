@@ -75,3 +75,35 @@ func TestFormatLongName(t *testing.T) {
 	v := LongName("a")
 	testStringFormatWithRegistry(t, Default, &v, "k8s-long-name", "a", goodLongName, append(badLongName, prefixOnlyLongName...))
 }
+
+var badIPSloppy = []string{
+	"",                 // empty string
+	"aaaaaaa",          // junk
+	"myhost.mydomain",  // domain name
+	"1.2.3.0/24",       // cidr
+	"1.2.3.400",        // ipv4 with out-of-range octets
+	"-1.0.0.0",         // ipv4 with negative octets
+	"2001:db8::10005",  // ipv6 with out-of-range segment
+	"1.2.3.4:80",       // ipv4:port
+	"[2001:db8::1]",    // ipv6 with brackets
+	"[2001:db8::1]:80", // [ipv6]:port
+	"example.com:80",   // host:port
+	"1234::abcd%eth0",  // ipv6 with zone
+	"169.254.0.0%eth0", // ipv4 with zone
+}
+var goodIPSloppy = []string{
+	// standard values
+	"1.2.3.4", "255.255.255.255", "1234::abcd", "::", "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+	// Good, though non-canonical, values
+	"0:0:0:0:0:0:0:0", // ipv6, all zeros, expanded
+	"0001:002:03:4::", // ipv6, leading 0s
+	"1234::ABCD",      // ipv6, capital letters
+	// Questionable values that works in k8s
+	"1.1.1.01",       // ipv4 with leading 0s
+	"::ffff:1.1.1.1", // ipv4-in-ipv6 value
+}
+
+func TestFormatIPSloppy(t *testing.T) {
+	v := IPSloppy("1.2.3.4")
+	testStringFormatWithRegistry(t, Default, &v, "k8s-ip-sloppy", "1.2.3.4", goodIPSloppy, badIPSloppy)
+}

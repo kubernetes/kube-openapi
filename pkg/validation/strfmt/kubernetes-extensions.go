@@ -17,6 +17,8 @@ package strfmt
 import (
 	"encoding/json"
 	"regexp"
+
+	netutils "k8s.io/utils/net"
 )
 
 const k8sPrefix = "k8s-"
@@ -30,6 +32,9 @@ func init() {
 
 	longName := LongName("")
 	Default.Add(k8sPrefix+"long-name", &longName, IsLongName)
+
+	IPSloppy := IPSloppy("")
+	Default.Add(k8sPrefix+"ip-sloppy", &IPSloppy, IsIPSloppy)
 }
 
 // ShortName is a name, up to 63 characters long, composed of alphanumeric
@@ -140,4 +145,69 @@ var longNameRegexp = regexp.MustCompile("^" + longNameFmt + "$")
 func IsLongName(value string) bool {
 	return len(value) <= LongNameMaxLength &&
 		longNameRegexp.MatchString(value)
+}
+
+// IPSloppy is a string that can be a valid IPv4 or IPv6 address.
+// It is named "sloppy" because it is slightly more tolerant than a standard
+// IP address representation.
+//
+// It is based on `k8s.io/utils/net.ParseIPSloppy`, which is identical to
+// Go's standard `net.ParseIP` before Go 1.17. This means it allows for
+// leading zeros in IPv4 octets, which is not standard but is kept for
+// compatibility with potentially stored values in Kubernetes.
+//
+// Valid values include:
+//   - Standard IPv4 addresses (e.g., "1.2.3.4")
+//   - Standard IPv6 addresses (e.g., "1234::abcd", "::")
+//   - IPv4-mapped IPv6 addresses (e.g., "::ffff:1.1.1.1")
+//
+// It also accepts non-canonical forms such as:
+//   - IPv4 addresses with leading zeros (e.g., "1.1.1.01")
+//   - IPv6 addresses with leading zeros in segments (e.g., "0001:002:03:4::")
+//   - IPv6 addresses with uppercase letters (e.g., "1234::ABCD")
+//
+// The following are considered invalid:
+//   - Empty string("")
+//   - Hostnames ("myhost.mydomain")
+//   - CIDR notation ("1.2.3.0/24")
+//   - IP addresses with a port (e.g., "1.2.3.4:80", "[2001:db8::1]:80")
+//   - IP addresses with a zone index (e.g., "1234::abcd%eth0")
+//
+// xref: https://github.com/kubernetes/kubernetes/issues/100895
+//
+// swagger:strfmt k8s-ip-sloppy
+type IPSloppy string
+
+func (r IPSloppy) MarshalText() ([]byte, error) {
+	return []byte(string(r)), nil
+}
+
+func (r *IPSloppy) UnmarshalText(data []byte) error { // validation is performed later on
+	*r = IPSloppy(data)
+	return nil
+}
+
+func (r IPSloppy) String() string {
+	return string(r)
+}
+
+func (r IPSloppy) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(r))
+}
+
+func (r *IPSloppy) UnmarshalJSON(data []byte) error {
+	return unmarshalJSON(r, data)
+}
+
+func (r *IPSloppy) DeepCopyInto(out *IPSloppy) {
+	*out = *r
+}
+
+func (r *IPSloppy) DeepCopy() *IPSloppy {
+	return deepCopy(r)
+}
+
+func IsIPSloppy(value string) bool {
+	ip := netutils.ParseIPSloppy(value)
+	return ip != nil
 }
