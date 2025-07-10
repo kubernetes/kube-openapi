@@ -62,15 +62,22 @@ func FilterSpecByPathsWithoutSideEffects(sp *spec.Swagger, keepPathPrefixes []st
 	// it is unused because of a path prune.
 	initialUsedDefinitions := usedDefinitionForSpec(sp)
 
+	// Ensure prefixes ends with a "/", so that "/v1beta1" won't be treated as
+	// having the prefix "/v1" for example.
+	var normalizedPrefixes []string
+	for _, p := range keepPathPrefixes {
+		normalizedPrefixes = append(normalizedPrefixes, ensureTailingSlash(p))
+	}
+
 	// First remove unwanted paths
-	prefixes := util.NewTrie(keepPathPrefixes)
+	prefixes := util.NewTrie(normalizedPrefixes)
 	ret := *sp
 	ret.Paths = &spec.Paths{
 		VendorExtensible: sp.Paths.VendorExtensible,
 		Paths:            map[string]spec.PathItem{},
 	}
 	for path, pathItem := range sp.Paths.Paths {
-		if !prefixes.HasPrefix(path) {
+		if !prefixes.HasPrefix(ensureTailingSlash(path)) {
 			continue
 		}
 		ret.Paths.Paths[path] = pathItem
@@ -88,6 +95,13 @@ func FilterSpecByPathsWithoutSideEffects(sp *spec.Swagger, keepPathPrefixes []st
 	}
 
 	return &ret
+}
+
+func ensureTailingSlash(path string) string {
+	if strings.HasSuffix(path, "/") {
+		return path
+	}
+	return path + "/"
 }
 
 // renameDefinitions renames definition references, without mutating the input.
