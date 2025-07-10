@@ -66,6 +66,7 @@ const (
 	stringFormatUUID3      = "uuid3"
 	stringFormatUUID4      = "uuid4"
 	stringFormatUUID5      = "uuid5"
+	stringFormatQuantity   = "quantity"
 
 	integerFormatInt32  = "int32"
 	integerFormatInt64  = "int64"
