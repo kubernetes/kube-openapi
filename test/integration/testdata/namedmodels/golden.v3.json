@@ -1,0 +1,1288 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+   "title": "Integration Test",
+   "version": "1.0"
+  },
+  "paths": {
+   "/test/custom": {
+    "post": {
+     "operationId": "create-custom.Bah",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/custom.Bah"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bac": {
+    "get": {
+     "operationId": "get-custom.Bac",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/custom.Bac"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bah": {
+    "get": {
+     "operationId": "get-custom.Bah",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/custom.Bah"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bak": {
+    "get": {
+     "operationId": "get-custom.Bak",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/custom.Bak"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/custom/bal": {
+    "get": {
+     "operationId": "get-custom.Bal",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/custom.Bal"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/defaults": {
+    "post": {
+     "operationId": "create-defaults.Defaulted",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/defaults.Defaulted"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/defaults/defaulted": {
+    "get": {
+     "operationId": "get-defaults.Defaulted",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/defaults.Defaulted"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/dummytype": {
+    "post": {
+     "operationId": "create-dummytype.Waldo",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.Waldo"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/dummytype/bar": {
+    "get": {
+     "operationId": "get-dummytype.Bar",
+     "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/dummytype/baz": {
+    "get": {
+     "operationId": "get-dummytype.Baz",
+     "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/dummytype/foo": {
+    "get": {
+     "operationId": "get-dummytype.Foo",
+     "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/dummytype/waldo": {
+    "get": {
+     "operationId": "get-dummytype.Waldo",
+     "responses": {
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      },
+      "500": {
+       "description": "Internal Service Error",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/dummytype.StatusError"
+         }
+        }
+       }
+      }
+     }
+    }
+   },
+   "/test/listtype": {
+    "post": {
+     "operationId": "create-listtype.SetList",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/listtype.SetList"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/listtype/atomiclist": {
+    "get": {
+     "operationId": "get-listtype.AtomicList",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/listtype.AtomicList"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/listtype/maplist": {
+    "get": {
+     "operationId": "get-listtype.MapList",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/listtype.MapList"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/listtype/setlist": {
+    "get": {
+     "operationId": "get-listtype.SetList",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/listtype.SetList"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/maptype": {
+    "post": {
+     "operationId": "create-maptype.AtomicMap",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/maptype.AtomicMap"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/maptype/atomicmap": {
+    "get": {
+     "operationId": "get-maptype.AtomicMap",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/maptype.AtomicMap"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/maptype/granularmap": {
+    "get": {
+     "operationId": "get-maptype.GranularMap",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/maptype.GranularMap"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype": {
+    "post": {
+     "operationId": "create-structtype.DeclaredAtomicStruct",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/structtype.DeclaredAtomicStruct"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype/atomicstruct": {
+    "get": {
+     "operationId": "get-structtype.AtomicStruct",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/structtype.AtomicStruct"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype/declaredatomicstruct": {
+    "get": {
+     "operationId": "get-structtype.DeclaredAtomicStruct",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/structtype.DeclaredAtomicStruct"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype/fieldleveloverridestruct": {
+    "get": {
+     "operationId": "get-structtype.FieldLevelOverrideStruct",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/structtype.FieldLevelOverrideStruct"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/structtype/granularstruct": {
+    "get": {
+     "operationId": "get-structtype.GranularStruct",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/structtype.GranularStruct"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/uniontype": {
+    "post": {
+     "operationId": "create-uniontype.InlinedUnion",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/uniontype.InlinedUnion"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/uniontype/inlinedunion": {
+    "get": {
+     "operationId": "get-uniontype.InlinedUnion",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/uniontype.InlinedUnion"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/uniontype/toplevelunion": {
+    "get": {
+     "operationId": "get-uniontype.TopLevelUnion",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/uniontype.TopLevelUnion"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation": {
+    "post": {
+     "operationId": "create-valuevalidation.Foo",
+     "responses": {
+      "201": {
+       "description": "Created",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo2": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo2",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo2"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo3": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo3",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo3"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo4": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo4",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo4"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   },
+   "/test/valuevalidation/foo5": {
+    "get": {
+     "operationId": "get-valuevalidation.Foo5",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/valuevalidation.Foo5"
+         }
+        }
+       }
+      },
+      "404": {
+       "$ref": "#/components/responses/NotFound"
+      }
+     }
+    }
+   }
+  },
+  "components": {
+   "schemas": {
+    "custom.Bac": {
+     "type": "object"
+    },
+    "custom.Bah": {
+     "type": "object"
+    },
+    "custom.Bak": {
+     "type": "integer"
+    },
+    "custom.Bal": {
+     "type": "string"
+    },
+    "defaults.Defaulted": {
+     "type": "object",
+     "required": [
+      "OtherField",
+      "List",
+      "Sub",
+      "OtherSub",
+      "Map"
+     ],
+     "properties": {
+      "Field": {
+       "type": "string",
+       "default": "bar"
+      },
+      "List": {
+       "type": "array",
+       "default": [
+        "foo",
+        "bar"
+       ],
+       "items": {
+        "type": "string",
+        "default": ""
+       }
+      },
+      "Map": {
+       "type": "object",
+       "default": {
+        "foo": "bar"
+       },
+       "additionalProperties": {
+        "type": "string",
+        "default": ""
+       }
+      },
+      "OtherField": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "OtherSub": {
+       "default": {},
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/defaults.SubStruct"
+        }
+       ]
+      },
+      "Sub": {
+       "default": {
+        "i": 5,
+        "s": "foo"
+       },
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/defaults.SubStruct"
+        }
+       ]
+      },
+      "defaultedAliasSymbolReference": {
+       "type": "string",
+       "default": "SymbolConstant"
+      },
+      "externalSymbolReference": {
+       "type": "string",
+       "default": "apple"
+      },
+      "fullyQualifiedSymbolReference": {
+       "type": "string",
+       "default": "SymbolConstant"
+      },
+      "localSymbolReference": {
+       "type": "string",
+       "default": "SymbolConstant"
+      },
+      "pointerConversionSymbolReference": {
+       "type": "string",
+       "default": "apple"
+      }
+     }
+    },
+    "defaults.SubStruct": {
+     "type": "object",
+     "required": [
+      "S"
+     ],
+     "properties": {
+      "I": {
+       "type": "integer",
+       "format": "int32",
+       "default": 1
+      },
+      "S": {
+       "type": "string",
+       "default": ""
+      }
+     }
+    },
+    "dummytype.Bar": {
+     "type": "object",
+     "required": [
+      "ViolationBehind",
+      "Violation"
+     ],
+     "properties": {
+      "Violation": {
+       "type": "boolean",
+       "default": false
+      },
+      "ViolationBehind": {
+       "type": "boolean",
+       "default": false
+      }
+     }
+    },
+    "dummytype.Baz": {
+     "type": "object",
+     "required": [
+      "Violation",
+      "ViolationBehind"
+     ],
+     "properties": {
+      "Violation": {
+       "type": "boolean",
+       "default": false
+      },
+      "ViolationBehind": {
+       "type": "boolean",
+       "default": false
+      }
+     }
+    },
+    "dummytype.Foo": {
+     "type": "object",
+     "required": [
+      "Second",
+      "First"
+     ],
+     "properties": {
+      "First": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "Second": {
+       "type": "string",
+       "default": ""
+      }
+     }
+    },
+    "dummytype.StatusError": {
+     "type": "object",
+     "required": [
+      "Code",
+      "Message"
+     ],
+     "properties": {
+      "Code": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "Message": {
+       "type": "string",
+       "default": ""
+      }
+     }
+    },
+    "dummytype.Waldo": {
+     "type": "object",
+     "required": [
+      "First",
+      "Second"
+     ],
+     "properties": {
+      "First": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "Second": {
+       "type": "string",
+       "default": ""
+      }
+     }
+    },
+    "listtype.AtomicList": {
+     "type": "object",
+     "required": [
+      "Field"
+     ],
+     "properties": {
+      "Field": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "default": ""
+       },
+       "x-kubernetes-list-type": "atomic"
+      }
+     }
+    },
+    "listtype.Item": {
+     "type": "object",
+     "required": [
+      "Protocol",
+      "Port"
+     ],
+     "properties": {
+      "Port": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "Protocol": {
+       "type": "string",
+       "default": ""
+      },
+      "a": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      },
+      "b": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "c": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      }
+     }
+    },
+    "listtype.MapList": {
+     "type": "object",
+     "required": [
+      "Field"
+     ],
+     "properties": {
+      "Field": {
+       "type": "array",
+       "items": {
+        "default": {},
+        "allOf": [
+         {
+          "$ref": "#/components/schemas/listtype.Item"
+         }
+        ]
+       },
+       "x-kubernetes-list-map-keys": [
+        "port"
+       ],
+       "x-kubernetes-list-type": "map"
+      }
+     }
+    },
+    "listtype.SetList": {
+     "type": "object",
+     "required": [
+      "Field"
+     ],
+     "properties": {
+      "Field": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "default": ""
+       },
+       "x-kubernetes-list-type": "set"
+      }
+     }
+    },
+    "maptype.AtomicMap": {
+     "type": "object",
+     "required": [
+      "KeyValue"
+     ],
+     "properties": {
+      "KeyValue": {
+       "type": "object",
+       "additionalProperties": {
+        "type": "string",
+        "default": ""
+       },
+       "x-kubernetes-map-type": "atomic"
+      }
+     }
+    },
+    "maptype.GranularMap": {
+     "type": "object",
+     "required": [
+      "KeyValue"
+     ],
+     "properties": {
+      "KeyValue": {
+       "type": "object",
+       "additionalProperties": {
+        "type": "string",
+        "default": ""
+       },
+       "x-kubernetes-map-type": "granular"
+      }
+     }
+    },
+    "structtype.AtomicStruct": {
+     "type": "object",
+     "required": [
+      "Field",
+      "OtherField"
+     ],
+     "properties": {
+      "Field": {
+       "default": {},
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/structtype.ContainedStruct"
+        }
+       ],
+       "x-kubernetes-map-type": "atomic"
+      },
+      "OtherField": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      }
+     }
+    },
+    "structtype.ContainedStruct": {
+     "type": "object"
+    },
+    "structtype.DeclaredAtomicStruct": {
+     "type": "object",
+     "required": [
+      "Field"
+     ],
+     "properties": {
+      "Field": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      }
+     },
+     "x-kubernetes-map-type": "atomic"
+    },
+    "structtype.FieldLevelOverrideStruct": {
+     "type": "object",
+     "required": [
+      "Field",
+      "OtherField"
+     ],
+     "properties": {
+      "Field": {
+       "default": {},
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/structtype.DeclaredAtomicStruct"
+        }
+       ],
+       "x-kubernetes-map-type": "atomic"
+      },
+      "OtherField": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      }
+     }
+    },
+    "structtype.GranularStruct": {
+     "type": "object",
+     "required": [
+      "Field",
+      "OtherField"
+     ],
+     "properties": {
+      "Field": {
+       "default": {},
+       "allOf": [
+        {
+         "$ref": "#/components/schemas/structtype.ContainedStruct"
+        }
+       ],
+       "x-kubernetes-map-type": "granular"
+      },
+      "OtherField": {
+       "type": "integer",
+       "format": "int32",
+       "default": 0
+      }
+     }
+    },
+    "uniontype.InlinedUnion": {
+     "type": "object",
+     "required": [
+      "name",
+      "type"
+     ],
+     "properties": {
+      "alpha": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "beta": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "field1": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "field2": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "fieldA": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "fieldB": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "name": {
+       "type": "string",
+       "default": ""
+      },
+      "type": {
+       "type": "string",
+       "default": ""
+      },
+      "unionType": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "x-kubernetes-unions": [
+      {
+       "discriminator": "unionType",
+       "fields-to-discriminateBy": {
+        "fieldA": "FieldA",
+        "fieldB": "FieldB"
+       }
+      },
+      {
+       "discriminator": "type",
+       "fields-to-discriminateBy": {
+        "alpha": "Alpha",
+        "beta": "Beta"
+       }
+      },
+      {
+       "fields-to-discriminateBy": {
+        "field1": "Field1",
+        "field2": "Field2"
+       }
+      }
+     ]
+    },
+    "uniontype.TopLevelUnion": {
+     "type": "object",
+     "required": [
+      "name"
+     ],
+     "properties": {
+      "fieldA": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "fieldB": {
+       "type": "integer",
+       "format": "int32"
+      },
+      "name": {
+       "type": "string",
+       "default": ""
+      },
+      "unionType": {
+       "type": "string",
+       "default": ""
+      }
+     },
+     "x-kubernetes-unions": [
+      {
+       "discriminator": "unionType",
+       "fields-to-discriminateBy": {
+        "fieldA": "FieldA",
+        "fieldB": "FieldB"
+       }
+      }
+     ]
+    },
+    "valuevalidation.Foo": {
+     "type": "object",
+     "maxProperties": 5,
+     "minProperties": 1,
+     "required": [
+      "StringValue",
+      "NumberValue",
+      "ArrayValue",
+      "MapValue"
+     ],
+     "properties": {
+      "ArrayValue": {
+       "type": "array",
+       "maxItems": 5,
+       "minItems": 1,
+       "uniqueItems": true,
+       "items": {
+        "type": "string",
+        "default": ""
+       }
+      },
+      "MapValue": {
+       "type": "object",
+       "maxProperties": 5,
+       "minProperties": 1,
+       "additionalProperties": {
+        "type": "string",
+        "default": ""
+       }
+      },
+      "NumberValue": {
+       "type": "number",
+       "format": "double",
+       "default": 0,
+       "maximum": 5,
+       "exclusiveMaximum": true,
+       "minimum": 1,
+       "exclusiveMinimum": true,
+       "multipleOf": 2
+      },
+      "StringValue": {
+       "type": "string",
+       "default": "",
+       "maxLength": 5,
+       "minLength": 1,
+       "pattern": "^a.*b$"
+      },
+      "celField": {
+       "type": "string",
+       "default": "",
+       "x-kubernetes-validations": [
+        {
+         "message": "string message",
+         "rule": "self.length() \u003e 0"
+        },
+        {
+         "messageExpression": "self + ' hello'",
+         "rule": "self.length() % 2 == 0"
+        }
+       ]
+      }
+     },
+     "x-kubernetes-validations": [
+      {
+       "message": "foo",
+       "rule": "self == oldSelf"
+      }
+     ]
+    },
+    "valuevalidation.Foo2": {
+     "type": "object"
+    },
+    "valuevalidation.Foo3": {
+     "description": "This one has a OneOf",
+     "format": "string",
+     "maxProperties": 5,
+     "oneOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "string"
+      }
+     ],
+     "x-kubernetes-validations": [
+      {
+       "message": "foo3",
+       "rule": "self == oldSelf"
+      }
+     ]
+    },
+    "valuevalidation.Foo4": {
+     "type": "integer"
+    },
+    "valuevalidation.Foo5": {
+     "type": "object"
+    }
+   },
+   "responses": {
+    "NotFound": {
+     "description": "Entity not found."
+    }
+   }
+  }
+ }
