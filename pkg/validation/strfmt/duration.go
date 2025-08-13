@@ -52,7 +52,7 @@ var (
 		"w":  7 * 24 * time.Hour,
 	}
 
-	durationMatcher = regexp.MustCompile(`((\d+)\s*([A-Za-zµ]+))`)
+	durationMatcher = regexp.MustCompile(`(((?:-\s?)?\d+)\s*([A-Za-zµ]+))`)
 )
 
 // IsDuration returns true if the provided string is a valid duration
@@ -94,9 +94,17 @@ func ParseDuration(cand string) (time.Duration, error) {
 	ok := false
 	for _, match := range durationMatcher.FindAllStringSubmatch(cand, -1) {
 
-		factor, err := strconv.Atoi(match[2]) // converts string to int
+		// remove possible leading - and spaces
+		value, negative := strings.CutPrefix(match[2], "-")
+
+		// if the string is a valid duration, parse it
+		factor, err := strconv.Atoi(strings.TrimSpace(value)) // converts string to int
 		if err != nil {
 			return 0, err
+		}
+
+		if negative {
+			factor = -factor
 		}
 		unit := strings.ToLower(strings.TrimSpace(match[3]))
 
