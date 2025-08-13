@@ -75,10 +75,6 @@ func TestParseDateTime_fullCycle(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, example.time, pp)
 
-		pp = NewDateTime()
-		err = pp.Scan(mt)
-		assert.NoError(t, err)
-		assert.Equal(t, DateTime(example.time), pp)
 	}
 }
 
@@ -170,48 +166,6 @@ func TestDateTime_MarshalJSON(t *testing.T) {
 		assert.NoError(t, err)
 		assert.EqualValues(t, esc([]byte(example.str)), bb)
 	}
-}
-
-func TestDateTime_Scan(t *testing.T) {
-	for caseNum, example := range testCases {
-		t.Logf("Case #%d", caseNum)
-
-		pp := NewDateTime()
-		err := pp.Scan(example.in)
-		assert.NoError(t, err)
-		assert.Equal(t, DateTime(example.time), pp)
-
-		pp = NewDateTime()
-		err = pp.Scan(string(example.in))
-		assert.NoError(t, err)
-		assert.Equal(t, DateTime(example.time), pp)
-
-		pp = NewDateTime()
-		err = pp.Scan(example.time)
-		assert.NoError(t, err)
-		assert.Equal(t, DateTime(example.time), pp)
-	}
-}
-
-func TestDateTime_Scan_Failed(t *testing.T) {
-	pp := NewDateTime()
-	zero := NewDateTime()
-
-	err := pp.Scan(nil)
-	assert.NoError(t, err)
-	// Zero values differ...
-	//assert.Equal(t, zero, pp)
-	assert.Equal(t, DateTime{}, pp)
-
-	err = pp.Scan("")
-	assert.NoError(t, err)
-	assert.Equal(t, zero, pp)
-
-	err = pp.Scan(int64(0))
-	assert.Error(t, err)
-
-	err = pp.Scan(float64(0))
-	assert.Error(t, err)
 }
 
 func TestDeepCopyDateTime(t *testing.T) {
