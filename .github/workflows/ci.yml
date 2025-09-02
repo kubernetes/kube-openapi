@@ -37,7 +37,7 @@ jobs:
     # in k/k.
     - name: Run verify scripts
       run: |
-        ./hack/verify-go-directive.sh 1.23
+        ./hack/verify-go-directive.sh 1.23.0
   required:
     # The name of the ci jobs above change based on the golang version.
     # Use this as a stable required job that depends on the above jobs.

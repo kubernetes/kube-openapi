@@ -1,6 +1,6 @@
 module k8s.io/kube-openapi
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
@@ -17,7 +17,8 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.yaml.in/yaml/v2 v2.4.2
 	go.yaml.in/yaml/v3 v3.0.3
-	golang.org/x/tools v0.24.0
+	golang.org/x/tools v0.36.0
+	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	google.golang.org/protobuf v1.35.1
 	k8s.io/gengo/v2 v2.0.0-20250604051438-85fd79dbfd9f
 	k8s.io/klog/v2 v2.130.1
@@ -41,10 +42,11 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
-	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.23.0 // indirect
-	golang.org/x/text v0.17.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/tools/go/expect v0.1.0-deprecated // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
