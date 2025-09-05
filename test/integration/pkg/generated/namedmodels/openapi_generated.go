@@ -24,14 +24,14 @@ package namedmodels
 import (
 	common "k8s.io/kube-openapi/pkg/common"
 	spec "k8s.io/kube-openapi/pkg/validation/spec"
-	namedmodels "k8s.io/kube-openapi/test/integration/testdata/namedmodels"
+	testdatanamedmodels "k8s.io/kube-openapi/test/integration/testdata/namedmodels"
 )
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		namedmodels.AtomicStruct{}.OpenAPIModelName():    schema_test_integration_testdata_namedmodels_AtomicStruct(ref),
-		namedmodels.ContainedStruct{}.OpenAPIModelName(): schema_test_integration_testdata_namedmodels_ContainedStruct(ref),
-		namedmodels.Struct{}.OpenAPIModelName():          schema_test_integration_testdata_namedmodels_Struct(ref),
+		testdatanamedmodels.AtomicStruct{}.OpenAPIModelName():    schema_test_integration_testdata_namedmodels_AtomicStruct(ref),
+		testdatanamedmodels.ContainedStruct{}.OpenAPIModelName(): schema_test_integration_testdata_namedmodels_ContainedStruct(ref),
+		testdatanamedmodels.Struct{}.OpenAPIModelName():          schema_test_integration_testdata_namedmodels_Struct(ref),
 	}
 }
 
@@ -74,7 +74,7 @@ func schema_test_integration_testdata_namedmodels_Struct(ref common.ReferenceCal
 					"Field": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref(namedmodels.ContainedStruct{}.OpenAPIModelName()),
+							Ref:     ref(testdatanamedmodels.ContainedStruct{}.OpenAPIModelName()),
 						},
 					},
 					"OtherField": {
@@ -89,6 +89,6 @@ func schema_test_integration_testdata_namedmodels_Struct(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			namedmodels.ContainedStruct{}.OpenAPIModelName()},
+			testdatanamedmodels.ContainedStruct{}.OpenAPIModelName()},
 	}
 }
