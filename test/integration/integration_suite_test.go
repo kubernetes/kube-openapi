@@ -104,6 +104,23 @@ var _ = BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
 
+	// Run the OpenAPI code generator with --use-openapi-model-names
+	Expect(terr).ShouldNot(HaveOccurred())
+
+	By("'namedmodels' running openapi-gen")
+	args = append([]string{
+		"--output-dir", tempDir + "/namedmodels",
+		"--output-pkg", outputPkg + "/namedmodels",
+		"--output-file", generatedCodeFileName,
+		"--use-openapi-model-names",
+		"--go-header-file", headerFilePath,
+	}, path.Join(testPkgRoot, "namedmodels"))
+	command = exec.Command(openAPIGenPath, args...)
+	command.Dir = workingDirectory
+	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+
 	By("writing swagger v2.0")
 	// Create the OpenAPI swagger builder.
 	binaryPath, berr = gexec.Build("./builder/main.go")
@@ -131,6 +148,20 @@ var _ = BeforeSuite(func() {
 	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
 	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+
+	By("'namedmodels' writing OpenAPI v3.0")
+	// Create the OpenAPI swagger builder.
+	binaryPath, berr = gexec.Build("./builder3/main.go")
+	Expect(berr).ShouldNot(HaveOccurred())
+
+	// Execute the builder, generating an OpenAPI swagger file with definitions.
+	gov3 = generatedFile("namedmodels/" + generatedOpenAPIv3FileName)
+	By("'namedmodels'  writing swagger to " + gov3)
+	command = exec.Command(binaryPath, gov3)
+	command.Dir = workingDirectory
+	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
+	Expect(err).ShouldNot(HaveOccurred())
+	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
 })
 
 var _ = AfterSuite(func() {
@@ -146,6 +177,18 @@ var _ = Describe("Open API Definitions Generation", func() {
 				"diff", "-u",
 				goldenCodeFilePath,
 				generatedFile(generatedCodeFileName),
+			)
+			command.Dir = workingDirectory
+			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
+			Expect(err).ShouldNot(HaveOccurred())
+			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+		})
+		It("'namedmodels' Generated code should match golden files", func() {
+			// Diff the generated code against the golden code. Exit code should be zero.
+			command := exec.Command(
+				"diff", "-u",
+				"pkg/generated/namedmodels/"+generatedCodeFileName,
+				generatedFile("namedmodels/"+generatedCodeFileName),
 			)
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
