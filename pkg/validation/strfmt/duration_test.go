@@ -141,7 +141,13 @@ func TestDurationParser(t *testing.T) {
 	}
 
 	for str, dur := range testcases {
-		testDurationParser(t, str, dur)
+		t.Run(str, func(t *testing.T) {
+			testDurationParser(t, str, dur)
+
+			// negative duration
+			testDurationParser(t, "-"+str, -dur)
+			testDurationParser(t, "- "+str, -dur)
+		})
 	}
 }
 func TestIsDuration_Caveats(t *testing.T) {
