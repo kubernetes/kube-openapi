@@ -957,6 +957,14 @@ func (g openAPITypeWriter) generateProperty(m *types.Member, parent *types.Type)
 	if name == "" {
 		return nil
 	}
+	if listType, err := getSingleTagsValue(m.CommentLines, "listType"); err != nil {
+		return err
+	} else if listType != "" {
+		t := resolveAliasAndPtrType(m.Type)
+		if t.Kind != types.Slice && t.Kind != types.Array {
+			return fmt.Errorf("listType marker may only be used on slice or array fields, but was used on %v", m.Name)
+		}
+	}
 	validationSchema, err := ParseCommentTags(m.Type, m.CommentLines, markerPrefix)
 	if err != nil {
 		return err
