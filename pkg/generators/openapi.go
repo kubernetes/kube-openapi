@@ -427,7 +427,13 @@ func (g openAPITypeWriter) generateSchema(s *spec.Schema) error {
 			}
 			sort.Strings(keys)
 
+			// Use a map to keep track of processed keys to avoid duplicates
+			processedKeys := make(map[string]bool)
 			for _, k := range keys {
+				if processedKeys[k] {
+					continue
+				}
+				processedKeys[k] = true
 				v := s.Properties[k]
 				g.Do("$.$: {\n", fmt.Sprintf("%#v", k))
 				err := g.generateSchema(&v)
