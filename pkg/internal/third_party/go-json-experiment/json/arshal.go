@@ -479,6 +479,16 @@ func (uo UnmarshalOptions) UnmarshalNext(in *Decoder, out any) error {
 // construction site to ensure that this property is upheld.
 type addressableValue struct{ reflect.Value }
 
+// Method, MethodByName, and Methods shadow the corresponding reflect.Value
+// methods to prevent them from carrying the linker's <ReflectMethod> flag into
+// production binaries. That flag forces the linker to retain all exported
+// methods of every reachable type, bloating binary size. This library never
+// performs dynamic method dispatch on addressableValue, so these shadows are
+// safe no-ops.
+func (v addressableValue) Method(i int) reflect.Value             { panic("addressableValue.Method not supported") }
+func (v addressableValue) MethodByName(name string) reflect.Value { panic("addressableValue.MethodByName not supported") }
+func (v addressableValue) Methods()                               {}
+
 // newAddressableValue constructs a new addressable value of type t.
 func newAddressableValue(t reflect.Type) addressableValue {
 	return addressableValue{reflect.New(t).Elem()}
