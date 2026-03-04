@@ -485,9 +485,11 @@ type addressableValue struct{ reflect.Value }
 // methods of every reachable type, bloating binary size. This library never
 // performs dynamic method dispatch on addressableValue, so these shadows are
 // safe no-ops.
-func (v addressableValue) Method(i int) reflect.Value             { panic("addressableValue.Method not supported") }
-func (v addressableValue) MethodByName(name string) reflect.Value { panic("addressableValue.MethodByName not supported") }
-func (v addressableValue) Methods()                               {}
+func (v addressableValue) Method(i int) reflect.Value { panic("addressableValue.Method not supported") }
+func (v addressableValue) MethodByName(name string) reflect.Value {
+	panic("addressableValue.MethodByName not supported")
+}
+func (v addressableValue) Methods() {}
 
 // newAddressableValue constructs a new addressable value of type t.
 func newAddressableValue(t reflect.Type) addressableValue {
