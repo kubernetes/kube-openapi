@@ -19,17 +19,17 @@ package validation_test
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
+	"testing"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"sigs.k8s.io/yaml"
 
 	"k8s.io/kube-openapi/pkg/util/proto"
-	"k8s.io/kube-openapi/pkg/util/proto/testing"
+	prototesting "k8s.io/kube-openapi/pkg/util/proto/testing"
 	"k8s.io/kube-openapi/pkg/util/proto/validation"
 )
 
-var fakeSchema = testing.Fake{Path: filepath.Join("..", "testdata", "swagger.json")}
+var fakeSchema = prototesting.Fake{Path: filepath.Join("..", "testdata", "swagger.json")}
 
 func Validate(models proto.Models, model string, data string) []error {
 	var obj interface{}
@@ -50,16 +50,22 @@ func ValidateObj(models proto.Models, model string, obj interface{}) []error {
 	return validation.ValidateModel(obj, schema, model)
 }
 
-var _ = Describe("resource validation using OpenAPI Schema", func() {
-	var models proto.Models
-	BeforeEach(func() {
-		s, err := fakeSchema.OpenAPISchema()
-		Expect(err).To(BeNil())
-		models, err = proto.NewOpenAPIData(s)
-		Expect(err).To(BeNil())
-	})
+func loadModels(t *testing.T) proto.Models {
+	t.Helper()
+	s, err := fakeSchema.OpenAPISchema()
+	if err != nil {
+		t.Fatalf("failed to open schema: %v", err)
+	}
+	models, err := proto.NewOpenAPIData(s)
+	if err != nil {
+		t.Fatalf("failed to create OpenAPI data: %v", err)
+	}
+	return models
+}
 
-	It("finds Deployment in Schema and validates it", func() {
+func TestResourceValidation(t *testing.T) {
+	t.Run("finds Deployment in Schema and validates it", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.apps.v1beta1.Deployment", `
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -78,10 +84,13 @@ spec:
       - image: redis
         name: redis
 `)
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
 
-	It("validates a valid pod", func() {
+	t.Run("validates a valid pod", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 apiVersion: v1
 kind: Pod
@@ -100,10 +109,13 @@ spec:
     image: gcr.io/fake_project/fake_image:fake_tag
     name: master
 `)
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
 
-	It("finds invalid command (string instead of []string) in Json Pod", func() {
+	t.Run("finds invalid command (string instead of []string) in Json Pod", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 {
   "kind": "Pod",
@@ -125,7 +137,7 @@ spec:
   }
 }
 `)
-		Expect(err).To(Equal([]error{
+		want := []error{
 			validation.ValidationError{
 				Path: "io.k8s.api.core.v1.Pod.spec.containers[0].args",
 				Err: validation.InvalidTypeError{
@@ -134,10 +146,14 @@ spec:
 					Actual:   "string",
 				},
 			},
-		}))
+		}
+		if !reflect.DeepEqual(err, want) {
+			t.Errorf("err = %v, want %v", err, want)
+		}
 	})
 
-	It("fails because hostPort is string instead of int", func() {
+	t.Run("fails because hostPort is string instead of int", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 {
   "kind": "Pod",
@@ -175,8 +191,7 @@ spec:
   }
 }
 `)
-
-		Expect(err).To(Equal([]error{
+		want := []error{
 			validation.ValidationError{
 				Path: "io.k8s.api.core.v1.Pod.spec.containers[0].ports[0].hostPort",
 				Err: validation.InvalidTypeError{
@@ -185,11 +200,14 @@ spec:
 					Actual:   "string",
 				},
 			},
-		}))
-
+		}
+		if !reflect.DeepEqual(err, want) {
+			t.Errorf("err = %v, want %v", err, want)
+		}
 	})
 
-	It("fails because volume is not an array of object", func() {
+	t.Run("fails because volume is not an array of object", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 {
   "kind": "Pod",
@@ -227,10 +245,13 @@ spec:
   }
 }
 `)
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
 
-	It("fails because some string lists have empty strings", func() {
+	t.Run("fails because some string lists have empty strings", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 apiVersion: v1
 kind: Pod
@@ -247,8 +268,7 @@ spec:
     command:
     -
 `)
-
-		Expect(err).To(Equal([]error{
+		want := []error{
 			validation.ValidationError{
 				Path: "io.k8s.api.core.v1.Pod.spec.containers[0].args",
 				Err: validation.InvalidObjectTypeError{
@@ -263,10 +283,14 @@ spec:
 					Type: "nil",
 				},
 			},
-		}))
+		}
+		if !reflect.DeepEqual(err, want) {
+			t.Errorf("err = %v, want %v", err, want)
+		}
 	})
 
-	It("fails if required fields are missing", func() {
+	t.Run("fails if required fields are missing", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 apiVersion: v1
 kind: Pod
@@ -278,8 +302,7 @@ spec:
   containers:
   - command: ["my", "command"]
 `)
-
-		Expect(err).To(Equal([]error{
+		want := []error{
 			validation.ValidationError{
 				Path: "io.k8s.api.core.v1.Pod.spec.containers[0]",
 				Err: validation.MissingRequiredFieldError{
@@ -294,10 +317,14 @@ spec:
 					Field: "image",
 				},
 			},
-		}))
+		}
+		if !reflect.DeepEqual(err, want) {
+			t.Errorf("err = %v, want %v", err, want)
+		}
 	})
 
-	It("fails if required fields are empty", func() {
+	t.Run("fails if required fields are empty", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 apiVersion: v1
 kind: Pod
@@ -310,8 +337,7 @@ spec:
   - image:
     name:
 `)
-
-		Expect(err).To(Equal([]error{
+		want := []error{
 			validation.ValidationError{
 				Path: "io.k8s.api.core.v1.Pod.spec.containers[0]",
 				Err: validation.MissingRequiredFieldError{
@@ -326,10 +352,14 @@ spec:
 					Field: "image",
 				},
 			},
-		}))
+		}
+		if !reflect.DeepEqual(err, want) {
+			t.Errorf("err = %v, want %v", err, want)
+		}
 	})
 
-	It("is fine with empty non-mandatory fields", func() {
+	t.Run("is fine with empty non-mandatory fields", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 apiVersion: v1
 kind: Pod
@@ -343,11 +373,13 @@ spec:
     name: name
     command:
 `)
-
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
 
-	It("fails because apiVersion is not provided", func() {
+	t.Run("fails because apiVersion is not provided", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 kind: Pod
 metadata:
@@ -357,10 +389,13 @@ spec:
   - name: name
     image: image
 `)
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
 
-	It("fails because apiVersion type is not string and kind is not provided", func() {
+	t.Run("fails because apiVersion type is not string and kind is not provided", func(t *testing.T) {
+		models := loadModels(t)
 		err := Validate(models, "io.k8s.api.core.v1.Pod", `
 apiVersion: 1
 metadata:
@@ -370,11 +405,13 @@ spec:
   - name: name
     image: image
 `)
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
 
-	// verify integer literals are considered to be compatible with float schema fields
-	It("validates integer values for float fields", func() {
+	t.Run("validates integer values for float fields", func(t *testing.T) {
+		models := loadModels(t)
 		err := ValidateObj(models, "io.k8s.apiextensions-apiserver.pkg.apis.apiextensions.v1.CustomResourceDefinition", map[string]interface{}{
 			"apiVersion": "apiextensions.k8s.io/v1",
 			"kind":       "CustomResourceDefinition",
@@ -411,6 +448,8 @@ spec:
 				},
 			},
 		})
-		Expect(err).To(BeNil())
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 	})
-})
+}
