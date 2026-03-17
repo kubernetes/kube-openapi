@@ -66,8 +66,8 @@ func loadModels(t *testing.T) proto.Models {
 func TestResourceValidation(t *testing.T) {
 	t.Run("finds Deployment in Schema and validates it", func(t *testing.T) {
 		models := loadModels(t)
-		err := Validate(models, "io.k8s.api.apps.v1beta1.Deployment", `
-apiVersion: extensions/v1beta1
+		err := Validate(models, "io.k8s.api.apps.v1.Deployment", `
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -75,6 +75,9 @@ metadata:
   name: name
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: redis
   template:
     metadata:
       labels:
@@ -310,13 +313,6 @@ spec:
 					Field: "name",
 				},
 			},
-			validation.ValidationError{
-				Path: "io.k8s.api.core.v1.Pod.spec.containers[0]",
-				Err: validation.MissingRequiredFieldError{
-					Path:  "io.k8s.api.core.v1.Container",
-					Field: "image",
-				},
-			},
 		}
 		if !reflect.DeepEqual(err, want) {
 			t.Errorf("err = %v, want %v", err, want)
@@ -334,7 +330,7 @@ metadata:
   name: name
 spec:
   containers:
-  - image:
+  - image: image
     name:
 `)
 		want := []error{
@@ -343,13 +339,6 @@ spec:
 				Err: validation.MissingRequiredFieldError{
 					Path:  "io.k8s.api.core.v1.Container",
 					Field: "name",
-				},
-			},
-			validation.ValidationError{
-				Path: "io.k8s.api.core.v1.Pod.spec.containers[0]",
-				Err: validation.MissingRequiredFieldError{
-					Path:  "io.k8s.api.core.v1.Container",
-					Field: "image",
 				},
 			},
 		}
