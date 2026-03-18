@@ -478,3 +478,106 @@ func TestBuildOpenAPISpec(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+type TestRecursiveType struct {
+	Value    string              `json:"value,omitempty"`
+	Children []TestRecursiveType `json:"children,omitempty"`
+}
+
+func makeRecursiveTypeDefinition(depName string) openapi.OpenAPIDefinition {
+	schema := spec.Schema{}
+	schema.Description = "Test recursive type for JSON pointer escaping"
+	schema.Properties = map[string]spec.Schema{
+		"value": {
+			SchemaProps: spec.SchemaProps{
+				Description: "A test value",
+				Type:        []string{"string"},
+			},
+		},
+		"children": {
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"array"},
+				Items: &spec.SchemaOrArray{
+					Schema: &spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Ref: spec.MustCreateRef("#/components/schemas/" + depName),
+						},
+					},
+				},
+			},
+		},
+	}
+	return openapi.OpenAPIDefinition{
+		Schema:       schema,
+		Dependencies: []string{depName},
+	}
+}
+
+func TestEscapeJsonPointerInSchemaName(t *testing.T) {
+	testCases := []struct {
+		name           string
+		definitionName string
+		expectedName   string
+		shouldNotExist string
+	}{
+		{
+			name:           "both slash and tilde",
+			definitionName: "io.k8s/api~v1.TestRecursiveType",
+			expectedName:   "io.k8s~1api~0v1.TestRecursiveType",
+			shouldNotExist: "io.k8s/api~v1.TestRecursiveType",
+		},
+		{
+			name:           "only slashes",
+			definitionName: "io.k8s/api/v1.TestRecursiveType",
+			expectedName:   "io.k8s~1api~1v1.TestRecursiveType",
+			shouldNotExist: "io.k8s/api/v1.TestRecursiveType",
+		},
+		{
+			name:           "only tildes",
+			definitionName: "io.k8s~api~v1.TestRecursiveType",
+			expectedName:   "io.k8s~0api~0v1.TestRecursiveType",
+			shouldNotExist: "io.k8s~api~v1.TestRecursiveType",
+		},
+		{
+			name:           "no special characters",
+			definitionName: "io.k8s.api.v1.TestRecursiveType",
+			expectedName:   "io.k8s.api.v1.TestRecursiveType",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			config := &openapi.OpenAPIV3Config{
+				Info: &spec.Info{
+					InfoProps: spec.InfoProps{
+						Title:       "TestAPI",
+						Description: "Test API",
+						Version:     "v1",
+					},
+				},
+				GetDefinitions: func(_ openapi.ReferenceCallback) map[string]openapi.OpenAPIDefinition {
+					return map[string]openapi.OpenAPIDefinition{
+						tc.definitionName: makeRecursiveTypeDefinition(tc.definitionName),
+					}
+				},
+				GetDefinitionName: func(name string) (string, spec.Extensions) {
+					return name, nil
+				},
+			}
+
+			schemas, err := BuildOpenAPIDefinitionsForResources(config, tc.definitionName)
+			assert.NoError(err)
+			assert.NotNil(schemas)
+
+			_, exists := schemas[tc.expectedName]
+			assert.True(exists, "Schema should exist with escaped name: %s", tc.expectedName)
+
+			if tc.shouldNotExist != "" {
+				_, exists = schemas[tc.shouldNotExist]
+				assert.False(exists, "Schema should not exist with unescaped name: %s", tc.shouldNotExist)
+			}
+		})
+	}
+}
