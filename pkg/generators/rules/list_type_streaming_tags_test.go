@@ -119,13 +119,35 @@ func TestStreamingListTypeJSONTags(t *testing.T) {
 		expectedFields []string
 	}{
 		{
-			name: "simple list",
+			name: "simple list with inline tag",
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline"`,
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline"`,
+					},
+					{
+						Name: "ListMeta",
+						Tags: `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`,
+					},
+					{
+						Name: "Items",
+						Tags: `json:"items" protobuf:"bytes,2,rep,name=items"`,
+					},
+				},
+			},
+		},
+		{
+			name: "simple list with empty json tag",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:""`,
 					},
 					{
 						Name: "ListMeta",
@@ -175,8 +197,9 @@ func TestStreamingListTypeJSONTags(t *testing.T) {
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:"typemeta"`, // subfield typemeta instead of inline
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:"typemeta"`, // subfield typemeta instead of inline
 					},
 					{
 						Name: "ListMeta",
@@ -196,8 +219,9 @@ func TestStreamingListTypeJSONTags(t *testing.T) {
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline"`,
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline"`,
 					},
 					{
 						Name: "ListMeta",
@@ -212,13 +236,14 @@ func TestStreamingListTypeJSONTags(t *testing.T) {
 			expectedFields: []string{"ListMeta"},
 		},
 		{
-			name: "bad listmeta json tag",
+			name: "bad items json tag",
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline"`,
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline"`,
 					},
 					{
 						Name: "ListMeta",
@@ -258,8 +283,9 @@ func TestStreamingListTypeProtoTags(t *testing.T) {
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline"`,
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline"`,
 					},
 					{
 						Name: "ListMeta",
@@ -309,8 +335,9 @@ func TestStreamingListTypeProtoTags(t *testing.T) {
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline" protobuf:"bytes,3,opt,name=typemeta"`, // Added protobuf tag
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline" protobuf:"bytes,3,opt,name=typemeta"`, // Added protobuf tag
 					},
 					{
 						Name: "ListMeta",
@@ -325,13 +352,14 @@ func TestStreamingListTypeProtoTags(t *testing.T) {
 			expectedFields: []string{"TypeMeta"},
 		},
 		{
-			name: "bad listmeta json tag",
+			name: "bad listmeta proto tag",
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline"`,
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline"`,
 					},
 					{
 						Name: "ListMeta",
@@ -346,13 +374,14 @@ func TestStreamingListTypeProtoTags(t *testing.T) {
 			expectedFields: []string{"ListMeta"},
 		},
 		{
-			name: "bad listmeta json tag",
+			name: "bad items proto tag",
 			t: &types.Type{
 				Kind: types.Struct,
 				Members: []types.Member{
 					{
-						Name: "TypeMeta",
-						Tags: `json:",inline"`,
+						Name:     "TypeMeta",
+						Embedded: true,
+						Tags:     `json:",inline"`,
 					},
 					{
 						Name: "ListMeta",

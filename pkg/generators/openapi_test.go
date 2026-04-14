@@ -810,6 +810,65 @@ Required: []string{"String"},
 	})
 }
 
+func TestEmbeddedInlineStructWithEmptyJSONTag(t *testing.T) {
+	inputFile := `
+	package foo
+
+		// Nested is used as embedded inline struct field
+		type Nested struct {
+		  // A simple string
+		  String string
+		}
+
+		// Blah demonstrate a struct with embedded inline struct field using empty json tag.
+		type Blah struct {
+		  // An embedded inline struct field with empty json tag
+		  Nested ` + "`" + `json:""` + "`" + `
+		}`
+
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, e.Config)
+		if callErr != nil {
+			t.Fatal(callErr)
+		}
+		if funcErr != nil {
+			t.Fatal(funcErr)
+		}
+		assertEqual(t, callBuffer.String(),
+			`"example.com/base/foo.Blah": schema_examplecom_base_foo_Blah(ref),`)
+		assertEqual(t, funcBuffer.String(),
+			`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah demonstrate a struct with embedded inline struct field using empty json tag.",
+Type: []string{"object"},
+Properties: map[string]spec.Schema{
+"String": {
+SchemaProps: spec.SchemaProps{
+Description: "A simple string",
+Default: "",
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+Required: []string{"String"},
+},
+},
+}
+}`)
+	})
+}
+
 func TestNestedMapString(t *testing.T) {
 	inputFile := `
 		package foo
@@ -3101,4 +3160,56 @@ func TestNestedMarkers(t *testing.T) {
 		}
 	})
 
+}
+
+func TestShouldInlineMembers(t *testing.T) {
+	tests := []struct {
+		name     string
+		member   types.Member
+		expected bool
+	}{
+		{
+			name:     "embedded with ,inline tag",
+			member:   types.Member{Name: "TypeMeta", Embedded: true, Tags: `json:",inline"`},
+			expected: true,
+		},
+		{
+			name:     "embedded with empty json tag",
+			member:   types.Member{Name: "TypeMeta", Embedded: true, Tags: `json:""`},
+			expected: true,
+		},
+		{
+			name:     "embedded with ,inline,omitempty tag",
+			member:   types.Member{Name: "ObjectMeta", Embedded: true, Tags: `json:",inline,omitempty"`},
+			expected: true,
+		},
+		{
+			name:     "embedded with no json tag",
+			member:   types.Member{Name: "TypeMeta", Embedded: true, Tags: ``},
+			expected: false,
+		},
+		{
+			name:     "embedded with explicit name",
+			member:   types.Member{Name: "TypeMeta", Embedded: true, Tags: `json:"typemeta"`},
+			expected: false,
+		},
+		{
+			name:     "non-embedded with ,inline tag",
+			member:   types.Member{Name: "TypeMeta", Embedded: false, Tags: `json:",inline"`},
+			expected: false,
+		},
+		{
+			name:     "non-embedded with empty json tag",
+			member:   types.Member{Name: "TypeMeta", Embedded: false, Tags: `json:""`},
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := shouldInlineMembers(&tc.member); got != tc.expected {
+				t.Errorf("shouldInlineMembers(%+v) = %v, want %v", tc.member, got, tc.expected)
+			}
+		})
+	}
 }
