@@ -19,7 +19,7 @@ require (
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated
 	google.golang.org/protobuf v1.35.1
 	k8s.io/gengo/v2 v2.0.0-20250604051438-85fd79dbfd9f
-	k8s.io/klog/v2 v2.130.1
+	k8s.io/klog/v2 v2.140.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
 	sigs.k8s.io/randfill v1.0.0
