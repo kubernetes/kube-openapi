@@ -39,8 +39,6 @@ func main() {
 
 	args.AddFlags(pflag.CommandLine)
 	flag.Set("logtostderr", "true")
-	flag.Set("legacy_stderr_threshold_behavior", "false")
-	flag.Set("stderrthreshold", "INFO")
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
