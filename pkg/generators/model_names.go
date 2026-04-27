@@ -26,6 +26,7 @@ import (
 	"k8s.io/gengo/v2/namer"
 	"k8s.io/gengo/v2/types"
 	"k8s.io/klog/v2"
+	"k8s.io/kube-openapi/pkg/generators/apidefinitions"
 )
 
 const (
@@ -38,6 +39,21 @@ func extractOpenAPISchemaNamePackage(comments []string) (string, error) {
 		return "", err
 	}
 	return v.Value, nil
+}
+
+// resolvePackageModelPackage returns the OpenAPI model package for pkg.
+// When apiversion.yaml is present, spec.modelPackage is authoritative.
+// The +k8s:openapi-model-package tag is used only when the yaml file
+// is absent.
+func resolvePackageModelPackage(pkg *types.Package) (string, error) {
+	av, err := apidefinitions.LoadAPIVersion(pkg.Dir)
+	if err != nil {
+		return "", err
+	}
+	if av != nil {
+		return av.Spec.ModelPackage, nil
+	}
+	return extractOpenAPISchemaNamePackage(pkg.Comments)
 }
 
 func singularTag(tagName string, comments []string) (*gengo.Tag, error) {
