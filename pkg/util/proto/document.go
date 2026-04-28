@@ -106,6 +106,8 @@ func (d *Definitions) parseReference(s *openapi_v2.Schema, path *Path) (Schema, 
 		return nil, newSchemaError(path, "unallowed reference to non-definition %q", s.GetXRef())
 	}
 	reference := strings.TrimPrefix(s.GetXRef(), "#/definitions/")
+	reference = strings.ReplaceAll(reference, "~1", "/")
+	reference = strings.ReplaceAll(reference, "~0", "~")
 	if _, ok := d.models[reference]; !ok {
 		return nil, newSchemaError(path, "unknown model in reference: %q", reference)
 	}
