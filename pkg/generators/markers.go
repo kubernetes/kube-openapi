@@ -113,6 +113,8 @@ type commentTags struct {
 	ExclusiveMinimum *bool         `json:"exclusiveMinimum,omitempty"`
 	MaxLength        *int64        `json:"maxLength,omitempty"`
 	MinLength        *int64        `json:"minLength,omitempty"`
+	MaxBytes         *int64        `json:"maxBytes,omitempty"`
+	MinBytes         *int64        `json:"minBytes,omitempty"`
 	Pattern          *string       `json:"pattern,omitempty"`
 	MaxItems         *int64        `json:"maxItems,omitempty"`
 	MinItems         *int64        `json:"minItems,omitempty"`
@@ -187,7 +189,13 @@ func (c *commentTags) ValidationSchema() (*spec.Schema, error) {
 		}
 		transformedAdditionalProperties = &spec.SchemaOrBool{Schema: additionalProperties, Allows: true}
 	}
+	if c.MaxBytes != nil && c.MaxLength == nil {
+		c.MaxLength = c.MaxBytes
+	}
 
+	if c.MinBytes != nil && c.MinLength == nil {
+		c.MinLength = c.MinBytes
+	}
 	res := spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Nullable:         isNullable,
@@ -249,6 +257,18 @@ func (c commentTags) Validate() error {
 	if c.MaxLength != nil && *c.MaxLength < 0 {
 		err = errors.Join(err, fmt.Errorf("maxLength cannot be negative"))
 	}
+	if c.MinBytes != nil && *c.MinBytes < 0 {
+		err = errors.Join(err, fmt.Errorf("minBytes cannot be negative"))
+	}
+	if c.MaxBytes != nil && *c.MaxBytes < 0 {
+		err = errors.Join(err, fmt.Errorf("maxBytes cannot be negative"))
+	}
+	if c.MaxLength != nil && c.MaxBytes != nil {
+		err = errors.Join(err, fmt.Errorf("maxLength and maxBytes cannot both be specified"))
+	}
+	if c.MinLength != nil && c.MinBytes != nil {
+		err = errors.Join(err, fmt.Errorf("minLength and minBytes cannot both be specified"))
+	}
 	if c.MinItems != nil && *c.MinItems < 0 {
 		err = errors.Join(err, fmt.Errorf("minItems cannot be negative"))
 	}
@@ -269,6 +289,9 @@ func (c commentTags) Validate() error {
 	}
 	if c.MinLength != nil && c.MaxLength != nil && *c.MinLength > *c.MaxLength {
 		err = errors.Join(err, fmt.Errorf("minLength %d is greater than maxLength %d", *c.MinLength, *c.MaxLength))
+	}
+	if c.MinBytes != nil && c.MaxBytes != nil && *c.MinBytes > *c.MaxBytes {
+		err = errors.Join(err, fmt.Errorf("minBytes %d is greater than maxBytes %d", *c.MinBytes, *c.MaxBytes))
 	}
 	if c.MinItems != nil && c.MaxItems != nil && *c.MinItems > *c.MaxItems {
 		err = errors.Join(err, fmt.Errorf("minItems %d is greater than maxItems %d", *c.MinItems, *c.MaxItems))
