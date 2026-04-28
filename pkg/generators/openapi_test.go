@@ -2136,7 +2136,8 @@ Enum: []interface{}{"a", "b"},
 },
 },
 "List": {
-SchemaProps: spec.SchemaProps{
+SchemaProps: spec.SchemaProps{`+"\n"+
+				"Description: \"Possible enum values:\\n - `\\\"a\\\"` is a.\\n - `\\\"b\\\"` is b.\","+`
 Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
