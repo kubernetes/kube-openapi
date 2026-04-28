@@ -31,12 +31,12 @@ var fakeSchema = prototesting.Fake{Path: filepath.Join("testdata", "swagger.json
 var fakeSchemaNext = prototesting.Fake{Path: filepath.Join("testdata", "swagger_next.json")}
 var fakeSchemaV300 = prototesting.FakeV3{Path: filepath.Join("testdata", "openapi_v3_0_0")}
 
-// loadV18Models loads the v1.8 swagger schema and returns proto.Models.
-func loadV18Models(t *testing.T) proto.Models {
+// loadModels loads the swagger schema and returns proto.Models.
+func loadModels(t *testing.T) proto.Models {
 	t.Helper()
 	s, err := fakeSchema.OpenAPISchema()
 	if err != nil {
-		t.Fatalf("failed to open v1.8 schema: %v", err)
+		t.Fatalf("failed to open schema: %v", err)
 	}
 	models, err := proto.NewOpenAPIData(s)
 	if err != nil {
@@ -45,13 +45,13 @@ func loadV18Models(t *testing.T) proto.Models {
 	return models
 }
 
-// loadV18DeploymentModel loads the v1.8 schema and returns the Deployment Kind.
-func loadV18DeploymentModel(t *testing.T) (proto.Models, proto.Schema, *proto.Kind) {
+// loadDeploymentModel loads the schema and returns the Deployment Kind.
+func loadDeploymentModel(t *testing.T) (proto.Models, proto.Schema, *proto.Kind) {
 	t.Helper()
-	models := loadV18Models(t)
-	schema := models.LookupModel("io.k8s.api.apps.v1beta1.Deployment")
+	models := loadModels(t)
+	schema := models.LookupModel("io.k8s.api.apps.v1.Deployment")
 	if schema == nil {
-		t.Fatal("model io.k8s.api.apps.v1beta1.Deployment not found")
+		t.Fatal("model io.k8s.api.apps.v1.Deployment not found")
 	}
 	deployment, ok := schema.(*proto.Kind)
 	if !ok || deployment == nil {
@@ -60,33 +60,33 @@ func loadV18DeploymentModel(t *testing.T) (proto.Models, proto.Schema, *proto.Ki
 	return models, schema, deployment
 }
 
-func TestV18Deployment(t *testing.T) {
+func TestDeployment(t *testing.T) {
 	t.Run("should lookup the Schema by its model name", func(t *testing.T) {
-		models := loadV18Models(t)
-		schema := models.LookupModel("io.k8s.api.apps.v1beta1.Deployment")
+		models := loadModels(t)
+		schema := models.LookupModel("io.k8s.api.apps.v1.Deployment")
 		if schema == nil {
-			t.Fatal("model io.k8s.api.apps.v1beta1.Deployment not found")
+			t.Fatal("model io.k8s.api.apps.v1.Deployment not found")
 		}
 	})
 
 	t.Run("should be a Kind", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		if deployment == nil {
 			t.Fatal("expected deployment to be non-nil")
 		}
 	})
 
 	t.Run("should have a path", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		got := deployment.GetPath().Get()
-		want := []string{"io.k8s.api.apps.v1beta1.Deployment"}
+		want := []string{"io.k8s.api.apps.v1.Deployment"}
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("path = %v, want %v", got, want)
 		}
 	})
 
 	t.Run("should have a kind key of type string", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		if _, ok := deployment.Fields["kind"]; !ok {
 			t.Fatal("missing 'kind' field")
 		}
@@ -98,14 +98,14 @@ func TestV18Deployment(t *testing.T) {
 			t.Errorf("kind.Type = %q, want %q", key.Type, "string")
 		}
 		got := key.GetPath().Get()
-		want := []string{"io.k8s.api.apps.v1beta1.Deployment", ".kind"}
+		want := []string{"io.k8s.api.apps.v1.Deployment", ".kind"}
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("kind path = %v, want %v", got, want)
 		}
 	})
 
 	t.Run("should have a apiVersion key of type string", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		if _, ok := deployment.Fields["apiVersion"]; !ok {
 			t.Fatal("missing 'apiVersion' field")
 		}
@@ -117,14 +117,14 @@ func TestV18Deployment(t *testing.T) {
 			t.Errorf("apiVersion.Type = %q, want %q", key.Type, "string")
 		}
 		got := key.GetPath().Get()
-		want := []string{"io.k8s.api.apps.v1beta1.Deployment", ".apiVersion"}
+		want := []string{"io.k8s.api.apps.v1.Deployment", ".apiVersion"}
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("apiVersion path = %v, want %v", got, want)
 		}
 	})
 
 	t.Run("should have a metadata key of type Reference", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		if _, ok := deployment.Fields["metadata"]; !ok {
 			t.Fatal("missing 'metadata' field")
 		}
@@ -142,7 +142,7 @@ func TestV18Deployment(t *testing.T) {
 	})
 
 	t.Run("should have a status key of type Reference", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		if _, ok := deployment.Fields["status"]; !ok {
 			t.Fatal("missing 'status' field")
 		}
@@ -150,8 +150,8 @@ func TestV18Deployment(t *testing.T) {
 		if !ok {
 			t.Fatal("expected 'status' to be proto.Reference")
 		}
-		if key.Reference() != "io.k8s.api.apps.v1beta1.DeploymentStatus" {
-			t.Errorf("status reference = %q, want %q", key.Reference(), "io.k8s.api.apps.v1beta1.DeploymentStatus")
+		if key.Reference() != "io.k8s.api.apps.v1.DeploymentStatus" {
+			t.Errorf("status reference = %q, want %q", key.Reference(), "io.k8s.api.apps.v1.DeploymentStatus")
 		}
 		status, ok := key.SubSchema().(*proto.Kind)
 		if !ok || status == nil {
@@ -160,7 +160,7 @@ func TestV18Deployment(t *testing.T) {
 	})
 
 	t.Run("should have a valid DeploymentStatus", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		statusRef, ok := deployment.Fields["status"].(proto.Reference)
 		if !ok {
 			t.Fatal("expected 'status' to be proto.Reference")
@@ -190,11 +190,13 @@ func TestV18Deployment(t *testing.T) {
 		if !ok || conditions == nil {
 			t.Fatal("expected 'conditions' to be *proto.Array")
 		}
-		wantName := `Array of Reference to "io.k8s.api.apps.v1beta1.DeploymentCondition"`
+		wantName := `Array of Reference to "io.k8s.api.apps.v1.DeploymentCondition"`
 		if conditions.GetName() != wantName {
 			t.Errorf("conditions name = %q, want %q", conditions.GetName(), wantName)
 		}
 		wantExt := map[string]interface{}{
+			"x-kubernetes-list-map-keys":   []interface{}{"type"},
+			"x-kubernetes-list-type":       "map",
 			"x-kubernetes-patch-merge-key": "type",
 			"x-kubernetes-patch-strategy":  "merge",
 		}
@@ -205,13 +207,13 @@ func TestV18Deployment(t *testing.T) {
 		if !ok {
 			t.Fatal("expected conditions.SubType to be proto.Reference")
 		}
-		if condition.Reference() != "io.k8s.api.apps.v1beta1.DeploymentCondition" {
-			t.Errorf("condition reference = %q, want %q", condition.Reference(), "io.k8s.api.apps.v1beta1.DeploymentCondition")
+		if condition.Reference() != "io.k8s.api.apps.v1.DeploymentCondition" {
+			t.Errorf("condition reference = %q, want %q", condition.Reference(), "io.k8s.api.apps.v1.DeploymentCondition")
 		}
 	})
 
 	t.Run("should have a spec key of type Reference", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		if _, ok := deployment.Fields["spec"]; !ok {
 			t.Fatal("missing 'spec' field")
 		}
@@ -219,8 +221,8 @@ func TestV18Deployment(t *testing.T) {
 		if !ok {
 			t.Fatal("expected 'spec' to be proto.Reference")
 		}
-		if key.Reference() != "io.k8s.api.apps.v1beta1.DeploymentSpec" {
-			t.Errorf("spec reference = %q, want %q", key.Reference(), "io.k8s.api.apps.v1beta1.DeploymentSpec")
+		if key.Reference() != "io.k8s.api.apps.v1.DeploymentSpec" {
+			t.Errorf("spec reference = %q, want %q", key.Reference(), "io.k8s.api.apps.v1.DeploymentSpec")
 		}
 		spec, ok := key.SubSchema().(*proto.Kind)
 		if !ok || spec == nil {
@@ -229,7 +231,7 @@ func TestV18Deployment(t *testing.T) {
 	})
 
 	t.Run("should have a spec with no gvk", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		specRef, ok := deployment.Fields["spec"].(proto.Reference)
 		if !ok {
 			t.Fatal("expected 'spec' to be proto.Reference")
@@ -244,7 +246,7 @@ func TestV18Deployment(t *testing.T) {
 	})
 
 	t.Run("should have a spec with a PodTemplateSpec sub-field", func(t *testing.T) {
-		_, _, deployment := loadV18DeploymentModel(t)
+		_, _, deployment := loadDeploymentModel(t)
 		specRef, ok := deployment.Fields["spec"].(proto.Reference)
 		if !ok {
 			t.Fatal("expected 'spec' to be proto.Reference")
@@ -266,10 +268,10 @@ func TestV18Deployment(t *testing.T) {
 	})
 }
 
-func TestV111Deployment(t *testing.T) {
+func TestNextSchemaDeployment(t *testing.T) {
 	s, err := fakeSchemaNext.OpenAPISchema()
 	if err != nil {
-		t.Fatalf("failed to open v1.11 schema: %v", err)
+		t.Fatalf("failed to open next schema: %v", err)
 	}
 	models, err := proto.NewOpenAPIData(s)
 	if err != nil {
@@ -277,14 +279,14 @@ func TestV111Deployment(t *testing.T) {
 	}
 
 	t.Run("should lookup the Schema by its model name", func(t *testing.T) {
-		schema := models.LookupModel("io.k8s.api.apps.v1beta1.Deployment")
+		schema := models.LookupModel("io.k8s.api.apps.v1.Deployment")
 		if schema == nil {
-			t.Fatal("model io.k8s.api.apps.v1beta1.Deployment not found")
+			t.Fatal("model io.k8s.api.apps.v1.Deployment not found")
 		}
 	})
 
 	t.Run("should be a Kind", func(t *testing.T) {
-		schema := models.LookupModel("io.k8s.api.apps.v1beta1.Deployment")
+		schema := models.LookupModel("io.k8s.api.apps.v1.Deployment")
 		if schema == nil {
 			t.Fatal("model not found")
 		}
@@ -295,10 +297,10 @@ func TestV111Deployment(t *testing.T) {
 	})
 }
 
-func TestV111ControllerRevision(t *testing.T) {
+func TestNextSchemaControllerRevision(t *testing.T) {
 	s, err := fakeSchemaNext.OpenAPISchema()
 	if err != nil {
-		t.Fatalf("failed to open v1.11 schema: %v", err)
+		t.Fatalf("failed to open next schema: %v", err)
 	}
 	models, err := proto.NewOpenAPIData(s)
 	if err != nil {
@@ -306,14 +308,14 @@ func TestV111ControllerRevision(t *testing.T) {
 	}
 
 	t.Run("should lookup the Schema by its model name", func(t *testing.T) {
-		schema := models.LookupModel("io.k8s.api.apps.v1beta1.ControllerRevision")
+		schema := models.LookupModel("io.k8s.api.apps.v1.ControllerRevision")
 		if schema == nil {
-			t.Fatal("model io.k8s.api.apps.v1beta1.ControllerRevision not found")
+			t.Fatal("model io.k8s.api.apps.v1.ControllerRevision not found")
 		}
 	})
 
 	t.Run("data property should be map[string]Arbitrary", func(t *testing.T) {
-		schema := models.LookupModel("io.k8s.api.apps.v1beta1.ControllerRevision")
+		schema := models.LookupModel("io.k8s.api.apps.v1.ControllerRevision")
 		if schema == nil {
 			t.Fatal("model not found")
 		}
@@ -333,7 +335,7 @@ func TestV111ControllerRevision(t *testing.T) {
 		if data.GetName() != wantName {
 			t.Errorf("data name = %q, want %q", data.GetName(), wantName)
 		}
-		wantPath := []string{"io.k8s.api.apps.v1beta1.ControllerRevision", ".data"}
+		wantPath := []string{"io.k8s.api.apps.v1.ControllerRevision", ".data"}
 		if !reflect.DeepEqual(data.GetPath().Get(), wantPath) {
 			t.Errorf("data path = %v, want %v", data.GetPath().Get(), wantPath)
 		}
