@@ -495,7 +495,7 @@ Properties: map[string]spec.Schema{
 "Field": {
 SchemaProps: spec.SchemaProps{
 Description: "A struct field",
-Default: map[string]interface {}{},
+Default: map[string]interface {}{"String":""},
 Ref: ref("example.com/base/foo.Nested"),
 },
 },
@@ -615,7 +615,7 @@ Properties: map[string]spec.Schema{
 "Nested": {
 SchemaProps: spec.SchemaProps{
 Description: "An embedded struct field",
-Default: map[string]interface {}{},
+Default: map[string]interface {}{"String":""},
 Ref: ref("example.com/base/foo.Nested"),
 },
 },
@@ -2408,7 +2408,7 @@ func TestMustEnforceDefaultStruct(t *testing.T) {
 					},
 					"Regular": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
+							Default: map[string]interface{}{"Field": ""},
 							Ref:     ref("example.com/base/foo.NothingSpecial"),
 						},
 					},
@@ -2422,6 +2422,143 @@ func TestMustEnforceDefaultStruct(t *testing.T) {
 }`)
 		}
 	})
+}
+
+func TestStructZeroDefault(t *testing.T) {
+	tests := []struct {
+		name     string
+		typ      *types.Type
+		expected interface{}
+	}{
+		{
+			name: "empty struct",
+			typ: &types.Type{
+				Kind:    types.Struct,
+				Members: []types.Member{},
+			},
+			expected: map[string]interface{}{},
+		},
+		{
+			name: "required string field",
+			typ: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "Name",
+						Type: types.String,
+						Tags: `json:"Name"`,
+					},
+				},
+			},
+			expected: map[string]interface{}{"Name": ""},
+		},
+		{
+			name: "optional field skipped",
+			typ: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name:         "Name",
+						Type:         types.String,
+						Tags:         `json:"Name,omitempty"`,
+						CommentLines: []string{"+optional"},
+					},
+				},
+			},
+			expected: map[string]interface{}{},
+		},
+		{
+			name: "required int field",
+			typ: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "Count",
+						Type: types.Int32,
+						Tags: `json:"Count"`,
+					},
+				},
+			},
+			expected: map[string]interface{}{"Count": float64(0)},
+		},
+		{
+			name: "unexported field without json tag skipped",
+			typ: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "hidden",
+						Type: types.String,
+					},
+				},
+			},
+			expected: map[string]interface{}{},
+		},
+		{
+			name: "openapi-gen=false field skipped",
+			typ: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name:         "Skipped",
+						Type:         types.String,
+						Tags:         `json:"Skipped"`,
+						CommentLines: []string{"+k8s:openapi-gen=false"},
+					},
+				},
+			},
+			expected: map[string]interface{}{},
+		},
+		{
+			name: "pointer to struct is dereferenced",
+			typ: &types.Type{
+				Kind: types.Pointer,
+				Elem: &types.Type{
+					Kind: types.Struct,
+					Members: []types.Member{
+						{
+							Name: "Field",
+							Type: types.String,
+							Tags: `json:"Field"`,
+						},
+					},
+				},
+			},
+			expected: map[string]interface{}{"Field": ""},
+		},
+		{
+			name: "mixed required and optional fields",
+			typ: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "Required",
+						Type: types.String,
+						Tags: `json:"Required"`,
+					},
+					{
+						Name:         "Optional",
+						Type:         types.String,
+						Tags:         `json:"Optional,omitempty"`,
+						CommentLines: []string{"+optional"},
+					},
+				},
+			},
+			expected: map[string]interface{}{"Required": ""},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := structZeroDefault(tt.typ)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !cmp.Equal(result, tt.expected) {
+				t.Errorf("wrong result:\n%s", cmp.Diff(tt.expected, result))
+			}
+		})
+	}
 }
 
 func TestMarkerComments(t *testing.T) {
