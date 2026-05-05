@@ -731,7 +731,9 @@
        "default": 0
       },
       "OtherSub": {
-       "default": {},
+       "default": {
+        "S": ""
+       },
        "allOf": [
         {
          "$ref": "#/components/schemas/defaults.SubStruct"
@@ -933,7 +935,10 @@
       "Field": {
        "type": "array",
        "items": {
-        "default": {},
+        "default": {
+         "Port": 0,
+         "Protocol": ""
+        },
         "allOf": [
          {
           "$ref": "#/components/schemas/listtype.Item"
@@ -1043,7 +1048,9 @@
      ],
      "properties": {
       "Field": {
-       "default": {},
+       "default": {
+        "Field": 0
+       },
        "allOf": [
         {
          "$ref": "#/components/schemas/structtype.DeclaredAtomicStruct"
@@ -1186,8 +1193,6 @@
      "maxProperties": 5,
      "minProperties": 1,
      "required": [
-      "StringValue",
-      "NumberValue",
       "ArrayValue",
       "MapValue"
      ],
@@ -1214,7 +1219,6 @@
       "NumberValue": {
        "type": "number",
        "format": "double",
-       "default": 0,
        "maximum": 5,
        "exclusiveMaximum": true,
        "minimum": 1,
@@ -1223,7 +1227,6 @@
       },
       "StringValue": {
        "type": "string",
-       "default": "",
        "maxLength": 5,
        "minLength": 1,
        "pattern": "^a.*b$"

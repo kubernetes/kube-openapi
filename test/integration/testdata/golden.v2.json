@@ -793,7 +793,9 @@
       "default": 0
      },
      "OtherSub": {
-      "default": {},
+      "default": {
+       "S": ""
+      },
       "$ref": "#/definitions/defaults.SubStruct"
      },
      "Sub": {
@@ -987,7 +989,10 @@
      "Field": {
       "type": "array",
       "items": {
-       "default": {},
+       "default": {
+        "Port": 0,
+        "Protocol": ""
+       },
        "$ref": "#/definitions/listtype.Item"
       },
       "x-kubernetes-list-map-keys": [
@@ -1089,7 +1094,9 @@
     ],
     "properties": {
      "Field": {
-      "default": {},
+      "default": {
+       "Field": 0
+      },
       "$ref": "#/definitions/structtype.DeclaredAtomicStruct",
       "x-kubernetes-map-type": "atomic"
      },
@@ -1224,8 +1231,6 @@
     "maxProperties": 5,
     "minProperties": 1,
     "required": [
-     "StringValue",
-     "NumberValue",
      "ArrayValue",
      "MapValue"
     ],
@@ -1252,7 +1257,6 @@
      "NumberValue": {
       "type": "number",
       "format": "double",
-      "default": 0,
       "maximum": 5,
       "exclusiveMaximum": true,
       "minimum": 1,
@@ -1261,7 +1265,6 @@
      },
      "StringValue": {
       "type": "string",
-      "default": "",
       "maxLength": 5,
       "minLength": 1,
       "pattern": "^a.*b$"
