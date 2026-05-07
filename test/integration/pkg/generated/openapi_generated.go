@@ -1021,7 +1021,6 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 				Properties: map[string]spec.Schema{
 					"StringValue": {
 						SchemaProps: spec.SchemaProps{
-							Default:   "",
 							MinLength: ptr.To[int64](1),
 							MaxLength: ptr.To[int64](5),
 							Pattern:   "^a.*b$",
@@ -1031,7 +1030,6 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 					},
 					"NumberValue": {
 						SchemaProps: spec.SchemaProps{
-							Default:          0,
 							Minimum:          ptr.To[float64](1),
 							Maximum:          ptr.To[float64](5),
 							ExclusiveMinimum: true,
@@ -1088,7 +1086,7 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"StringValue", "NumberValue", "ArrayValue", "MapValue"},
+				Required: []string{"ArrayValue", "MapValue"},
 			},
 			VendorExtensible: spec.VendorExtensible{
 				Extensions: spec.Extensions{
