@@ -28,7 +28,7 @@ $ go run ../../cmd/openapi-gen/openapi-gen.go \
 
 $ go run ../../cmd/openapi-gen/openapi-gen.go \
   --output-dir pkg/generated/namedmodels \
-  --output-pkg generated \
+  --output-pkg generated/namedmodels \
   --output-file openapi_generated.go \
   --output-model-name-file zz_generated_model_name.go \
   --go-header-file ../../boilerplate/boilerplate.go.txt \
