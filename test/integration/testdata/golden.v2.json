@@ -798,8 +798,8 @@
      },
      "Sub": {
       "default": {
-       "i": 5,
-       "s": "foo"
+       "I": 5,
+       "S": "foo"
       },
       "$ref": "#/definitions/defaults.SubStruct"
      },

@@ -8,7 +8,7 @@ type Defaulted struct {
 	OtherField int
 	// +default=["foo", "bar"]
 	List []Item
-	// +default={"s": "foo", "i": 5}
+	// +default={"S": "foo", "I": 5}
 	Sub *SubStruct
 
 	OtherSub SubStruct

@@ -138,7 +138,7 @@ func schema_test_integration_testdata_defaults_Defaulted(ref common.ReferenceCal
 					},
 					"Sub": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{"i": 5, "s": "foo"},
+							Default: map[string]interface{}{"I": 5, "S": "foo"},
 							Ref:     ref("k8s.io/kube-openapi/test/integration/testdata/defaults.SubStruct"),
 						},
 					},
