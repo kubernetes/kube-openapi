@@ -18,14 +18,16 @@ type Foo struct {
 	// +k8s:validation:maxLength=5
 	// +k8s:validation:minLength=1
 	// +k8s:validation:pattern="^a.*b$"
-	StringValue string
+	// +optional
+	StringValue string `json:"StringValue,omitempty"`
 
 	// +k8s:validation:maximum=5.0
 	// +k8s:validation:minimum=1.0
 	// +k8s:validation:exclusiveMinimum=true
 	// +k8s:validation:exclusiveMaximum=true
 	// +k8s:validation:multipleOf=2.0
-	NumberValue float64
+	// +optional
+	NumberValue float64 `json:"NumberValue,omitempty"`
 
 	// +k8s:validation:maxItems=5
 	// +k8s:validation:minItems=1

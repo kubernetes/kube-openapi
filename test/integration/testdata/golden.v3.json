@@ -1186,8 +1186,6 @@
      "maxProperties": 5,
      "minProperties": 1,
      "required": [
-      "StringValue",
-      "NumberValue",
       "ArrayValue",
       "MapValue"
      ],
@@ -1214,7 +1212,6 @@
       "NumberValue": {
        "type": "number",
        "format": "double",
-       "default": 0,
        "maximum": 5,
        "exclusiveMaximum": true,
        "minimum": 1,
@@ -1223,7 +1220,6 @@
       },
       "StringValue": {
        "type": "string",
-       "default": "",
        "maxLength": 5,
        "minLength": 1,
        "pattern": "^a.*b$"
