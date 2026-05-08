@@ -156,7 +156,7 @@ func TestResponsesRoundtrip(t *testing.T) {
 			// Show we cannot decode a string into something expecting object
 			Name:                   "FailDecodeDefault",
 			JSON:                   `{"x-extension":"an extension","default":"wrong type object"}`,
-			ExpectedUnmarshalError: "unmarshal JSON string into Go value of type struct",
+			ExpectedUnmarshalError: "unmarshal JSON string into Go struct",
 		},
 	}
 
