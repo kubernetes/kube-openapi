@@ -128,9 +128,8 @@ func schema_test_integration_testdata_defaults_Defaulted(ref common.ReferenceCal
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -156,9 +155,8 @@ func schema_test_integration_testdata_defaults_Defaulted(ref common.ReferenceCal
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -417,9 +415,8 @@ func schema_test_integration_testdata_listtype_AtomicList(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -499,8 +496,7 @@ func schema_test_integration_testdata_listtype_MapList(ref common.ReferenceCallb
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: map[string]interface{}{},
-										Ref:     ref("k8s.io/kube-openapi/test/integration/testdata/listtype.Item"),
+										Ref: ref("k8s.io/kube-openapi/test/integration/testdata/listtype.Item"),
 									},
 								},
 							},
@@ -532,9 +528,8 @@ func schema_test_integration_testdata_listtype_SetList(ref common.ReferenceCallb
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -559,9 +554,8 @@ func schema_test_integration_testdata_listtype_UntypedList(ref common.ReferenceC
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -592,9 +586,8 @@ func schema_test_integration_testdata_maptype_AtomicMap(ref common.ReferenceCall
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -625,9 +618,8 @@ func schema_test_integration_testdata_maptype_GranularMap(ref common.ReferenceCa
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -1048,9 +1040,8 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
@@ -1065,9 +1056,8 @@ func schema_test_integration_testdata_valuevalidation_Foo(ref common.ReferenceCa
 								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Default: "",
-										Type:    []string{"string"},
-										Format:  "",
+										Type:   []string{"string"},
+										Format: "",
 									},
 								},
 							},
