@@ -17,12 +17,15 @@ limitations under the License.
 package jsontesting
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 
 	kjson "sigs.k8s.io/json"
+
+	"k8s.io/kube-openapi/pkg/internal"
 
 	"github.com/go-openapi/jsonreference"
 	"github.com/google/go-cmp/cmp"
@@ -89,6 +92,41 @@ func (t RoundTripTestCase) RoundTripTest(example MarshalerUnmarshaler) error {
 		jsonBytes, err = json.Marshal(t.Object)
 		if testFinished, err := expectError(err, "marshal", t.ExpectedMarshalError); testFinished {
 			return err
+		}
+
+		// If no JSON fixture was provided, ensure optimized marshaling produces identical json to unoptimized
+		original := internal.UseOptimizedJSONMarshaling
+		originalV3 := internal.UseOptimizedJSONMarshalingV3
+		internal.UseOptimizedJSONMarshaling = false
+		internal.UseOptimizedJSONMarshalingV3 = false
+		unoptimizedJSONBytes, err := json.Marshal(t.Object)
+		if err != nil {
+			return err
+		}
+		internal.UseOptimizedJSONMarshaling = original
+		internal.UseOptimizedJSONMarshalingV3 = originalV3
+
+		// round-trip to normalize order
+		optimizedObj := map[string]any{}
+		if err := json.Unmarshal(jsonBytes, &optimizedObj); err != nil {
+			return err
+		}
+		optimizedBytes, err := json.Marshal(optimizedObj)
+		if err != nil {
+			return err
+		}
+		unoptimizedObj := map[string]any{}
+		if err := json.Unmarshal(unoptimizedJSONBytes, &unoptimizedObj); err != nil {
+			return err
+		}
+		unoptimizedBytes, err := json.Marshal(unoptimizedObj)
+		if err != nil {
+			return err
+		}
+
+		// Ensure optimized bytes match unoptimized bytes
+		if !bytes.Equal(optimizedBytes, unoptimizedBytes) {
+			return fmt.Errorf("optimized marshal differs from unoptimized marshal:\n%s", cmp.Diff(string(optimizedBytes), string(unoptimizedBytes)))
 		}
 	} else {
 		jsonBytes = []byte(t.JSON)
