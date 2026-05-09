@@ -29,5 +29,14 @@ rm *.png
 # NOTE: go-json-experiment has no go mod dependencies at the moment.
 #       If this changes, the code will need to be updated.
 rm go.mod go.sum
+# Remove large testdata files and the tests that depend on them.
+rm bench_test.go
+rm intern_test.go
+rm internal/jsontest/testdata.go
+rm jsontext/fuzz_test.go
+rm v1/bench_test.go
+rm -rf internal/jsontest/testdata
+# Only used to decompress the testdata fixtures removed above.
+rm -rf internal/zstd
 # Update references to point to the fork
 find . -type f -name "*.go" -print0 | xargs -0 perl -pi -e "s#github.com/go-json-experiment/json#k8s.io/kube-openapi/${GO_JSON_EXPERIMENT_DIR}#g"
