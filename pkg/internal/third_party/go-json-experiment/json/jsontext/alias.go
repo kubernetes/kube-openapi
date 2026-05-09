@@ -36,7 +36,7 @@
 //
 //   - a JSON literal, string, or number
 //   - a JSON object (e.g., `{"name":"value"}`)
-//   - a JSON array (e.g., `[1,2,3,]`)
+//   - a JSON array (e.g., `[1,2,3]`)
 //
 // A JSON value is represented by the [Value] type in Go and is a []byte
 // containing the raw textual representation of the value. There is some overlap
@@ -202,7 +202,7 @@ type SyntacticError = jsontext.SyntacticError
 // Options configures [NewEncoder], [Encoder.Reset], [NewDecoder],
 // and [Decoder.Reset] with specific features.
 // Each function takes in a variadic list of options, where properties
-// set in latter options override the value of previously set properties.
+// set in later options override the value of previously set properties.
 //
 // There is a single Options type, which is used with both encoding and decoding.
 // Some options affect both operations, while others only affect one operation:
@@ -365,7 +365,7 @@ func Multiline(v bool) Options {
 // followed by one or more copies of indent according to the nesting depth.
 // The indent must only be composed of space or tab characters.
 //
-// If the intent to emit indented output without a preference for
+// If the intent is to emit indented output without a preference for
 // the particular indent string, then use [Multiline] instead.
 //
 // This only affects encoding and is ignored when decoding.
@@ -414,8 +414,8 @@ func AppendUnquote[Bytes ~[]byte | ~string](dst []byte, src Bytes) ([]byte, erro
 // The name of a duplicate JSON object member can be extracted as:
 //
 //	err := ...
-//	var serr jsontext.SyntacticError
-//	if errors.As(err, &serr) && serr.Err == jsontext.ErrDuplicateName {
+//	serr, ok := errors.AsType[*jsontext.SyntacticError](err)
+//	if ok && serr.Err == jsontext.ErrDuplicateName {
 //		ptr := serr.JSONPointer // JSON pointer to duplicate name
 //		name := ptr.LastToken() // duplicate name itself
 //		...
@@ -455,6 +455,20 @@ type Pointer = jsontext.Pointer
 // A Token cannot represent entire array or object values, while a [Value] can.
 // There is no Token to represent commas and colons since
 // these structural tokens can be inferred from the surrounding context.
+//
+// A Token stores data in one of two forms:
+//
+//   - As raw JSON text: backed by the internal buffer of the [Decoder]
+//     and only ever produced by [Decoder.ReadToken].
+//     Such a token is only valid until the next call to any method on that
+//     [Decoder] (e.g., [Decoder.PeekKind], [Decoder.ReadToken],
+//     [Decoder.ReadValue], or [Decoder.SkipValue]).
+//     Call [Token.Clone] to copy the raw text into an independent allocation
+//     that persists beyond subsequent [Decoder] calls.
+//
+//   - As a typed Go value: a self-contained representation produced by
+//     the constructor functions (e.g., [String], [Int], [Uint], [Float]).
+//     Such tokens are valid indefinitely and do not need to be cloned.
 type Token = jsontext.Token
 
 var (
@@ -479,7 +493,10 @@ func String(s string) Token {
 	return jsontext.String(s)
 }
 
-// Float constructs a Token representing a JSON number.
+// Float constructs a Token representing a JSON number as
+// a 64-bit floating-point number formatted according to
+// ECMA-262, 10th edition, section 7.1.12.1 and RFC 8785, section 3.2.2.3.
+// with the exception that -0 is still formatted as -0.
 // The values NaN, +Inf, and -Inf will be represented
 // as a JSON string with the values "NaN", "Infinity", and "-Infinity".
 func Float(n float64) Token {
@@ -496,23 +513,25 @@ func Uint(n uint64) Token {
 	return jsontext.Uint(n)
 }
 
+// A Kind represents the kind of a JSON token.
+//
 // Kind represents each possible JSON token kind with a single byte,
 // which is conveniently the first byte of that kind's grammar
-// with the restriction that numbers always be represented with '0':
-//
-//   - 'n': null
-//   - 'f': false
-//   - 't': true
-//   - '"': string
-//   - '0': number
-//   - '{': object begin
-//   - '}': object end
-//   - '[': array begin
-//   - ']': array end
-//
-// An invalid kind is usually represented using 0,
-// but may be non-zero due to invalid JSON data.
+// with the restriction that numbers always be represented with '0'.
 type Kind = jsontext.Kind
+
+const (
+	KindInvalid     = jsontext.KindInvalid
+	KindNull        = jsontext.KindNull
+	KindFalse       = jsontext.KindFalse
+	KindTrue        = jsontext.KindTrue
+	KindString      = jsontext.KindString
+	KindNumber      = jsontext.KindNumber
+	KindBeginObject = jsontext.KindBeginObject
+	KindEndObject   = jsontext.KindEndObject
+	KindBeginArray  = jsontext.KindBeginArray
+	KindEndArray    = jsontext.KindEndArray
+)
 
 // AppendFormat formats the JSON value in src and appends it to dst
 // according to the specified options.
@@ -520,8 +539,8 @@ type Kind = jsontext.Kind
 //
 // The dst and src may overlap.
 // If an error is reported, then the entirety of src is appended to dst.
-func AppendFormat(dst, src []byte, opts ...Options) ([]byte, error) {
-	return jsontext.AppendFormat(dst, src, opts...)
+func AppendFormat[Bytes ~[]byte | ~string](dst []byte, src Bytes, opts ...Options) ([]byte, error) {
+	return jsontext.AppendFormat(dst, []byte(src), opts...)
 }
 
 // Value represents a single raw JSON value, which may be one of the following:

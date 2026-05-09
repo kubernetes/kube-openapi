@@ -18,6 +18,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json/internal"
 	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json/internal/jsonflags"
 	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json/internal/jsonwire"
 )
@@ -80,7 +81,7 @@ func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) 
 		return cmp.Or(serr, &SemanticError{GoType: t, Err: fmt.Errorf(f, a...)})
 	}
 
-	// Setup a queue for a breath-first search.
+	// Setup a queue for a breadth-first search.
 	var queueIndex int
 	type queueEntry struct {
 		typ           reflect.Type
@@ -129,25 +130,16 @@ func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) 
 					f.inline = true // implied by use of Go embedding without an explicit name
 				}
 			}
-			if f.inline || f.unknown {
+			if f.inline {
 				// Handle an inlined field that serializes to/from
 				// zero or more JSON object members.
 
-				switch f.fieldOptions {
-				case fieldOptions{name: f.name, quotedName: f.quotedName, inline: true}:
-				case fieldOptions{name: f.name, quotedName: f.quotedName, unknown: true}:
-				case fieldOptions{name: f.name, quotedName: f.quotedName, inline: true, unknown: true}:
-					serr = orErrorf(serr, t, "Go struct field %s cannot have both `inline` and `unknown` specified", sf.Name)
-					f.inline = false // let `unknown` take precedence
-				default:
-					serr = orErrorf(serr, t, "Go struct field %s cannot have any options other than `inline` or `unknown` specified", sf.Name)
+				if f.fieldOptions != (fieldOptions{name: f.name, quotedName: f.quotedName, inline: true}) {
+					serr = orErrorf(serr, t, "Go struct field %s cannot have any options other than `inline` specified", sf.Name)
 					if f.hasName {
 						continue // invalid inlined field; treat as ignored
 					}
-					f.fieldOptions = fieldOptions{name: f.name, quotedName: f.quotedName, inline: f.inline, unknown: f.unknown}
-					if f.inline && f.unknown {
-						f.inline = false // let `unknown` take precedence
-					}
+					f.fieldOptions = fieldOptions{name: f.name, quotedName: f.quotedName, inline: f.inline}
 				}
 
 				// Reject any types with custom serialization otherwise
@@ -160,10 +152,6 @@ func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) 
 				// Handle an inlined field that serializes to/from
 				// a finite number of JSON object members backed by a Go struct.
 				if tf.Kind() == reflect.Struct {
-					if f.unknown {
-						serr = orErrorf(serr, t, "inlined Go struct field %s of type %s with `unknown` tag must be a Go map of string key or a jsontext.Value", sf.Name, tf)
-						continue // invalid inlined field; treat as ignored
-					}
 					if qe.visitChildren {
 						queue = append(queue, queueEntry{tf, f.index, !seen[tf]})
 					}
@@ -333,7 +321,7 @@ func makeStructFields(root reflect.Type) (fs structFields, serr *SemanticError) 
 	}
 	for foldedName, fields := range fs.byFoldedName {
 		if len(fields) > 1 {
-			// The precedence order for conflicting ignoreCase names
+			// The precedence order for conflicting case-insensitive names
 			// is by breadth-first order, rather than depth-first order.
 			slices.SortFunc(fields, func(x, y *structField) int {
 				return cmp.Compare(x.id, y.id)
@@ -392,7 +380,6 @@ type fieldOptions struct {
 	nameNeedEscape bool
 	casing         int8 // either 0, caseIgnore, or caseStrict
 	inline         bool
-	unknown        bool
 	omitzero       bool
 	omitempty      bool
 	string         bool
@@ -467,9 +454,9 @@ func parseFieldOptions(sf reflect.StructField) (out fieldOptions, ignored bool, 
 		}
 		tag = tag[n:]
 	}
-	b, _ := jsonwire.AppendQuote(nil, out.name, &jsonflags.Flags{})
+	b, _ := jsonwire.AppendQuote(nil, []byte(out.name), &jsonflags.Flags{})
 	out.quotedName = string(b)
-	out.nameNeedEscape = jsonwire.NeedEscape(out.name)
+	out.nameNeedEscape = jsonwire.NeedEscape([]byte(out.name))
 
 	// Handle any additional tag options (if any).
 	var wasFormat bool
@@ -526,8 +513,6 @@ func parseFieldOptions(sf reflect.StructField) (out fieldOptions, ignored bool, 
 			}
 		case "inline":
 			out.inline = true
-		case "unknown":
-			out.unknown = true
 		case "omitzero":
 			out.omitzero = true
 		case "omitempty":
@@ -535,6 +520,10 @@ func parseFieldOptions(sf reflect.StructField) (out fieldOptions, ignored bool, 
 		case "string":
 			out.string = true
 		case "format":
+			if !internal.ExpJSONFormat {
+				err = cmp.Or(err, fmt.Errorf("Go struct field %s has invalid `format` tag option without GOEXPERIMENT=jsonformat", sf.Name))
+				break
+			}
 			if !strings.HasPrefix(tag, ":") {
 				err = cmp.Or(err, fmt.Errorf("Go struct field %s is missing value for `format` tag option", sf.Name))
 				break
@@ -553,7 +542,7 @@ func parseFieldOptions(sf reflect.StructField) (out fieldOptions, ignored bool, 
 			// This catches invalid mutants such as "omitEmpty" or "omit_empty".
 			normOpt := strings.ReplaceAll(strings.ToLower(opt), "_", "")
 			switch normOpt {
-			case "case", "inline", "unknown", "omitzero", "omitempty", "string", "format":
+			case "case", "inline", "omitzero", "omitempty", "string", "format":
 				err = cmp.Or(err, fmt.Errorf("Go struct field %s has invalid appearance of `%s` tag option; specify `%s` instead", sf.Name, opt, normOpt))
 			}
 
@@ -592,6 +581,10 @@ func consumeTagOption(in string) (string, int, error) {
 		return in[:n], n, nil
 	// Option as a single-quoted string.
 	case r == '\'':
+		if !internal.ExpJSONFormat {
+			return in[:i], i, fmt.Errorf("invalid use of single-quoted tag option without GOEXPERIMENT=jsonformat")
+		}
+
 		// The grammar is nearly identical to a double-quoted Go string literal,
 		// but uses single quotes as the terminators. The reason for a custom
 		// grammar is because both backtick and double quotes cannot be used

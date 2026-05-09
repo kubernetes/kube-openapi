@@ -80,7 +80,7 @@ type Decoder struct {
 }
 
 // decoderState is the low-level state of Decoder.
-// It has exported fields and method for use by the "json" package.
+// It has exported fields and methods for use by the "json" package.
 type decoderState struct {
 	state
 	decodeBuffer
@@ -154,7 +154,7 @@ func (d *decoderState) reset(b []byte, r io.Reader, opts ...Options) {
 	d.Struct = opts2
 }
 
-// Options returns the options used to construct the encoder and
+// Options returns the options used to construct the decoder and
 // may additionally contain semantic options passed to a
 // [encoding/json/v2.UnmarshalDecode] call.
 //
@@ -306,7 +306,7 @@ func (d *decodeBuffer) PreviousTokenOrValue() []byte {
 
 // PeekKind retrieves the next token kind, but does not advance the read offset.
 //
-// It returns 0 if an error occurs. Any such error is cached until
+// It returns [KindInvalid] if an error occurs. Any such error is cached until
 // the next read call and it is the caller's responsibility to eventually
 // follow up a PeekKind call with a read call.
 func (d *Decoder) PeekKind() Kind {
@@ -792,6 +792,12 @@ func (d *decoderState) CheckNextValue(last bool) error {
 	return nil
 }
 
+// AtEOF reports whether the decoder is at EOF.
+func (d *decoderState) AtEOF() bool {
+	_, err := d.consumeWhitespace(d.prevEnd)
+	return err == io.ErrUnexpectedEOF
+}
+
 // CheckEOF verifies that the input has no more data.
 func (d *decoderState) CheckEOF() error {
 	return d.checkEOF(d.prevEnd)
@@ -1148,9 +1154,9 @@ func (d *Decoder) StackDepth() int {
 // It must be a number between 0 and [Decoder.StackDepth], inclusive.
 // For each level, it reports the kind:
 //
-//   - 0 for a level of zero,
-//   - '{' for a level representing a JSON object, and
-//   - '[' for a level representing a JSON array.
+//   - [KindInvalid] for a level of zero,
+//   - [KindBeginObject] for a level representing a JSON object, and
+//   - [KindBeginArray] for a level representing a JSON array.
 //
 // It also reports the length of that JSON object or array.
 // Each name and value in a JSON object is counted separately,

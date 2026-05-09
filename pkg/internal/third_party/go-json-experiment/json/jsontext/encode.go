@@ -50,7 +50,7 @@ type Encoder struct {
 }
 
 // encoderState is the low-level state of Encoder.
-// It has exported fields and method for use by the "json" package.
+// It has exported fields and methods for use by the "json" package.
 type encoderState struct {
 	state
 	encodeBuffer
@@ -138,7 +138,7 @@ func (e *encoderState) reset(b []byte, w io.Writer, opts ...Options) {
 	}
 }
 
-// Options returns the options used to construct the decoder and
+// Options returns the options used to construct the encoder and
 // may additionally contain semantic options passed to a
 // [encoding/json/v2.MarshalEncode] call.
 //
@@ -471,7 +471,7 @@ func (e *encoderState) AppendRaw(k Kind, safeASCII bool, appendFn func([]byte) (
 		if !isVerbatim {
 			var err error
 			b2 := append(e.availBuffer, b[pos+len(`"`):len(b)-len(`"`)]...)
-			b, err = jsonwire.AppendQuote(b[:pos], string(b2), &e.Flags)
+			b, err = jsonwire.AppendQuote(b[:pos], b2, &e.Flags)
 			e.availBuffer = b2[:0]
 			if err != nil {
 				return wrapSyntacticError(e, err, pos, +1)
@@ -946,9 +946,9 @@ func (e *Encoder) StackDepth() int {
 // It must be a number between 0 and [Encoder.StackDepth], inclusive.
 // For each level, it reports the kind:
 //
-//   - 0 for a level of zero,
-//   - '{' for a level representing a JSON object, and
-//   - '[' for a level representing a JSON array.
+//   - [KindInvalid] for a level of zero,
+//   - [KindBeginObject] for a level representing a JSON object, and
+//   - [KindBeginArray] for a level representing a JSON array.
 //
 // It also reports the length of that JSON object or array.
 // Each name and value in a JSON object is counted separately,

@@ -208,7 +208,7 @@ func makeStringArshaler(t reflect.Type) *arshaler {
 		if optimizeCommon && !mo.Flags.Get(jsonflags.AnyWhitespace|jsonflags.StringifyBoolsAndStrings) && !xe.Tokens.Last.NeedObjectName() {
 			b := xe.Buf
 			b = xe.Tokens.MayAppendDelim(b, '"')
-			b, err := jsonwire.AppendQuote(b, s, &mo.Flags)
+			b, err := jsonwire.AppendQuote(b, []byte(s), &mo.Flags)
 			if err == nil {
 				xe.Buf = b
 				xe.Tokens.Last.Increment()
@@ -222,7 +222,7 @@ func makeStringArshaler(t reflect.Type) *arshaler {
 		}
 
 		if mo.Flags.Get(jsonflags.StringifyBoolsAndStrings) {
-			b, err := jsonwire.AppendQuote(nil, s, &mo.Flags)
+			b, err := jsonwire.AppendQuote(nil, []byte(s), &mo.Flags)
 			if err != nil {
 				return newMarshalErrorBefore(enc, t, &jsontext.SyntacticError{Err: err})
 			}
@@ -474,10 +474,21 @@ func makeIntArshaler(t reflect.Type) *arshaler {
 				break
 			}
 			val = jsonwire.UnquoteMayCopy(val, flags.IsVerbatim())
-			if uo.Flags.Get(jsonflags.StringifyWithLegacySemantics) && string(val) == "null" {
-				if !uo.Flags.Get(jsonflags.MergeWithLegacySemantics) {
-					va.SetInt(0)
+			if uo.Flags.Get(jsonflags.StringifyWithLegacySemantics) {
+				// For historical reasons, v1 parsed a quoted number
+				// according to the Go syntax and permitted a quoted null.
+				// See https://go.dev/issue/75619
+				n, err := strconv.ParseInt(string(val), 10, bits)
+				if err != nil {
+					if string(val) == "null" {
+						if !uo.Flags.Get(jsonflags.MergeWithLegacySemantics) {
+							va.SetInt(0)
+						}
+						return nil
+					}
+					return newUnmarshalErrorAfterWithValue(dec, t, errors.Unwrap(err))
 				}
+				va.SetInt(n)
 				return nil
 			}
 			fallthrough
@@ -561,10 +572,21 @@ func makeUintArshaler(t reflect.Type) *arshaler {
 				break
 			}
 			val = jsonwire.UnquoteMayCopy(val, flags.IsVerbatim())
-			if uo.Flags.Get(jsonflags.StringifyWithLegacySemantics) && string(val) == "null" {
-				if !uo.Flags.Get(jsonflags.MergeWithLegacySemantics) {
-					va.SetUint(0)
+			if uo.Flags.Get(jsonflags.StringifyWithLegacySemantics) {
+				// For historical reasons, v1 parsed a quoted number
+				// according to the Go syntax and permitted a quoted null.
+				// See https://go.dev/issue/75619
+				n, err := strconv.ParseUint(string(val), 10, bits)
+				if err != nil {
+					if string(val) == "null" {
+						if !uo.Flags.Get(jsonflags.MergeWithLegacySemantics) {
+							va.SetUint(0)
+						}
+						return nil
+					}
+					return newUnmarshalErrorAfterWithValue(dec, t, errors.Unwrap(err))
 				}
+				va.SetUint(n)
 				return nil
 			}
 			fallthrough
@@ -671,10 +693,21 @@ func makeFloatArshaler(t reflect.Type) *arshaler {
 			if !stringify {
 				break
 			}
-			if uo.Flags.Get(jsonflags.StringifyWithLegacySemantics) && string(val) == "null" {
-				if !uo.Flags.Get(jsonflags.MergeWithLegacySemantics) {
-					va.SetFloat(0)
+			if uo.Flags.Get(jsonflags.StringifyWithLegacySemantics) {
+				// For historical reasons, v1 parsed a quoted number
+				// according to the Go syntax and permitted a quoted null.
+				// See https://go.dev/issue/75619
+				n, err := strconv.ParseFloat(string(val), bits)
+				if err != nil {
+					if string(val) == "null" {
+						if !uo.Flags.Get(jsonflags.MergeWithLegacySemantics) {
+							va.SetFloat(0)
+						}
+						return nil
+					}
+					return newUnmarshalErrorAfterWithValue(dec, t, errors.Unwrap(err))
 				}
+				va.SetFloat(n)
 				return nil
 			}
 			if n, err := jsonwire.ConsumeNumber(val); n != len(val) || err != nil {
@@ -685,10 +718,10 @@ func makeFloatArshaler(t reflect.Type) *arshaler {
 			if stringify && k == '0' {
 				break
 			}
-			fv, ok := jsonwire.ParseFloat(val, bits)
+			fv, err := strconv.ParseFloat(string(val), bits)
 			va.SetFloat(fv)
-			if !ok {
-				return newUnmarshalErrorAfterWithValue(dec, t, strconv.ErrRange)
+			if err != nil {
+				return newUnmarshalErrorAfterWithValue(dec, t, errors.Unwrap(err))
 			}
 			return nil
 		}
@@ -810,7 +843,7 @@ func makeMapArshaler(t reflect.Type) *arshaler {
 					k.SetIterKey(iter)
 					(*names)[i] = k.String()
 				}
-				names.Sort()
+				slices.Sort(*names)
 				for _, name := range *names {
 					if err := enc.WriteToken(jsontext.String(name)); err != nil {
 						return err
@@ -1000,7 +1033,7 @@ func makeMapArshaler(t reflect.Type) *arshaler {
 // mapKeyWithUniqueRepresentation reports whether all possible values of k
 // marshal to a different JSON value, and whether all possible JSON values
 // that can unmarshal into k unmarshal to different Go values.
-// In other words, the representation must be a bijective.
+// In other words, the representation must be a bijection.
 func mapKeyWithUniqueRepresentation(k reflect.Kind, allowInvalidUTF8 bool) bool {
 	switch k {
 	case reflect.Bool,
@@ -1009,7 +1042,7 @@ func mapKeyWithUniqueRepresentation(k reflect.Kind, allowInvalidUTF8 bool) bool 
 		return true
 	case reflect.String:
 		// For strings, we have to be careful since names with invalid UTF-8
-		// maybe unescape to the same Go string value.
+		// may unescape to the same Go string value.
 		return !allowInvalidUTF8
 	default:
 		// Floating-point kinds are not listed above since NaNs
@@ -1115,7 +1148,7 @@ func makeStructArshaler(t reflect.Type) *arshaler {
 				if !f.nameNeedEscape {
 					b = append(b, f.quotedName...)
 				} else {
-					b, _ = jsonwire.AppendQuote(b, f.name, &mo.Flags)
+					b, _ = jsonwire.AppendQuote(b, []byte(f.name), &mo.Flags)
 				}
 				xe.Buf = b
 				xe.Names.ReplaceLastQuotedOffset(n0)
@@ -1165,7 +1198,7 @@ func makeStructArshaler(t reflect.Type) *arshaler {
 			}
 			prevIdx = f.id
 		}
-		if fields.inlinedFallback != nil && !(mo.Flags.Get(jsonflags.DiscardUnknownMembers) && fields.inlinedFallback.unknown) {
+		if fields.inlinedFallback != nil {
 			var insertUnquotedName func([]byte) bool
 			if !mo.Flags.Get(jsonflags.AllowDuplicateNames) {
 				insertUnquotedName = func(name []byte) bool {
@@ -1237,7 +1270,7 @@ func makeStructArshaler(t reflect.Type) *arshaler {
 						}
 					}
 					if f == nil {
-						if uo.Flags.Get(jsonflags.RejectUnknownMembers) && (fields.inlinedFallback == nil || fields.inlinedFallback.unknown) {
+						if uo.Flags.Get(jsonflags.RejectUnknownMembers) && fields.inlinedFallback == nil {
 							err := newUnmarshalErrorAfter(dec, t, ErrUnknownName)
 							if !uo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
 								return err
@@ -1255,7 +1288,7 @@ func makeStructArshaler(t reflect.Type) *arshaler {
 								return err
 							}
 						} else {
-							// Marshal into value capable of storing arbitrary object members.
+							// Unmarshal into a value capable of storing arbitrary object members.
 							if err := unmarshalInlinedFallbackNext(dec, va, uo, fields.inlinedFallback, val, name); err != nil {
 								if isFatalError(err, uo.Flags) {
 									return err
@@ -1838,7 +1871,7 @@ func makeInterfaceArshaler(t reflect.Type) *arshaler {
 	return &fncs
 }
 
-// isAnyType reports wether t is equivalent to the any interface type.
+// isAnyType reports whether t is equivalent to the any interface type.
 func isAnyType(t reflect.Type) bool {
 	// This is forward compatible if the Go language permits type sets within
 	// ordinary interfaces where an interface with zero methods does not

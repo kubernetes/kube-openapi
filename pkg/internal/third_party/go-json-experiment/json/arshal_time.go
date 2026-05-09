@@ -54,11 +54,14 @@ func makeTimeArshaler(fncs *arshaler, t reflect.Type) *arshaler {
 				return marshalNano(enc, va, mo)
 			} else {
 				// TODO(https://go.dev/issue/71631): Decide on default duration representation.
-				return newMarshalErrorBefore(enc, t, errors.New("no default representation (see https://go.dev/issue/71631); specify an explicit format"))
+				var workaround string
+				if internal.ExpJSONFormat {
+					workaround = "; specify an explicit format"
+				}
+				return newMarshalErrorBefore(enc, t, errors.New("no default representation"+workaround))
 			}
 
-			// TODO(https://go.dev/issue/62121): Use reflect.Value.AssertTo.
-			m.td = *va.Addr().Interface().(*time.Duration)
+			m.td, _ = reflect.TypeAssert[time.Duration](va.Value)
 			k := stringOrNumberKind(!m.isNumeric() || xe.Tokens.Last.NeedObjectName() || mo.Flags.Get(jsonflags.StringifyNumbers))
 			if err := xe.AppendRaw(k, true, m.appendMarshal); err != nil {
 				if !isSyntacticError(err) && !export.IsIOError(err) {
@@ -80,12 +83,16 @@ func makeTimeArshaler(fncs *arshaler, t reflect.Type) *arshaler {
 				return unmarshalNano(dec, va, uo)
 			} else {
 				// TODO(https://go.dev/issue/71631): Decide on default duration representation.
-				return newUnmarshalErrorBeforeWithSkipping(dec, t, errors.New("no default representation (see https://go.dev/issue/71631); specify an explicit format"))
+				var workaround string
+				if internal.ExpJSONFormat {
+					workaround = "; specify an explicit format"
+				}
+				return newUnmarshalErrorBeforeWithSkipping(dec, t, errors.New("no default representation"+workaround))
 			}
 
 			stringify := !u.isNumeric() || xd.Tokens.Last.NeedObjectName() || uo.Flags.Get(jsonflags.StringifyNumbers)
 			var flags jsonwire.ValueFlags
-			td := va.Addr().Interface().(*time.Duration)
+			td, _ := reflect.TypeAssert[*time.Duration](va.Addr())
 			val, err := xd.ReadValue(&flags)
 			if err != nil {
 				return err
@@ -129,8 +136,7 @@ func makeTimeArshaler(fncs *arshaler, t reflect.Type) *arshaler {
 				}
 			}
 
-			// TODO(https://go.dev/issue/62121): Use reflect.Value.AssertTo.
-			m.tt = *va.Addr().Interface().(*time.Time)
+			m.tt, _ = reflect.TypeAssert[time.Time](va.Value)
 			k := stringOrNumberKind(!m.isNumeric() || xe.Tokens.Last.NeedObjectName() || mo.Flags.Get(jsonflags.StringifyNumbers))
 			if err := xe.AppendRaw(k, !m.hasCustomFormat(), m.appendMarshal); err != nil {
 				if mo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
@@ -156,7 +162,7 @@ func makeTimeArshaler(fncs *arshaler, t reflect.Type) *arshaler {
 
 			stringify := !u.isNumeric() || xd.Tokens.Last.NeedObjectName() || uo.Flags.Get(jsonflags.StringifyNumbers)
 			var flags jsonwire.ValueFlags
-			tt := va.Addr().Interface().(*time.Time)
+			tt, _ := reflect.TypeAssert[*time.Time](va.Addr())
 			val, err := xd.ReadValue(&flags)
 			if err != nil {
 				return err
@@ -467,7 +473,7 @@ func appendDurationISO8601(b []byte, d time.Duration) []byte {
 }
 
 // daysPerYear is the exact average number of days in a year according to
-// the Gregorian calender, which has an extra day each year that is
+// the Gregorian calendar, which has an extra day each year that is
 // a multiple of 4, unless it is evenly divisible by 100 but not by 400.
 // This does not take into account leap seconds, which are not deterministic.
 const daysPerYear = 365.2425
@@ -541,7 +547,7 @@ func parseDurationISO8601(b []byte) (time.Duration, error) {
 		}
 
 		// Parse the number.
-		// A fraction allowed for the accurate units in the last part.
+		// A fraction is allowed for the accurate units in the last part.
 		whole, frac, ok := cutBytes(number, '.', ',')
 		if ok {
 			sawFrac = true

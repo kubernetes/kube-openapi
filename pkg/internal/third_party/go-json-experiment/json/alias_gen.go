@@ -42,6 +42,13 @@ func main() {
 	generateAliases(targetPkgPath, workingDir)
 }
 
+var avoidAliasing = []string{
+	// TODO(Go 1.27): Remove these when they become available.
+	"jsontext.AppendFloat",
+	"jsontext.Float32",
+	"jsontext.Token.Float32",
+}
+
 func generateAliases(targetPkgPath, workingDir string) {
 	fset := token.NewFileSet()
 	var files []*ast.File
@@ -78,6 +85,10 @@ func generateAliases(targetPkgPath, workingDir string) {
 	}
 	aliasFile.WriteString("package " + packageName + "\n")
 	aliasFile.WriteString("\n")
+
+	avoidAlias := func(symbolName string) bool {
+		return slices.Contains(avoidAliasing, packageName+"."+symbolName)
+	}
 
 	// Print the imports.
 	imports := make(map[string]struct{})
@@ -144,7 +155,7 @@ func generateAliases(targetPkgPath, workingDir string) {
 						}
 						var hasExported bool
 						for _, name := range s.Names {
-							if name.IsExported() {
+							if name.IsExported() && !avoidAlias(name.String()) {
 								aliasDecls.WriteString(name.String())
 								aliasDecls.WriteByte(',')
 								hasExported = true
@@ -156,7 +167,7 @@ func generateAliases(targetPkgPath, workingDir string) {
 						trimRight(&aliasDecls, ",")
 						aliasDecls.WriteByte('=')
 						for _, name := range s.Names {
-							if name.IsExported() {
+							if name.IsExported() && !avoidAlias(name.String()) {
 								aliasDecls.WriteString(packageName)
 								aliasDecls.WriteByte('.')
 								aliasDecls.WriteString(name.String())
@@ -173,7 +184,7 @@ func generateAliases(targetPkgPath, workingDir string) {
 				case token.TYPE:
 					for _, s := range d.Specs {
 						s := s.(*ast.TypeSpec)
-						if !s.Name.IsExported() {
+						if !s.Name.IsExported() || avoidAlias(s.Name.String()) {
 							continue
 						}
 						writeComments(&aliasDecls, d.Doc)
@@ -191,7 +202,7 @@ func generateAliases(targetPkgPath, workingDir string) {
 					panic(fmt.Sprintf("unknown token.Token: %v", d.Tok))
 				}
 			case *ast.FuncDecl:
-				if !d.Name.IsExported() || d.Recv != nil {
+				if !d.Name.IsExported() || avoidAlias(d.Name.String()) || d.Recv != nil {
 					continue // ignore unexported functions or methods
 				}
 
@@ -237,6 +248,13 @@ func generateAliases(targetPkgPath, workingDir string) {
 				aliasDecls.WriteString(packageName)
 				aliasDecls.WriteByte('.')
 				aliasDecls.WriteString(d.Name.String())
+				if packageName == "jsontext" && d.Name.String() == "AppendFormat" {
+					// TODO(Go1.27): Remove this special-case logic.
+					// The signature of AppendFormat was non-parameterized prior to Go1.27,
+					// so need to explicitly convert src to a []byte during the call.
+					aliasDecls.WriteString(`(dst, []byte(src), opts...)` + "\n}\n\n")
+					break
+				}
 				writeFields(d.Type.TypeParams, '[', ']', false)
 				writeFields(d.Type.Params, '(', ')', false)
 				aliasDecls.WriteString("\n")

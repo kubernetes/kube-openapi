@@ -230,8 +230,10 @@ import (
 //   - map[string]any, for JSON objects
 //   - nil for JSON null
 //
-// To unmarshal a JSON array into a slice, Unmarshal resets the slice length
-// to zero and then appends each element to the slice.
+// To unmarshal a JSON array into a slice, Unmarshal decodes each JSON array
+// element into the corresponding slice element, reusing existing slice
+// elements in-place. The slice grows to accommodate additional elements,
+// or is truncated if the JSON array is shorter.
 // As a special case, to unmarshal an empty JSON array into a slice,
 // Unmarshal replaces the slice with a new empty slice.
 //
@@ -539,9 +541,7 @@ type Options = json.Options
 //   - [jsontext.EscapeForJS]
 //   - [jsontext.PreserveRawStrings]
 //
-// All other boolean options are set to false.
-// All non-boolean options are set to the zero value,
-// except for [jsontext.WithIndent], which defaults to "\t".
+// All other options are not present.
 //
 // The [Marshal] and [Unmarshal] functions in this package are
 // semantically identical to calling the v2 equivalents with this option:
@@ -592,7 +592,7 @@ func CallMethodsWithLegacySemantics(v bool) Options {
 }
 
 // FormatByteArrayAsArray specifies that a Go [N]byte is
-// formatted as as a normal Go array in contrast to the v2 default of
+// formatted as a normal Go array in contrast to the v2 default of
 // formatting [N]byte as using binary data encoding (RFC 4648).
 // If a struct field has a `format` tag option,
 // then the specified formatting takes precedence.
@@ -664,6 +664,9 @@ func MatchCaseSensitiveDelimiter(v bool) Options {
 //     the original Go value for array elements, slice elements,
 //     struct fields (but not map values),
 //     pointer values, and interface values (only if a non-nil pointer).
+//     For slices, it will merge into the pre-existing value of slice elements
+//     even for those past the slice length. If the original slice length
+//     was longer than the JSON array, then it is truncated to match.
 //     In contrast, the default v2 behavior is to merge into the Go value
 //     for struct fields, map values, pointer values, and interface values.
 //     In general, the v2 semantic merges when unmarshaling a JSON object,
@@ -777,7 +780,9 @@ func ReportErrorsWithLegacySemantics(v bool) Options {
 // When marshaling, such Go values are serialized as their usual
 // JSON representation, but quoted within a JSON string.
 // When unmarshaling, such Go values must be deserialized from
-// a JSON string containing their usual JSON representation.
+// a JSON string containing their usual JSON representation or
+// Go number representation for that numeric kind.
+// Note that the Go number grammar is a superset of the JSON number grammar.
 // A JSON null quoted in a JSON string is a valid substitute for JSON null
 // while unmarshaling into a Go value that `string` takes effect on.
 //

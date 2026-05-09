@@ -18,6 +18,8 @@ for X in $(git ls-files --cached --others --exclude-standard | grep ".*[.]go$");
     if [ ! -e "$X" ]; then
         continue
     fi
+    sed -i 's/go:build goexperiment.jsonv2 && !goexperiment.jsonformat$/go:build (!goexperiment.jsonv2 || !go1.25) \&\& !goexperiment.jsonformat/' $X
+    sed -i 's/go:build goexperiment.jsonv2 && goexperiment.jsonformat$/go:build (!goexperiment.jsonv2 || !go1.25) \&\& goexperiment.jsonformat/' $X
     sed -i 's/go:build goexperiment.jsonv2$/go:build !goexperiment.jsonv2 || !go1.25/' $X
     sed -i 's|"encoding/json/v2"|"github.com/go-json-experiment/json"|' $X
     sed -i 's|"encoding/json/internal"|"github.com/go-json-experiment/json/internal"|' $X
@@ -32,10 +34,6 @@ for X in $(git ls-files --cached --others --exclude-standard | grep ".*[.]go$");
 done
 sed -i 's/v2[.]struct/json.struct/' $JSONROOT/errors_test.go
 sed -i 's|jsonv1 "github.com/go-json-experiment/json/v1"|jsonv1 "encoding/json"|' $JSONROOT/bench_test.go
-
-# TODO(go1.25): Remove test that relies on "synctest" that is not available yet.
-sed -i '/Issue #73733/,+17d' $JSONROOT/v1/encode_test.go
-goimports -w $JSONROOT/v1/encode_test.go
 
 # Remove documentation that only makes sense within the stdlib.
 sed -i  '/This package .* is experimental/,+4d' $JSONROOT/doc.go
