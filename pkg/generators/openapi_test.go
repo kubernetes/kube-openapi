@@ -342,7 +342,6 @@ Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -364,7 +363,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -918,7 +916,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -987,7 +984,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: 0,
 Type: []string{"integer"},
 Format: "int32",
 },
@@ -1056,7 +1052,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: false,
 Type: []string{"boolean"},
 Format: "",
 },
@@ -1158,30 +1153,6 @@ func TestFailingDefaultEnforced(t *testing.T) {
 				}
 			}`,
 		expectedError: `failed to generate default in example.com/base/foo.Blah: Struct: invalid default value (map[string]interface {}{"foo":5}) for non-pointer/non-omitempty. If specified, must be: {}`,
-	}, {
-		definition: `
-			package foo
-
-			type Blah struct {
-				List []Item
-
-			}
-
-			// +default="foo"
-			type Item string`,
-		expectedError: `failed to generate slice property in example.com/base/foo.Blah: List: invalid default value ("foo") for non-pointer/non-omitempty. If specified, must be: ""`,
-	}, {
-		definition: `
-			package foo
-
-			type Blah struct {
-				Map map[string]Item
-
-			}
-
-			// +default="foo"
-			type Item string`,
-		expectedError: `failed to generate map property in example.com/base/foo.Blah: Map: invalid default value ("foo") for non-pointer/non-omitempty. If specified, must be: ""`,
 	}}
 
 	for i, test := range tests {
@@ -1200,6 +1171,59 @@ func TestFailingDefaultEnforced(t *testing.T) {
 					t.Fatalf("An error was expected")
 				}
 				assertEqual(t, test.expectedError, funcErr.Error())
+			})
+		})
+	}
+}
+
+// TestSliceMapElementDefaultIgnored verifies that a +default annotation on a
+// type used as a slice item or map value is silently ignored: the generator
+// succeeds and produces a schema with no default on the items/value schema.
+func TestSliceMapElementDefaultIgnored(t *testing.T) {
+	tests := []struct {
+		name       string
+		definition string
+	}{{
+		name: "slice element default ignored",
+		definition: `
+			package foo
+
+			// +k8s:openapi-gen=true
+			type Blah struct {
+				List []Item
+			}
+
+			// +default="foo"
+			type Item string`,
+	}, {
+		name: "map element default ignored",
+		definition: `
+			package foo
+
+			// +k8s:openapi-gen=true
+			type Blah struct {
+				Map map[string]Item
+			}
+
+			// +default="foo"
+			type Item string`,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+				e := packagestest.Export(t, x, []packagestest.Module{{
+					Name: "example.com/base/foo",
+					Files: map[string]interface{}{
+						"foo.go": test.definition,
+					},
+				}})
+				defer e.Cleanup()
+
+				_, funcErr, _, _, _ := testOpenAPITypeWriter(t, e.Config)
+				if funcErr != nil {
+					t.Fatalf("Unexpected error: %v", funcErr)
+				}
 			})
 		})
 	}
@@ -1589,7 +1613,6 @@ Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -1605,7 +1628,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -1672,7 +1694,6 @@ Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: 0,
 Type: []string{"integer"},
 Format: "int64",
 },
@@ -1750,7 +1771,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -1839,7 +1859,6 @@ Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -1862,7 +1881,6 @@ Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 },
@@ -2141,7 +2159,6 @@ Type: []string{"array"},
 Items: &spec.SchemaOrArray{
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"},
@@ -2157,7 +2174,6 @@ AdditionalProperties: &spec.SchemaOrBool{
 Allows: true,
 Schema: &spec.Schema{
 SchemaProps: spec.SchemaProps{
-Default: "",
 Type: []string{"string"},
 Format: "",
 Enum: []interface{}{"a", "b"},
@@ -2525,7 +2541,6 @@ func TestMarkerComments(t *testing.T) {
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Default: "",
 											Type:    []string{"string"},
 											Format:  "",
 										},
@@ -3104,7 +3119,6 @@ func TestNestedMarkers(t *testing.T) {
                                                                 Items: &spec.SchemaOrArray{
                                                                         Schema: &spec.Schema{
                                                                                 SchemaProps: spec.SchemaProps{
-                                                                                        Default: "",
                                                                                         Type:    []string{"string"},
                                                                                         Format:  "",
                                                                                 },
@@ -3137,7 +3151,6 @@ func TestNestedMarkers(t *testing.T) {
                                                                                         Items: &spec.SchemaOrArray{
                                                                                                 Schema: &spec.Schema{
                                                                                                  SchemaProps: spec.SchemaProps{
-                                                                                                 Default: "",
                                                                                                  Type:    []string{"string"},
                                                                                                  Format:  "",
                                                                                                  },

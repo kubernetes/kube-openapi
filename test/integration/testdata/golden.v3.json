@@ -711,8 +711,7 @@
         "bar"
        ],
        "items": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        }
       },
       "Map": {
@@ -721,8 +720,7 @@
         "foo": "bar"
        },
        "additionalProperties": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        }
       },
       "OtherField": {
@@ -885,8 +883,7 @@
       "Field": {
        "type": "array",
        "items": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        },
        "x-kubernetes-list-type": "atomic"
       }
@@ -933,12 +930,7 @@
       "Field": {
        "type": "array",
        "items": {
-        "default": {},
-        "allOf": [
-         {
-          "$ref": "#/components/schemas/listtype.Item"
-         }
-        ]
+        "$ref": "#/components/schemas/listtype.Item"
        },
        "x-kubernetes-list-map-keys": [
         "port"
@@ -956,8 +948,7 @@
       "Field": {
        "type": "array",
        "items": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        },
        "x-kubernetes-list-type": "set"
       }
@@ -972,8 +963,7 @@
       "KeyValue": {
        "type": "object",
        "additionalProperties": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        },
        "x-kubernetes-map-type": "atomic"
       }
@@ -988,8 +978,7 @@
       "KeyValue": {
        "type": "object",
        "additionalProperties": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        },
        "x-kubernetes-map-type": "granular"
       }
@@ -1196,8 +1185,7 @@
        "minItems": 1,
        "uniqueItems": true,
        "items": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        }
       },
       "MapValue": {
@@ -1205,8 +1193,7 @@
        "maxProperties": 5,
        "minProperties": 1,
        "additionalProperties": {
-        "type": "string",
-        "default": ""
+        "type": "string"
        }
       },
       "NumberValue": {
