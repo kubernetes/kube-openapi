@@ -1176,6 +1176,59 @@ func TestFailingDefaultEnforced(t *testing.T) {
 	}
 }
 
+// TestSliceMapElementDefaultIgnored verifies that a +default annotation on a
+// type used as a slice item or map value is silently ignored: the generator
+// succeeds and produces a schema with no default on the items/value schema.
+func TestSliceMapElementDefaultIgnored(t *testing.T) {
+	tests := []struct {
+		name       string
+		definition string
+	}{{
+		name: "slice element default ignored",
+		definition: `
+			package foo
+
+			// +k8s:openapi-gen=true
+			type Blah struct {
+				List []Item
+			}
+
+			// +default="foo"
+			type Item string`,
+	}, {
+		name: "map element default ignored",
+		definition: `
+			package foo
+
+			// +k8s:openapi-gen=true
+			type Blah struct {
+				Map map[string]Item
+			}
+
+			// +default="foo"
+			type Item string`,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+				e := packagestest.Export(t, x, []packagestest.Module{{
+					Name: "example.com/base/foo",
+					Files: map[string]interface{}{
+						"foo.go": test.definition,
+					},
+				}})
+				defer e.Cleanup()
+
+				_, funcErr, _, _, _ := testOpenAPITypeWriter(t, e.Config)
+				if funcErr != nil {
+					t.Fatalf("Unexpected error: %v", funcErr)
+				}
+			})
+		})
+	}
+}
+
 func TestCustomDef(t *testing.T) {
 	inputFile := `
 		package foo
