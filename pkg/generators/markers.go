@@ -260,12 +260,6 @@ func (c commentTags) Validate() error {
 	if c.MinBytes != nil && *c.MinBytes < 0 {
 		err = errors.Join(err, fmt.Errorf("minBytes cannot be negative"))
 	}
-	if c.MaxBytes != nil && *c.MaxBytes < 0 {
-		err = errors.Join(err, fmt.Errorf("maxBytes cannot be negative"))
-	}
-	if c.MaxLength != nil && c.MaxBytes != nil {
-		err = errors.Join(err, fmt.Errorf("maxLength and maxBytes cannot both be specified"))
-	}
 	if c.MinLength != nil && c.MinBytes != nil {
 		err = errors.Join(err, fmt.Errorf("minLength and minBytes cannot both be specified"))
 	}
@@ -374,6 +368,9 @@ func (c commentTags) ValidateType(t *types.Type) error {
 	}
 	if c.MaxLength != nil && !isString {
 		err = errors.Join(err, fmt.Errorf("maxLength can only be used on string types"))
+	}
+	if c.MaxBytes != nil && !isString {
+		err = errors.Join(err, fmt.Errorf("maxBytes can only be used on string types"))
 	}
 	if c.Pattern != nil && !isString {
 		err = errors.Join(err, fmt.Errorf("pattern can only be used on string types"))
