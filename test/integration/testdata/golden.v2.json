@@ -773,8 +773,7 @@
        "bar"
       ],
       "items": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       }
      },
      "Map": {
@@ -783,8 +782,7 @@
        "foo": "bar"
       },
       "additionalProperties": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       }
      },
      "OtherField": {
@@ -939,8 +937,7 @@
      "Field": {
       "type": "array",
       "items": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       },
       "x-kubernetes-list-type": "atomic"
      }
@@ -987,7 +984,6 @@
      "Field": {
       "type": "array",
       "items": {
-       "default": {},
        "$ref": "#/definitions/listtype.Item"
       },
       "x-kubernetes-list-map-keys": [
@@ -1006,8 +1002,7 @@
      "Field": {
       "type": "array",
       "items": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       },
       "x-kubernetes-list-type": "set"
      }
@@ -1022,8 +1017,7 @@
      "KeyValue": {
       "type": "object",
       "additionalProperties": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       },
       "x-kubernetes-map-type": "atomic"
      }
@@ -1038,8 +1032,7 @@
      "KeyValue": {
       "type": "object",
       "additionalProperties": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       },
       "x-kubernetes-map-type": "granular"
      }
@@ -1234,8 +1227,7 @@
       "minItems": 1,
       "uniqueItems": true,
       "items": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       }
      },
      "MapValue": {
@@ -1243,8 +1235,7 @@
       "maxProperties": 5,
       "minProperties": 1,
       "additionalProperties": {
-       "type": "string",
-       "default": ""
+       "type": "string"
       }
      },
      "NumberValue": {
