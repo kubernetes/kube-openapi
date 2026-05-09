@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !goexperiment.jsonv2 || !go1.25
+
 package json_test
 
 import (
@@ -10,6 +12,7 @@ import (
 	"reflect"
 
 	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
+	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json/jsontext"
 )
 
 // OrderedObject is an ordered sequence of name/value members in a JSON object.
@@ -27,28 +30,28 @@ type ObjectMember[V any] struct {
 	Value V
 }
 
-// MarshalNextJSON encodes obj as a JSON object into enc.
-func (obj *OrderedObject[V]) MarshalNextJSON(opts json.MarshalOptions, enc *json.Encoder) error {
-	if err := enc.WriteToken(json.ObjectStart); err != nil {
+// MarshalJSONTo encodes obj as a JSON object into enc.
+func (obj *OrderedObject[V]) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if err := enc.WriteToken(jsontext.BeginObject); err != nil {
 		return err
 	}
 	for i := range *obj {
 		member := &(*obj)[i]
-		if err := opts.MarshalNext(enc, &member.Name); err != nil {
+		if err := json.MarshalEncode(enc, &member.Name); err != nil {
 			return err
 		}
-		if err := opts.MarshalNext(enc, &member.Value); err != nil {
+		if err := json.MarshalEncode(enc, &member.Value); err != nil {
 			return err
 		}
 	}
-	if err := enc.WriteToken(json.ObjectEnd); err != nil {
+	if err := enc.WriteToken(jsontext.EndObject); err != nil {
 		return err
 	}
 	return nil
 }
 
-// UnmarshalNextJSON decodes a JSON object from dec into obj.
-func (obj *OrderedObject[V]) UnmarshalNextJSON(opts json.UnmarshalOptions, dec *json.Decoder) error {
+// UnmarshalJSONFrom decodes a JSON object from dec into obj.
+func (obj *OrderedObject[V]) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	if k := dec.PeekKind(); k != '{' {
 		return fmt.Errorf("expected object start, but encountered %v", k)
 	}
@@ -58,10 +61,10 @@ func (obj *OrderedObject[V]) UnmarshalNextJSON(opts json.UnmarshalOptions, dec *
 	for dec.PeekKind() != '}' {
 		*obj = append(*obj, ObjectMember[V]{})
 		member := &(*obj)[len(*obj)-1]
-		if err := opts.UnmarshalNext(dec, &member.Name); err != nil {
+		if err := json.UnmarshalDecode(dec, &member.Name); err != nil {
 			return err
 		}
-		if err := opts.UnmarshalNext(dec, &member.Value); err != nil {
+		if err := json.UnmarshalDecode(dec, &member.Value); err != nil {
 			return err
 		}
 	}
@@ -72,25 +75,22 @@ func (obj *OrderedObject[V]) UnmarshalNextJSON(opts json.UnmarshalOptions, dec *
 }
 
 // The exact order of JSON object can be preserved through the use of a
-// specialized type that implements MarshalerV2 and UnmarshalerV2.
+// specialized type that implements [MarshalerTo] and [UnmarshalerFrom].
 func Example_orderedObject() {
 	// Round-trip marshal and unmarshal an ordered object.
 	// We expect the order and duplicity of JSON object members to be preserved.
+	// Specify jsontext.AllowDuplicateNames since this object contains "fizz" twice.
 	want := OrderedObject[string]{
 		{"fizz", "buzz"},
 		{"hello", "world"},
 		{"fizz", "wuzz"},
 	}
-	b, err := json.MarshalOptions{}.Marshal(json.EncodeOptions{
-		AllowDuplicateNames: true, // since the object contains "fizz" twice
-	}, &want)
+	b, err := json.Marshal(&want, jsontext.AllowDuplicateNames(true))
 	if err != nil {
 		log.Fatal(err)
 	}
 	var got OrderedObject[string]
-	err = json.UnmarshalOptions{}.Unmarshal(json.DecodeOptions{
-		AllowDuplicateNames: true, // since the object contains "fizz" twice
-	}, b, &got)
+	err = json.Unmarshal(b, &got, jsontext.AllowDuplicateNames(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func Example_orderedObject() {
 	}
 
 	// Print the serialized JSON object.
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
+	(*jsontext.Value)(&b).Indent() // indent for readability
 	fmt.Println(string(b))
 
 	// Output:

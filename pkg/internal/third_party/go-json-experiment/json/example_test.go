@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !goexperiment.jsonv2 || !go1.25
+
 package json_test
 
 import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"math"
 	"net/http"
@@ -21,9 +22,10 @@ import (
 	"time"
 
 	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json"
+	"k8s.io/kube-openapi/pkg/internal/third_party/go-json-experiment/json/jsontext"
 )
 
-// If a type implements encoding.TextMarshaler and/or encoding.TextUnmarshaler,
+// If a type implements [encoding.TextMarshaler] and/or [encoding.TextUnmarshaler],
 // then the MarshalText and UnmarshalText methods are used to encode/decode
 // the value to/from a JSON string.
 func Example_textMarshal() {
@@ -34,7 +36,7 @@ func Example_textMarshal() {
 		netip.MustParseAddr("192.168.0.101"): "obsidian",
 		netip.MustParseAddr("192.168.0.102"): "diamond",
 	}
-	b, err := json.Marshal(&want)
+	b, err := json.Marshal(&want, json.Deterministic(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,10 +51,8 @@ func Example_textMarshal() {
 		log.Fatalf("roundtrip mismatch: got %v, want %v", got, want)
 	}
 
-	// Print the serialized JSON object. Canonicalize the JSON first since
-	// Go map entries are not serialized in a deterministic order.
-	(*json.RawValue)(&b).Canonicalize()
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
+	// Print the serialized JSON object.
+	(*jsontext.Value)(&b).Indent() // indent for readability
 	fmt.Println(string(b))
 
 	// Output:
@@ -76,7 +76,7 @@ func Example_fieldNames() {
 		// A JSON name is provided without any special characters.
 		JSONName any `json:"jsonName"`
 		// No JSON name is not provided, so the Go field name is used.
-		Option any `json:",nocase"`
+		Option any `json:",case:ignore"`
 		// An empty JSON name specified using an single-quoted string literal.
 		Empty any `json:"''"`
 		// A dash JSON name specified using an single-quoted string literal.
@@ -93,7 +93,7 @@ func Example_fieldNames() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
+	(*jsontext.Value)(&b).Indent() // indent for readability
 	fmt.Println(string(b))
 
 	// Output:
@@ -110,8 +110,8 @@ func Example_fieldNames() {
 
 // Unmarshal matches JSON object names with Go struct fields using
 // a case-sensitive match, but can be configured to use a case-insensitive
-// match with the "nocase" option. This permits unmarshaling from inputs that
-// use naming conventions such as camelCase, snake_case, or kebab-case.
+// match with the "case:ignore" option. This permits unmarshaling from inputs
+// that use naming conventions such as camelCase, snake_case, or kebab-case.
 func Example_caseSensitivity() {
 	// JSON input using various naming conventions.
 	const input = `[
@@ -126,24 +126,24 @@ func Example_caseSensitivity() {
 		{"unknown": true}
 	]`
 
-	// Without "nocase", Unmarshal looks for an exact match.
-	var withcase []struct {
+	// Without "case:ignore", Unmarshal looks for an exact match.
+	var caseStrict []struct {
 		X bool `json:"firstName"`
 	}
-	if err := json.Unmarshal([]byte(input), &withcase); err != nil {
+	if err := json.Unmarshal([]byte(input), &caseStrict); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(withcase) // exactly 1 match found
+	fmt.Println(caseStrict) // exactly 1 match found
 
-	// With "nocase", Unmarshal looks first for an exact match,
+	// With "case:ignore", Unmarshal looks first for an exact match,
 	// then for a case-insensitive match if none found.
-	var nocase []struct {
-		X bool `json:"firstName,nocase"`
+	var caseIgnore []struct {
+		X bool `json:"firstName,case:ignore"`
 	}
-	if err := json.Unmarshal([]byte(input), &nocase); err != nil {
+	if err := json.Unmarshal([]byte(input), &caseIgnore); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(nocase) // 8 matches found
+	fmt.Println(caseIgnore) // 8 matches found
 
 	// Output:
 	// [{false} {true} {false} {false} {false} {false} {false} {false} {false}]
@@ -218,8 +218,8 @@ func Example_omitFields() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
-	fmt.Println("OmitZero:", string(b))   // outputs "Struct", "Slice", "Map", "Pointer", and "Interface"
+	(*jsontext.Value)(&b).Indent()      // indent for readability
+	fmt.Println("OmitZero:", string(b)) // outputs "Struct", "Slice", "Map", "Pointer", and "Interface"
 
 	// Demonstrate behavior of "omitempty".
 	b, err = json.Marshal(struct {
@@ -252,7 +252,7 @@ func Example_omitFields() {
 		Slice: []int{},
 		// Map is omitted since {} is an empty JSON object.
 		Map: map[int]int{},
-		// PointerNil is ommited since null is an empty JSON value.
+		// PointerNil is omitted since null is an empty JSON value.
 		PointerNil: nil,
 		// Pointer is omitted since "" is an empty JSON string.
 		Pointer: new(string),
@@ -264,8 +264,8 @@ func Example_omitFields() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
-	fmt.Println("OmitEmpty:", string(b))  // outputs "Bool", "Int", and "Time"
+	(*jsontext.Value)(&b).Indent()       // indent for readability
+	fmt.Println("OmitEmpty:", string(b)) // outputs "Bool", "Int", and "Time"
 
 	// Output:
 	// OmitZero: {
@@ -323,7 +323,7 @@ func Example_inlinedFields() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
+	(*jsontext.Value)(&b).Indent() // indent for readability
 	fmt.Println(string(b))
 
 	// Output:
@@ -355,8 +355,8 @@ func Example_unknownMembers() {
 		// Unknown is a Go struct field that holds unknown JSON object members.
 		// It is marked as having this behavior with the "unknown" tag option.
 		//
-		// The type may be a RawValue or map[string]T.
-		Unknown json.RawValue `json:",unknown"`
+		// The type may be a jsontext.Value or map[string]T.
+		Unknown jsontext.Value `json:",unknown"`
 	}
 
 	// By default, unknown members are stored in a Go field marked as "unknown"
@@ -368,13 +368,12 @@ func Example_unknownMembers() {
 	}
 	fmt.Println("Unknown members:", string(color.Unknown))
 
-	// Specifying UnmarshalOptions.RejectUnknownMembers causes
-	// Unmarshal to reject the presence of any unknown members.
-	err = json.UnmarshalOptions{
-		RejectUnknownMembers: true,
-	}.Unmarshal(json.DecodeOptions{}, []byte(input), new(Color))
-	if err != nil {
-		fmt.Println("Unmarshal error:", errors.Unwrap(err))
+	// Specifying RejectUnknownMembers causes Unmarshal
+	// to reject the presence of any unknown members.
+	err = json.Unmarshal([]byte(input), new(Color), json.RejectUnknownMembers(true))
+	var serr *json.SemanticError
+	if errors.As(err, &serr) && serr.Err == json.ErrUnknownName {
+		fmt.Println("Unmarshal error:", serr.Err, strconv.Quote(serr.JSONPointer.LastToken()))
 	}
 
 	// By default, Marshal preserves unknown members stored in
@@ -385,11 +384,9 @@ func Example_unknownMembers() {
 	}
 	fmt.Println("Output with unknown members:   ", string(b))
 
-	// Specifying MarshalOptions.DiscardUnknownMembers causes
-	// Marshal to discard any unknown members.
-	b, err = json.MarshalOptions{
-		DiscardUnknownMembers: true,
-	}.Marshal(json.EncodeOptions{}, color)
+	// Specifying DiscardUnknownMembers causes Marshal
+	// to discard any unknown members.
+	b, err = json.Marshal(color, json.DiscardUnknownMembers(true))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -397,7 +394,7 @@ func Example_unknownMembers() {
 
 	// Output:
 	// Unknown members: {"WebSafe":false}
-	// Unmarshal error: unknown name "WebSafe"
+	// Unmarshal error: unknown object member name "WebSafe"
 	// Output with unknown members:    {"Name":"Teal","Value":"#008080","WebSafe":false}
 	// Output without unknown members: {"Name":"Teal","Value":"#008080"}
 }
@@ -405,30 +402,36 @@ func Example_unknownMembers() {
 // The "format" tag option can be used to alter the formatting of certain types.
 func Example_formatFlags() {
 	value := struct {
-		BytesBase64    []byte         `json:",format:base64"`
-		BytesHex       [8]byte        `json:",format:hex"`
-		BytesArray     []byte         `json:",format:array"`
-		FloatNonFinite float64        `json:",format:nonfinite"`
-		MapEmitNull    map[string]any `json:",format:emitnull"`
-		SliceEmitNull  []any          `json:",format:emitnull"`
-		TimeDateOnly   time.Time      `json:",format:'2006-01-02'"`
-		DurationNanos  time.Duration  `json:",format:nanos"`
+		BytesBase64     []byte         `json:",format:base64"`
+		BytesHex        [8]byte        `json:",format:hex"`
+		BytesArray      []byte         `json:",format:array"`
+		FloatNonFinite  float64        `json:",format:nonfinite"`
+		MapEmitNull     map[string]any `json:",format:emitnull"`
+		SliceEmitNull   []any          `json:",format:emitnull"`
+		TimeDateOnly    time.Time      `json:",format:'2006-01-02'"`
+		TimeUnixSec     time.Time      `json:",format:unix"`
+		DurationSecs    time.Duration  `json:",format:sec"`
+		DurationNanos   time.Duration  `json:",format:nano"`
+		DurationISO8601 time.Duration  `json:",format:iso8601"`
 	}{
-		BytesBase64:    []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
-		BytesHex:       [8]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
-		BytesArray:     []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
-		FloatNonFinite: math.NaN(),
-		MapEmitNull:    nil,
-		SliceEmitNull:  nil,
-		TimeDateOnly:   time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
-		DurationNanos:  time.Second + time.Millisecond + time.Microsecond + time.Nanosecond,
+		BytesBase64:     []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
+		BytesHex:        [8]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
+		BytesArray:      []byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef},
+		FloatNonFinite:  math.NaN(),
+		MapEmitNull:     nil,
+		SliceEmitNull:   nil,
+		TimeDateOnly:    time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		TimeUnixSec:     time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		DurationSecs:    12*time.Hour + 34*time.Minute + 56*time.Second + 7*time.Millisecond + 8*time.Microsecond + 9*time.Nanosecond,
+		DurationNanos:   12*time.Hour + 34*time.Minute + 56*time.Second + 7*time.Millisecond + 8*time.Microsecond + 9*time.Nanosecond,
+		DurationISO8601: 12*time.Hour + 34*time.Minute + 56*time.Second + 7*time.Millisecond + 8*time.Microsecond + 9*time.Nanosecond,
 	}
 
 	b, err := json.Marshal(&value)
 	if err != nil {
 		log.Fatal(err)
 	}
-	(*json.RawValue)(&b).Indent("", "\t") // indent for readability
+	(*jsontext.Value)(&b).Indent() // indent for readability
 	fmt.Println(string(b))
 
 	// Output:
@@ -448,15 +451,18 @@ func Example_formatFlags() {
 	// 	"FloatNonFinite": "NaN",
 	// 	"MapEmitNull": null,
 	// 	"SliceEmitNull": null,
-	// 	"TimeDateOnly": "2000-01-01",
-	// 	"DurationNanos": 1001001001
+	//	"TimeDateOnly": "2000-01-01",
+	//	"TimeUnixSec": 946684800,
+	//	"DurationSecs": 45296.007008009,
+	//	"DurationNanos": 45296007008009,
+	//	"DurationISO8601": "PT12H34M56.007008009S"
 	// }
 }
 
 // When implementing HTTP endpoints, it is common to be operating with an
-// io.Reader and an io.Writer. The UnmarshalFull and MarshalFull functions
+// [io.Reader] and an [io.Writer]. The [MarshalWrite] and [UnmarshalRead] functions
 // assist in operating on such input/output types.
-// UnmarshalFull reads the entirety of the io.Reader to ensure that io.EOF
+// [UnmarshalRead] reads the entirety of the [io.Reader] to ensure that [io.EOF]
 // is encountered without any unexpected bytes after the top-level JSON value.
 func Example_serveHTTP() {
 	// Some global state maintained by the server.
@@ -468,7 +474,7 @@ func Example_serveHTTP() {
 	http.HandleFunc("/api/add", func(w http.ResponseWriter, r *http.Request) {
 		// Unmarshal the request from the client.
 		var val struct{ N int64 }
-		if err := json.UnmarshalFull(r.Body, &val); err != nil {
+		if err := json.UnmarshalRead(r.Body, &val); err != nil {
 			// Inability to unmarshal the input suggests a client-side problem.
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -476,22 +482,22 @@ func Example_serveHTTP() {
 
 		// Marshal a response from the server.
 		val.N = atomic.AddInt64(&n, val.N)
-		if err := json.MarshalFull(w, &val); err != nil {
+		if err := json.MarshalWrite(w, &val); err != nil {
 			// Inability to marshal the output suggests a server-side problem.
 			// This error is not always observable by the client since
-			// json.MarshalFull may have already written to the output.
+			// json.MarshalWrite may have already written to the output.
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	})
 }
 
-// Some Go types have a custom JSON represention where the implementation
-// is delegated to some external package. Consequentely, the "json" package
+// Some Go types have a custom JSON representation where the implementation
+// is delegated to some external package. Consequently, the "json" package
 // will not know how to use that external implementation.
-// For example, the "google.golang.org/protobuf/encoding/protojson" package
-// implements JSON for all "google.golang.org/protobuf/proto".Message types.
-// MarshalOptions.Marshalers and UnmarshalOptions.Unmarshalers can be used
+// For example, the [google.golang.org/protobuf/encoding/protojson] package
+// implements JSON for all [google.golang.org/protobuf/proto.Message] types.
+// [WithMarshalers] and [WithUnmarshalers] can be used
 // to configure "json" and "protojson" to cooperate together.
 func Example_protoJSON() {
 	// Let protoMessage be "google.golang.org/protobuf/proto".Message.
@@ -521,149 +527,27 @@ func Example_protoJSON() {
 	}
 
 	// Marshal using protojson.Marshal for proto.Message types.
-	b, err := json.MarshalOptions{
+	b, err := json.Marshal(&value,
 		// Use protojson.Marshal as a type-specific marshaler.
-		Marshalers: json.MarshalFuncV1(protojson.Marshal),
-	}.Marshal(json.EncodeOptions{}, &value)
+		json.WithMarshalers(json.MarshalFunc(protojson.Marshal)))
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Unmarshal using protojson.Unmarshal for proto.Message types.
-	err = json.UnmarshalOptions{
+	err = json.Unmarshal(b, &value,
 		// Use protojson.Unmarshal as a type-specific unmarshaler.
-		Unmarshalers: json.UnmarshalFuncV1(protojson.Unmarshal),
-	}.Unmarshal(json.DecodeOptions{}, b, &value)
+		json.WithUnmarshalers(json.UnmarshalFunc(protojson.Unmarshal)))
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-// This example demonstrates the use of the Encoder and Decoder to
-// parse and modify JSON without unmarshaling it into a concrete Go type.
-func Example_stringReplace() {
-	// Example input with non-idiomatic use of "Golang" instead of "Go".
-	const input = `{
-		"title": "Golang version 1 is released",
-		"author": "Andrew Gerrand",
-		"date": "2012-03-28",
-		"text": "Today marks a major milestone in the development of the Golang programming language.",
-		"otherArticles": [
-			"Twelve Years of Golang",
-			"The Laws of Reflection",
-			"Learn Golang from your browser"
-		]
-	}`
-
-	// Using a Decoder and Encoder, we can parse through every token,
-	// check and modify the token if necessary, and
-	// write the token to the output.
-	var replacements []string
-	in := strings.NewReader(input)
-	dec := json.NewDecoder(in)
-	out := new(bytes.Buffer)
-	enc := json.EncodeOptions{Indent: "\t"}.NewEncoder(out) // indent for readability
-	for {
-		// Read a token from the input.
-		tok, err := dec.ReadToken()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			log.Fatal(err)
-		}
-
-		// Check whether the token contains the string "Golang" and
-		// replace each occurence with "Go" instead.
-		if tok.Kind() == '"' && strings.Contains(tok.String(), "Golang") {
-			replacements = append(replacements, dec.StackPointer())
-			tok = json.String(strings.ReplaceAll(tok.String(), "Golang", "Go"))
-		}
-
-		// Write the (possibly modified) token to the output.
-		if err := enc.WriteToken(tok); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	// Print the list of replacements and the adjusted JSON output.
-	if len(replacements) > 0 {
-		fmt.Println(`Replaced "Golang" with "Go" in:`)
-		for _, where := range replacements {
-			fmt.Println("\t" + where)
-		}
-		fmt.Println()
-	}
-	fmt.Println("Result:", out.String())
-
-	// Output:
-	// Replaced "Golang" with "Go" in:
-	// 	/title
-	// 	/text
-	// 	/otherArticles/0
-	// 	/otherArticles/2
-	//
-	// Result: {
-	// 	"title": "Go version 1 is released",
-	// 	"author": "Andrew Gerrand",
-	// 	"date": "2012-03-28",
-	// 	"text": "Today marks a major milestone in the development of the Go programming language.",
-	// 	"otherArticles": [
-	// 		"Twelve Years of Go",
-	// 		"The Laws of Reflection",
-	// 		"Learn Go from your browser"
-	// 	]
-	// }
-}
-
-// Directly embedding JSON within HTML requires special handling for safety.
-// Escape certain runes to prevent JSON directly treated as HTML
-// from being able to perform <script> injection.
-//
-// This example shows how to obtain equivalent behavior provided by the
-// "encoding/json" package that is no longer directly supported by this package.
-// Newly written code that intermix JSON and HTML should instead be using the
-// "github.com/google/safehtml" module for safety purposes.
-func ExampleEncodeOptions_escapeHTML() {
-	page := struct {
-		Title string
-		Body  string
-	}{
-		Title: "Example Embedded Javascript",
-		Body:  `<script> console.log("Hello, world!"); </script>`,
-	}
-
-	b, err := json.MarshalOptions{}.Marshal(json.EncodeOptions{
-		// Escape certain runes within a JSON string so that
-		// JSON will be safe to directly embed inside HTML.
-		EscapeRune: func(r rune) bool {
-			switch r {
-			case '&', '<', '>', '\u2028', '\u2029':
-				return true
-			default:
-				return false
-			}
-		},
-		// Indent the output for readability.
-		Indent: "\t",
-	}, &page)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(string(b))
-
-	// Output:
-	// {
-	// 	"Title": "Example Embedded Javascript",
-	// 	"Body": "\u003cscript\u003e console.log(\"Hello, world!\"); \u003c/script\u003e"
-	// }
 }
 
 // Many error types are not serializable since they tend to be Go structs
-// without any exported fields (e.g., errors constructed with errors.New).
+// without any exported fields (e.g., errors constructed with [errors.New]).
 // Some applications, may desire to marshal an error as a JSON string
 // even if these errors cannot be unmarshaled.
-func ExampleMarshalOptions_errors() {
+func ExampleWithMarshalers_errors() {
 	// Response to serialize with some Go errors encountered.
 	response := []struct {
 		Result string `json:",omitzero"`
@@ -674,25 +558,23 @@ func ExampleMarshalOptions_errors() {
 		{Error: &os.PathError{Op: "ReadFile", Path: "/path/to/secret/file", Err: os.ErrPermission}},
 	}
 
-	b, err := json.MarshalOptions{
+	b, err := json.Marshal(&response,
 		// Intercept every attempt to marshal an error type.
-		Marshalers: json.NewMarshalers(
+		json.WithMarshalers(json.JoinMarshalers(
 			// Suppose we consider strconv.NumError to be a safe to serialize:
 			// this type-specific marshal function intercepts this type
 			// and encodes the error message as a JSON string.
-			json.MarshalFuncV2(func(opts json.MarshalOptions, enc *json.Encoder, err *strconv.NumError) error {
-				return enc.WriteToken(json.String(err.Error()))
+			json.MarshalToFunc(func(enc *jsontext.Encoder, err *strconv.NumError) error {
+				return enc.WriteToken(jsontext.String(err.Error()))
 			}),
 			// Error messages may contain sensitive information that may not
 			// be appropriate to serialize. For all errors not handled above,
 			// report some generic error message.
-			json.MarshalFuncV1(func(error) ([]byte, error) {
+			json.MarshalFunc(func(error) ([]byte, error) {
 				return []byte(`"internal server error"`), nil
 			}),
-		),
-	}.Marshal(json.EncodeOptions{
-		Indent: "\t", // indent for readability
-	}, &response)
+		)),
+		jsontext.Multiline(true)) // expand for readability
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -715,31 +597,32 @@ func ExampleMarshalOptions_errors() {
 // In some applications, the exact precision of JSON numbers needs to be
 // preserved when unmarshaling. This can be accomplished using a type-specific
 // unmarshal function that intercepts all any types and pre-populates the
-// interface value with a RawValue, which can represent a JSON number exactly.
-func ExampleUnmarshalOptions_rawNumber() {
+// interface value with a [jsontext.Value], which can represent a JSON number exactly.
+func ExampleWithUnmarshalers_rawNumber() {
 	// Input with JSON numbers beyond the representation of a float64.
 	const input = `[false, 1e-1000, 3.141592653589793238462643383279, 1e+1000, true]`
 
 	var value any
-	err := json.UnmarshalOptions{
+	err := json.Unmarshal([]byte(input), &value,
 		// Intercept every attempt to unmarshal into the any type.
-		Unmarshalers: json.UnmarshalFuncV2(func(opts json.UnmarshalOptions, dec *json.Decoder, val *any) error {
-			// If the next value to be decoded is a JSON number,
-			// then provide a concrete Go type to unmarshal into.
-			if dec.PeekKind() == '0' {
-				*val = json.RawValue(nil)
-			}
-			// Return SkipFunc to fallback on default unmarshal behavior.
-			return json.SkipFunc
-		}),
-	}.Unmarshal(json.DecodeOptions{}, []byte(input), &value)
+		json.WithUnmarshalers(
+			json.UnmarshalFromFunc(func(dec *jsontext.Decoder, val *any) error {
+				// If the next value to be decoded is a JSON number,
+				// then provide a concrete Go type to unmarshal into.
+				if dec.PeekKind() == '0' {
+					*val = jsontext.Value(nil)
+				}
+				// Return SkipFunc to fallback on default unmarshal behavior.
+				return json.SkipFunc
+			}),
+		))
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(value)
 
 	// Sanity check.
-	want := []any{false, json.RawValue("1e-1000"), json.RawValue("3.141592653589793238462643383279"), json.RawValue("1e+1000"), true}
+	want := []any{false, jsontext.Value("1e-1000"), jsontext.Value("3.141592653589793238462643383279"), jsontext.Value("1e+1000"), true}
 	if !reflect.DeepEqual(value, want) {
 		log.Fatalf("value mismatch:\ngot  %v\nwant %v", value, want)
 	}
@@ -751,7 +634,7 @@ func ExampleUnmarshalOptions_rawNumber() {
 // When using JSON for parsing configuration files,
 // the parsing logic often needs to report an error with a line and column
 // indicating where in the input an error occurred.
-func ExampleUnmarshalOptions_recordOffsets() {
+func ExampleWithUnmarshalers_recordOffsets() {
 	// Hypothetical configuration file.
 	const input = `[
 		{"Source": "192.168.0.100:1234", "Destination": "192.168.0.1:80"},
@@ -768,24 +651,25 @@ func ExampleUnmarshalOptions_recordOffsets() {
 	}
 
 	var tunnels []Tunnel
-	err := json.UnmarshalOptions{
+	err := json.Unmarshal([]byte(input), &tunnels,
 		// Intercept every attempt to unmarshal into the Tunnel type.
-		Unmarshalers: json.UnmarshalFuncV2(func(opts json.UnmarshalOptions, dec *json.Decoder, tunnel *Tunnel) error {
-			// Decoder.InputOffset reports the offset after the last token,
-			// but we want to record the offset before the next token.
-			//
-			// Call Decoder.PeekKind to buffer enough to reach the next token.
-			// Add the number of leading whitespace, commas, and colons
-			// to locate the start of the next token.
-			dec.PeekKind()
-			unread := dec.UnreadBuffer()
-			n := len(unread) - len(bytes.TrimLeft(unread, " \n\r\t,:"))
-			tunnel.ByteOffset = dec.InputOffset() + int64(n)
+		json.WithUnmarshalers(
+			json.UnmarshalFromFunc(func(dec *jsontext.Decoder, tunnel *Tunnel) error {
+				// Decoder.InputOffset reports the offset after the last token,
+				// but we want to record the offset before the next token.
+				//
+				// Call Decoder.PeekKind to buffer enough to reach the next token.
+				// Add the number of leading whitespace, commas, and colons
+				// to locate the start of the next token.
+				dec.PeekKind()
+				unread := dec.UnreadBuffer()
+				n := len(unread) - len(bytes.TrimLeft(unread, " \n\r\t,:"))
+				tunnel.ByteOffset = dec.InputOffset() + int64(n)
 
-			// Return SkipFunc to fallback on default unmarshal behavior.
-			return json.SkipFunc
-		}),
-	}.Unmarshal(json.DecodeOptions{}, []byte(input), &tunnels)
+				// Return SkipFunc to fallback on default unmarshal behavior.
+				return json.SkipFunc
+			}),
+		))
 	if err != nil {
 		log.Fatal(err)
 	}
