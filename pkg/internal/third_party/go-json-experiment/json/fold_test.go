@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !goexperiment.jsonv2 || !go1.25
+
 package json
 
 import (
@@ -9,8 +11,6 @@ import (
 	"reflect"
 	"testing"
 	"unicode"
-
-	jsonv1 "encoding/json"
 )
 
 var equalFoldTestdata = []struct {
@@ -76,7 +76,7 @@ func TestFoldRune(t *testing.T) {
 	}
 
 	var foldSet []rune
-	for r := rune(0); r <= unicode.MaxRune; r++ {
+	for r := range rune(unicode.MaxRune + 1) {
 		// Derive all runes that are all part of the same fold set.
 		foldSet = foldSet[:0]
 		for r0 := r; r != r0 || len(foldSet) == 0; r = unicode.SimpleFold(r) {
@@ -103,30 +103,24 @@ func TestFoldRune(t *testing.T) {
 // TestBenchmarkUnmarshalUnknown unmarshals an unknown field into a struct with
 // varying number of fields. Since the unknown field does not directly match
 // any known field by name, it must fall back on case-insensitive matching.
-func TestBenchmarkUnmarshalUnknown(t *testing.T) { runUnmarshalUnknown(t) }
-func BenchmarkUnmarshalUnknown(b *testing.B)     { runUnmarshalUnknown(b) }
-
-func runUnmarshalUnknown(tb testing.TB) {
+func TestBenchmarkUnmarshalUnknown(t *testing.T) {
 	in := []byte(`{"NameUnknown":null}`)
 	for _, n := range []int{1, 2, 5, 10, 20, 50, 100} {
 		unmarshal := Unmarshal
-		if benchV1 {
-			unmarshal = jsonv1.Unmarshal
-		}
 
 		var fields []reflect.StructField
-		for i := 0; i < n; i++ {
+		for i := range n {
 			fields = append(fields, reflect.StructField{
 				Name: fmt.Sprintf("Name%d", i),
-				Type: reflect.TypeOf(0),
-				Tag:  `json:",nocase"`,
+				Type: T[int](),
+				Tag:  `json:",case:ignore"`,
 			})
 		}
 		out := reflect.New(reflect.StructOf(fields)).Interface()
 
-		runTestOrBench(tb, fmt.Sprintf("N%d", n), int64(len(in)), func(tb testing.TB) {
+		t.Run(fmt.Sprintf("N%d", n), func(t *testing.T) {
 			if err := unmarshal(in, out); err != nil {
-				tb.Fatalf("Unmarshal error: %v", err)
+				t.Fatalf("Unmarshal error: %v", err)
 			}
 		})
 	}
