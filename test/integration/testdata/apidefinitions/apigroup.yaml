@@ -1,6 +1,0 @@
-apiVersion: apidefinitions.k8s.io/v1alpha1
-kind: APIGroup
-metadata:
-  name: apidefinitions.test.k8s.io
-spec:
-  modelPackage: io.k8s.kube-openapi.test.integration.testdata.apidefinitions

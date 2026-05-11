@@ -1,4 +1,0 @@
-apiVersion: apidefinitions.k8s.io/v1alpha1
-kind: APIVersion
-metadata:
-  name: apidefinitions.test.k8s.io/v1
