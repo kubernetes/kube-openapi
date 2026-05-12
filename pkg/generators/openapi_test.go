@@ -3226,3 +3226,60 @@ func TestShouldInlineMembers(t *testing.T) {
 		})
 	}
 }
+
+func TestHasOmitemptyTag(t *testing.T) {
+	tests := []struct {
+		name     string
+		member   types.Member
+		expected bool
+	}{
+		{
+			name:     "standard omitempty",
+			member:   types.Member{Tags: `json:"foo,omitempty"`},
+			expected: true,
+		},
+		{
+			name:     "omitempty with no name",
+			member:   types.Member{Tags: `json:",omitempty"`},
+			expected: true,
+		},
+		{
+			name:     "omitempty in the middle of options",
+			member:   types.Member{Tags: `json:"foo,omitempty,string"`},
+			expected: true,
+		},
+		{
+			name:     "no omitempty",
+			member:   types.Member{Tags: `json:"foo"`},
+			expected: false,
+		},
+		{
+			name:     "no json tag",
+			member:   types.Member{Tags: ``},
+			expected: false,
+		},
+		{
+			name:     "field name contains omitempty - should not match",
+			member:   types.Member{Tags: `json:"omitemptyTest"`},
+			expected: false,
+		},
+		{
+			name:     "field name ends with omitempty - should not match",
+			member:   types.Member{Tags: `json:"fooOmitempty"`},
+			expected: false,
+		},
+		{
+			name:     "field name is omitempty with no options - should not match",
+			member:   types.Member{Tags: `json:"omitempty"`},
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := hasOmitemptyTag(&tc.member); got != tc.expected {
+				t.Errorf("hasOmitemptyTag(%+v) = %v, want %v", tc.member, got, tc.expected)
+			}
+		})
+	}
+}
