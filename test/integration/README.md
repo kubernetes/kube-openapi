@@ -8,6 +8,22 @@ Within the current directory:
 $ go test -v .
 ```
 
+### Configuring the test timeout
+
+The integration tests use an `Eventually` timeout for subprocess execution (default: 60s).
+On slower platforms, you can override this with the `-eventually-timeout` flag or the
+`KUBE_OPENAPI_INTEGRATION_TEST_TIMEOUT` environment variable:
+
+```bash
+# Using the flag (target only this package with "." to avoid flag errors in other packages)
+$ go test -v . -args -eventually-timeout=120
+
+# Using the environment variable (works with ./... too)
+$ KUBE_OPENAPI_INTEGRATION_TEST_TIMEOUT=120 go test -v .
+```
+
+The flag takes precedence over the environment variable.
+
 ## Generating the golden Swagger definition file and API rule violation report
 
 First, run the generator to create `openapi_generated.go` file which specifies
