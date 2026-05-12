@@ -17,10 +17,12 @@ limitations under the License.
 package integration
 
 import (
+	"flag"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,9 +44,19 @@ const (
 	goldenReportFileName            = "golden.v2.report"
 	generatedOpenAPIv3FileName      = "generated.v3.json"
 	goldenOpenAPIv3Filename         = "golden.v3.json"
-
-	timeoutSeconds = 60.0
 )
+
+var timeoutSeconds = flag.Float64("eventually-timeout", defaultTimeout(), "timeout in seconds for Eventually assertions")
+
+// defaultTimeout returns the timeout from KUBE_OPENAPI_INTEGRATION_TEST_TIMEOUT env var, or 60.0 if unset.
+func defaultTimeout() float64 {
+	if v := os.Getenv("KUBE_OPENAPI_INTEGRATION_TEST_TIMEOUT"); v != "" {
+		if t, err := strconv.ParseFloat(v, 64); err == nil {
+			return t
+		}
+	}
+	return 60.0
+}
 
 var (
 	workingDirectory string
@@ -103,7 +115,7 @@ var _ = BeforeSuite(func() {
 	command.Dir = workingDirectory
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
-	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+	Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 
 	// Run the OpenAPI code generator with --output-model-name-file
 	Expect(terr).ShouldNot(HaveOccurred())
@@ -120,7 +132,7 @@ var _ = BeforeSuite(func() {
 	command.Dir = workingDirectory
 	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
-	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+	Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 
 	By("writing swagger v2.0")
 	// Create the OpenAPI swagger builder.
@@ -134,7 +146,7 @@ var _ = BeforeSuite(func() {
 	command.Dir = workingDirectory
 	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
-	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+	Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 
 	By("writing OpenAPI v3.0")
 	// Create the OpenAPI swagger builder.
@@ -148,7 +160,7 @@ var _ = BeforeSuite(func() {
 	command.Dir = workingDirectory
 	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
-	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+	Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 
 	By("'namedmodels' writing OpenAPI v3.0")
 	// Create the OpenAPI swagger builder.
@@ -162,7 +174,7 @@ var _ = BeforeSuite(func() {
 	command.Dir = workingDirectory
 	session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 	Expect(err).ShouldNot(HaveOccurred())
-	Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+	Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 })
 
 var _ = AfterSuite(func() {
@@ -182,7 +194,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+			Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 		})
 		It("'namedmodels' Generated code should match golden files", func() {
 			// Diff the generated code against the golden code. Exit code should be zero.
@@ -194,7 +206,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+			Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 		})
 	})
 
@@ -209,7 +221,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+			Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 		})
 	})
 
@@ -224,7 +236,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+			Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 		})
 	})
 
@@ -239,7 +251,7 @@ var _ = Describe("Open API Definitions Generation", func() {
 			command.Dir = workingDirectory
 			session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).ShouldNot(HaveOccurred())
-			Eventually(session, timeoutSeconds).Should(gexec.Exit(0))
+			Eventually(session, *timeoutSeconds).Should(gexec.Exit(0))
 		})
 	})
 })
