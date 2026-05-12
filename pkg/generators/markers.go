@@ -189,13 +189,7 @@ func (c *commentTags) ValidationSchema() (*spec.Schema, error) {
 		}
 		transformedAdditionalProperties = &spec.SchemaOrBool{Schema: additionalProperties, Allows: true}
 	}
-	if c.MaxBytes != nil && c.MaxLength == nil {
-		c.MaxLength = c.MaxBytes
-	}
-
-	if c.MinBytes != nil && c.MinLength == nil {
-		c.MinLength = c.MinBytes
-	}
+	
 	res := spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Nullable:         isNullable,
