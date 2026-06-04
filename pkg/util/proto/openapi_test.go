@@ -752,3 +752,117 @@ func TestV3GVKExtension(t *testing.T) {
 		}
 	})
 }
+
+func TestV3AllOfRef(t *testing.T) {
+	// In OpenAPI 3.0, sibling properties alongside $ref must be ignored.
+	// The spec-compliant way to combine $ref with description/default is
+	// to wrap the $ref in a single-element allOf. Kubernetes >= 1.35 uses
+	// this format (via kube-openapi's own builder3/util.WrapRefs).
+	spec := []byte(`{
+	"openapi": "3.0.0",
+	"info": {
+		"title": "Test",
+		"version": "v1"
+	},
+	"paths": {},
+	"components": {
+		"schemas": {
+			"Parent": {
+				"type": "object",
+				"properties": {
+					"directRef": {
+						"$ref": "#/components/schemas/Child"
+					},
+					"allOfRef": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/Child"
+							}
+						],
+						"description": "field using allOf-wrapped ref",
+						"default": "some-default"
+					}
+				},
+				"x-kubernetes-group-version-kind": [
+					{
+						"group": "test",
+						"kind": "Parent",
+						"version": "v1"
+					}
+				]
+			},
+			"Child": {
+				"type": "object",
+				"properties": {
+					"name": {
+						"type": "string"
+					}
+				},
+				"x-kubernetes-group-version-kind": [
+					{
+						"group": "test",
+						"kind": "Child",
+						"version": "v1"
+					}
+				]
+			}
+		}
+	}
+}`)
+
+	document, err := openapi_v3.ParseDocument(spec)
+	if err != nil {
+		t.Fatalf("failed to parse OpenAPI v3 document: %v", err)
+	}
+	models, err := proto.NewOpenAPIV3Data(document)
+	if err != nil {
+		t.Fatalf("failed to create OpenAPI v3 data: %v", err)
+	}
+
+	schema := models.LookupModel("Parent")
+	if schema == nil {
+		t.Fatal("model Parent not found")
+	}
+	parent, ok := schema.(*proto.Kind)
+	if !ok || parent == nil {
+		t.Fatal("expected Parent to be *proto.Kind")
+	}
+
+	t.Run("direct ref resolves as Reference", func(t *testing.T) {
+		field, ok := parent.Fields["directRef"]
+		if !ok {
+			t.Fatal("missing 'directRef' field")
+		}
+		ref, ok := field.(proto.Reference)
+		if !ok {
+			t.Fatalf("expected 'directRef' to be proto.Reference, got %T", field)
+		}
+		if ref.Reference() != "Child" {
+			t.Errorf("directRef reference = %q, want %q", ref.Reference(), "Child")
+		}
+	})
+
+	t.Run("allOf-wrapped ref resolves as Reference", func(t *testing.T) {
+		field, ok := parent.Fields["allOfRef"]
+		if !ok {
+			t.Fatal("missing 'allOfRef' field")
+		}
+		ref, ok := field.(proto.Reference)
+		if !ok {
+			t.Fatalf("expected 'allOfRef' to be proto.Reference, got %T", field)
+		}
+		if ref.Reference() != "Child" {
+			t.Errorf("allOfRef reference = %q, want %q", ref.Reference(), "Child")
+		}
+	})
+
+	t.Run("allOf-wrapped ref preserves description and default", func(t *testing.T) {
+		field := parent.Fields["allOfRef"]
+		if got := field.GetDescription(); got != "field using allOf-wrapped ref" {
+			t.Errorf("description = %q, want %q", got, "field using allOf-wrapped ref")
+		}
+		if got, want := field.GetDefault(), "some-default"; got != want {
+			t.Errorf("default = %v, want %v", got, want)
+		}
+	})
+}
