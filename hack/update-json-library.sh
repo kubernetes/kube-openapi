@@ -40,3 +40,10 @@ rm -rf internal/jsontest/testdata
 rm -rf internal/zstd
 # Update references to point to the fork
 find . -type f -name "*.go" -print0 | xargs -0 perl -pi -e "s#github.com/go-json-experiment/json#k8s.io/kube-openapi/${GO_JSON_EXPERIMENT_DIR}#g"
+
+# eliminate links to stdlib
+rm -fr v1
+rm -fr alias.go jsontext/alias.go
+# remove conditional build tags
+find . -type f -name "*.go" -print0 | xargs -0 perl -pi -e 's#\Q//go:build !goexperiment.jsonv2 || !go1.25\E##g'
+find . -type f -name "*.go" -print0 | xargs -0 gofmt -w -s
