@@ -933,7 +933,7 @@ func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
 			return mustEnforceDefault(t.Members[0].Type, omitEmpty)
 		}
 
-		return map[string]interface{}{}, nil
+		return structZeroDefault(t)
 	case types.Builtin:
 		if !omitEmpty {
 			if zero, ok := openapi.OpenAPIZeroValue(t.String()); ok {
@@ -946,6 +946,60 @@ func mustEnforceDefault(t *types.Type, omitEmpty bool) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("not sure how to enforce default for %v", t.Kind)
 	}
+}
+
+// structZeroDefault builds a zero-value default for a struct type that includes
+// zero values for all required (non-optional) fields. This ensures the generated
+// default satisfies the schema's required constraints.
+func structZeroDefault(t *types.Type) (interface{}, error) {
+	for t.Kind == types.Pointer {
+		t = t.Elem
+	}
+	result := map[string]interface{}{}
+	for _, m := range t.Members {
+		if hasOpenAPITagValue(m.CommentLines, tagValueFalse) {
+			continue
+		}
+		if shouldInlineMembers(&m) {
+			inlined, err := structZeroDefault(m.Type)
+			if err != nil {
+				return nil, err
+			}
+			if inlinedMap, ok := inlined.(map[string]interface{}); ok {
+				for k, v := range inlinedMap {
+					result[k] = v
+				}
+			}
+			continue
+		}
+		name := getReferableName(&m)
+		if name == "" {
+			continue
+		}
+		// Skip unexported fields with no JSON tag, they are not
+		// serialized and do not appear in the OpenAPI schema.
+		jsonTags := getJsonTags(&m)
+		if len(jsonTags) == 0 && len(m.Name) > 0 && strings.ToLower(m.Name[:1]) == m.Name[:1] {
+			continue
+		}
+		optional, err := isOptional(&m)
+		if err != nil {
+			return nil, err
+		}
+		if optional {
+			continue
+		}
+		// Include zero value for this required field
+		memberOmitEmpty := hasOmitemptyTag(&m)
+		zero, err := mustEnforceDefault(m.Type, memberOmitEmpty)
+		if err != nil {
+			return nil, err
+		}
+		if zero != nil {
+			result[name] = zero
+		}
+	}
+	return result, nil
 }
 
 func (g openAPITypeWriter) generateDefault(comments []string, t *types.Type, omitEmpty bool, commentOwningType *types.Type) error {

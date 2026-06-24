@@ -143,7 +143,7 @@ func schema_test_integration_testdata_defaults_Defaulted(ref common.ReferenceCal
 					},
 					"OtherSub": {
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
+							Default: map[string]interface{}{"S": ""},
 							Ref:     ref("k8s.io/kube-openapi/test/integration/testdata/defaults.SubStruct"),
 						},
 					},
@@ -713,7 +713,7 @@ func schema_test_integration_testdata_structtype_FieldLevelOverrideStruct(ref co
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Default: map[string]interface{}{},
+							Default: map[string]interface{}{"Field": 0},
 							Ref:     ref("k8s.io/kube-openapi/test/integration/testdata/structtype.DeclaredAtomicStruct"),
 						},
 					},

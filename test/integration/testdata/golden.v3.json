@@ -729,7 +729,9 @@
        "default": 0
       },
       "OtherSub": {
-       "default": {},
+       "default": {
+        "S": ""
+       },
        "allOf": [
         {
          "$ref": "#/components/schemas/defaults.SubStruct"
@@ -1032,7 +1034,9 @@
      ],
      "properties": {
       "Field": {
-       "default": {},
+       "default": {
+        "Field": 0
+       },
        "allOf": [
         {
          "$ref": "#/components/schemas/structtype.DeclaredAtomicStruct"
