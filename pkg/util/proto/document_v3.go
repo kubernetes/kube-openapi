@@ -117,6 +117,34 @@ func (d *Definitions) ParseV3SchemaOrReference(s *openapi_v3.SchemaOrReference, 
 // ParseSchema creates a walkable Schema from an openapi v3 schema. While
 // this function is public, it doesn't leak through the interface.
 func (d *Definitions) ParseSchemaV3(s *openapi_v3.Schema, path *Path) (Schema, error) {
+	// Handle allOf-wrapped $ref: when a schema has no type but a single-element
+	// allOf containing a $ref, treat it as a reference. This is the OpenAPI 3.0
+	// compliant way to add sibling properties (description, default) alongside
+	// a $ref, since per the spec $ref siblings are ignored.
+	// We build the Ref from the outer schema so that description, default, and
+	// extensions are preserved.
+	if s.GetType() == "" && len(s.GetAllOf()) == 1 {
+		if ref, ok := s.GetAllOf()[0].GetOneof().(*openapi_v3.SchemaOrReference_Reference); ok {
+			xRef := ref.Reference.GetXRef()
+			if !strings.HasPrefix(xRef, "#/components/schemas") {
+				return d.parseV3Arbitrary(s, path)
+			}
+			reference := strings.TrimPrefix(xRef, "#/components/schemas/")
+			if _, ok := d.models[reference]; !ok {
+				return nil, newSchemaError(path, "unknown model in reference: %q", reference)
+			}
+			base, err := d.parseV3BaseSchema(s, path)
+			if err != nil {
+				return nil, err
+			}
+			return &Ref{
+				BaseSchema:  *base,
+				reference:   reference,
+				definitions: d,
+			}, nil
+		}
+	}
+
 	switch s.GetType() {
 	case object:
 		for _, extension := range s.GetSpecificationExtension() {
