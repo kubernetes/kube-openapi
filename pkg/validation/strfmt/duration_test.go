@@ -80,6 +80,24 @@ func TestIsDuration_Failed(t *testing.T) {
 	assert.False(t, e)
 }
 
+func TestDurationInvalidToken(t *testing.T) {
+	badDurations := []string{
+		"1s invalid",
+		"invalid 1s",
+		"1s   invalid",
+		"invalid   1s",
+		"1s 2m invalid",
+		"1s invalid 2m",
+	}
+	for _, d := range badDurations {
+		t.Run(d, func(t *testing.T) {
+			assert.False(t, IsDuration(d), "Expected IsDuration(%q) to be false", d)
+			_, err := ParseDuration(d)
+			assert.Error(t, err, "Expected ParseDuration(%q) to return an error", d)
+		})
+	}
+}
+
 func TestDurationParser(t *testing.T) {
 	testcases := map[string]time.Duration{
 
@@ -138,6 +156,14 @@ func TestDurationParser(t *testing.T) {
 		"1  hour":         1 * time.Hour,
 		"1  day":          24 * time.Hour,
 		"1  week":         7 * 24 * time.Hour,
+
+		// parse composite durations, without spaces
+		"1w2s":     7*24*time.Hour + 2*time.Second,
+		"1d2h3m5s": 24*time.Hour + 2*time.Hour + 3*time.Minute + 5*time.Second,
+
+		// parse composite durations, with spaces
+		"1s 2m":       2*time.Minute + 1*time.Second,
+		"1w 2d 3h 4m": 7*24*time.Hour + 2*24*time.Hour + 3*time.Hour + 4*time.Minute,
 	}
 
 	for str, dur := range testcases {

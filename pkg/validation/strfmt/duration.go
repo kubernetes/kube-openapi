@@ -52,7 +52,8 @@ var (
 		"w":  7 * 24 * time.Hour,
 	}
 
-	durationMatcher = regexp.MustCompile(`((\d+)\s*([A-Za-zµ]+))`)
+	durationValidator = regexp.MustCompile(`^\s*(?:\d+\s*[A-Za-zµ]+\s*)+$`)
+	durationMatcher   = regexp.MustCompile(`((\d+)\s*([A-Za-zµ]+))`)
 )
 
 // IsDuration returns true if the provided string is a valid duration
@@ -88,6 +89,10 @@ func (d *Duration) UnmarshalText(data []byte) error { // validation is performed
 func ParseDuration(cand string) (time.Duration, error) {
 	if dur, err := time.ParseDuration(cand); err == nil {
 		return dur, nil
+	}
+
+	if !durationValidator.MatchString(cand) {
+		return 0, fmt.Errorf("unable to parse %s as duration", cand)
 	}
 
 	var dur time.Duration
