@@ -447,9 +447,28 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 	default:
 		return ret, fmt.Errorf("unknown restful operation kind : %v", restParam.Kind())
 	}
-	openAPIType, openAPIFormat := common.OpenAPITypeFormat(restParam.DataType())
-	if openAPIType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
+	dataType := restParam.DataType()
+	var openAPIType, openAPIFormat, itemsType string
+	if strings.HasPrefix(dataType, "[]") {
+		// Array type: element type is encoded as "[]string" or "[]integer"
+		itemsType = dataType[2:]
+		itemsAPIType, itemsAPIFormat := common.OpenAPITypeFormat(itemsType)
+		if itemsAPIType == "" {
+			return ret, fmt.Errorf("non-body Restful parameter array element type should be a simple type, but got: %v", itemsType)
+		}
+		openAPIType = "array"
+		openAPIFormat = ""
+		ret.Items = &spec.Items{
+			SimpleSchema: spec.SimpleSchema{
+				Type:   itemsAPIType,
+				Format: itemsAPIFormat,
+			},
+		}
+	} else {
+		openAPIType, openAPIFormat = common.OpenAPITypeFormat(dataType)
+		if openAPIType == "" {
+			return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", dataType)
+		}
 	}
 	ret.Type = openAPIType
 	ret.Format = openAPIFormat

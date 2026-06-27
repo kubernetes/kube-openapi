@@ -419,16 +419,41 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 	default:
 		return ret, fmt.Errorf("unsupported restful parameter kind : %v", restParam.Kind())
 	}
-	openAPIType, openAPIFormat := common.OpenAPITypeFormat(restParam.DataType())
-	if openAPIType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
+	dataType := restParam.DataType()
+	var schemaType string
+	var schemaFormat string
+	var itemsSchema *spec.SchemaOrArray
+
+	if strings.HasPrefix(dataType, "[]") {
+		// Array type: element type is encoded as "[]string" or "[]integer"
+		itemsType := dataType[2:]
+		itemsAPIType, itemsAPIFormat := common.OpenAPITypeFormat(itemsType)
+		if itemsAPIType == "" {
+			return ret, fmt.Errorf("non-body Restful parameter array element type should be a simple type, but got: %v", itemsType)
+		}
+		schemaType = "array"
+		schemaFormat = ""
+		itemsSchema = &spec.SchemaOrArray{
+			Schema: &spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Type:   []string{itemsAPIType},
+					Format: itemsAPIFormat,
+				},
+			},
+		}
+	} else {
+		schemaType, schemaFormat = common.OpenAPITypeFormat(dataType)
+		if schemaType == "" {
+			return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", dataType)
+		}
 	}
 
 	ret.Schema = &spec.Schema{
 		SchemaProps: spec.SchemaProps{
-			Type:        []string{openAPIType},
-			Format:      openAPIFormat,
+			Type:        []string{schemaType},
+			Format:      schemaFormat,
 			UniqueItems: !restParam.AllowMultiple(),
+			Items:       itemsSchema,
 		},
 	}
 	return ret, nil
