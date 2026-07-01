@@ -49,3 +49,5 @@ require (
 	golang.org/x/tools/go/expect v0.1.0-deprecated // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace sigs.k8s.io/structured-merge-diff/v6 => github.com/jpbetz/structured-merge-diff/v6 v6.3.3-0.20260701231238-8587764c81eb
