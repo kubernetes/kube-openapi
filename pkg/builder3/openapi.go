@@ -424,7 +424,8 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 	var schemaFormat string
 	var itemsSchema *spec.SchemaOrArray
 
-	if strings.HasPrefix(dataType, "[]") {
+	schemaType, schemaFormat = common.OpenAPITypeFormat(dataType)
+	if schemaType == "" && strings.HasPrefix(dataType, "[]") {
 		// Array type: element type is encoded as "[]string" or "[]integer"
 		itemsType := dataType[2:]
 		itemsAPIType, itemsAPIFormat := common.OpenAPITypeFormat(itemsType)
@@ -441,11 +442,8 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 				},
 			},
 		}
-	} else {
-		schemaType, schemaFormat = common.OpenAPITypeFormat(dataType)
-		if schemaType == "" {
-			return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", dataType)
-		}
+	} else if schemaType == "" {
+		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", dataType)
 	}
 
 	ret.Schema = &spec.Schema{
@@ -455,6 +453,10 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 			UniqueItems: !restParam.AllowMultiple(),
 			Items:       itemsSchema,
 		},
+	}
+	if schemaType == "array" && restParam.AllowMultiple() {
+		ret.Style = "form"
+		ret.Explode = true
 	}
 	return ret, nil
 }
