@@ -420,43 +420,44 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 		return ret, fmt.Errorf("unsupported restful parameter kind : %v", restParam.Kind())
 	}
 	dataType := restParam.DataType()
-	var schemaType string
-	var schemaFormat string
-	var itemsSchema *spec.SchemaOrArray
 
-	schemaType, schemaFormat = common.OpenAPITypeFormat(dataType)
-	if schemaType == "" && strings.HasPrefix(dataType, "[]") {
-		// Array type: element type is encoded as "[]string" or "[]integer"
-		itemsType := dataType[2:]
-		itemsAPIType, itemsAPIFormat := common.OpenAPITypeFormat(itemsType)
-		if itemsAPIType == "" {
-			return ret, fmt.Errorf("non-body Restful parameter array element type should be a simple type, but got: %v", itemsType)
-		}
-		schemaType = "array"
-		schemaFormat = ""
-		itemsSchema = &spec.SchemaOrArray{
-			Schema: &spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Type:   []string{itemsAPIType},
-					Format: itemsAPIFormat,
+	// AllowMultiple indicates an array parameter. The element type is
+	// derived by stripping the "[]" prefix from DataType.
+	elementType := dataType
+	if restParam.AllowMultiple() {
+		elementType = strings.TrimPrefix(dataType, "[]")
+	}
+
+	elementAPIType, elementAPIFormat := common.OpenAPITypeFormat(elementType)
+	if elementAPIType == "" {
+		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got: %v", dataType)
+	}
+
+	if restParam.AllowMultiple() {
+		ret.Style = "form"
+		ret.Explode = true
+		ret.Schema = &spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:        []string{"array"},
+				UniqueItems: false,
+				Items: &spec.SchemaOrArray{
+					Schema: &spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{elementAPIType},
+							Format: elementAPIFormat,
+						},
+					},
 				},
 			},
 		}
-	} else if schemaType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", dataType)
-	}
-
-	ret.Schema = &spec.Schema{
-		SchemaProps: spec.SchemaProps{
-			Type:        []string{schemaType},
-			Format:      schemaFormat,
-			UniqueItems: !restParam.AllowMultiple(),
-			Items:       itemsSchema,
-		},
-	}
-	if schemaType == "array" && restParam.AllowMultiple() {
-		ret.Style = "form"
-		ret.Explode = true
+	} else {
+		ret.Schema = &spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:        []string{elementAPIType},
+				Format:      elementAPIFormat,
+				UniqueItems: true,
+			},
+		}
 	}
 	return ret, nil
 }

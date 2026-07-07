@@ -448,32 +448,34 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 		return ret, fmt.Errorf("unknown restful operation kind : %v", restParam.Kind())
 	}
 	dataType := restParam.DataType()
-	var openAPIType, openAPIFormat string
-	openAPIType, openAPIFormat = common.OpenAPITypeFormat(dataType)
-	if openAPIType == "" && strings.HasPrefix(dataType, "[]") {
-		// Array type: element type is encoded as "[]string" or "[]integer"
-		itemsType := dataType[2:]
-		itemsAPIType, itemsAPIFormat := common.OpenAPITypeFormat(itemsType)
-		if itemsAPIType == "" {
-			return ret, fmt.Errorf("non-body Restful parameter array element type should be a simple type, but got: %v", itemsType)
-		}
-		openAPIType = "array"
-		openAPIFormat = ""
+
+	// AllowMultiple indicates an array parameter. The element type is
+	// derived by stripping the "[]" prefix from DataType.
+	elementType := dataType
+	if restParam.AllowMultiple() {
+		elementType = strings.TrimPrefix(dataType, "[]")
+	}
+
+	openAPIType, openAPIFormat := common.OpenAPITypeFormat(elementType)
+	if openAPIType == "" {
+		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got: %v", dataType)
+	}
+
+	if restParam.AllowMultiple() {
+		ret.Type = "array"
+		ret.Format = ""
+		ret.CollectionFormat = "multi"
 		ret.Items = &spec.Items{
 			SimpleSchema: spec.SimpleSchema{
-				Type:   itemsAPIType,
-				Format: itemsAPIFormat,
+				Type:   openAPIType,
+				Format: openAPIFormat,
 			},
 		}
-	} else if openAPIType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", dataType)
+	} else {
+		ret.Type = openAPIType
+		ret.Format = openAPIFormat
 	}
-	ret.Type = openAPIType
-	ret.Format = openAPIFormat
 	ret.UniqueItems = !restParam.AllowMultiple()
-	if openAPIType == "array" && restParam.AllowMultiple() {
-		ret.CollectionFormat = "multi"
-	}
 	return ret, nil
 }
 
