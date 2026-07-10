@@ -38,7 +38,7 @@ const (
 	hours      = uint64(time.Hour)
 	days       = uint64(hoursInDay * time.Hour)
 	weeks      = uint64(hoursInDay * daysInWeek * time.Hour)
-	maxUint64  = uint64(1 << 63)
+	maxDurationMagnitude = uint64(1 << 63)
 )
 
 // timeMultiplier holds all supported aliases for duration units, including their plural form.
@@ -52,7 +52,7 @@ var timeMultiplier = map[string]uint64{
 	"nanos":        nanos,
 	"us":           micros,
 	"µs":           micros, // U+00B5 = micro symbol
-	"μs":           micros, // U+03BC = Greek letter mu
+	// "μs":        micros, // U+03BC = Greek letter mu (rejected, new in upstream but not accepted here)
 	"micro":        micros,
 	"micros":       micros,
 	"microsecond":  micros,
@@ -74,7 +74,7 @@ var timeMultiplier = map[string]uint64{
 	"minutes":      minutes,
 	"h":            hours,
 	"hr":           hours,
-	"hrs":          hours,
+	// "hrs":       hours, (rejected, new in upstream but not accepted here)
 	"hour":         hours,
 	"hours":        hours,
 	"d":            days,
@@ -82,7 +82,7 @@ var timeMultiplier = map[string]uint64{
 	"days":         days,
 	"w":            weeks,
 	"wk":           weeks,
-	"wks":          weeks,
+	// "wks":       weeks, (rejected, new in upstream but not accepted here)
 	"week":         weeks,
 	"weeks":        weeks,
 }
@@ -118,8 +118,8 @@ func (d *Duration) UnmarshalText(data []byte) error { // validation is performed
 
 // ParseDuration parses a duration from a string
 //
-// It is similar to [time.ParseDuration] but support additional units like days and weeks,
-// additional abreviations for units and is more tolerant on the presence of blank spaces.
+// It is similar to [time.ParseDuration] but supports additional units,
+// additional abbreviations for units and is more tolerant on the presence of blank spaces.
 //
 // A duration may be negative or fractional.
 //
@@ -134,15 +134,13 @@ func (d *Duration) UnmarshalText(data []byte) error { // validation is performed
 // Units may be specified using aliases or a plural form.
 //
 //   - "ns", "nano", "nanosecond", "nanoseconds", "nanos"
-//   - "us", "µs" (U+00B5 = micro symbol), "μs" (U+03BC = Greek letter mu), "micro", "micros", "microsecond", "microseconds"
+//   - "us", "µs" (U+00B5 = micro symbol), "micro", "micros", "microsecond", "microseconds"
 //   - "ms", "milli", "millis", "millisecond", "milliseconds"
 //   - "s", "sec", "secs", "second", "seconds"
 //   - "m", "min", "mins", "minute", "minutes"
-//   - "h", "hr", "hrs", "hour", "hours"
+//   - "h", "hr", "hour", "hours"
 //   - "d", "day", "days"
-//   - "w", "wk", "wks", "week", "weeks"
-//
-// NOTE: inspired by scala duration syntax.
+//   - "w", "wk", "week", "weeks"
 //
 // # Examples
 //
@@ -154,6 +152,10 @@ func (d *Duration) UnmarshalText(data []byte) error { // validation is performed
 func ParseDuration(s string) (time.Duration, error) {
 	// NOTE: this code is largely inspired by the standard library.
 	orig := s
+	s = strings.TrimSpace(s)
+	if dur, err := time.ParseDuration(s); err == nil {
+		return dur, nil
+	}
 	var d uint64
 	neg := false
 
@@ -236,7 +238,7 @@ func ParseDuration(s string) (time.Duration, error) {
 			return 0, parseDurationError(orig, fmt.Sprintf("unknown unit %q in duration", u))
 		}
 
-		if v > maxUint64/unit {
+		if v > maxDurationMagnitude/unit {
 			// overflow
 			return 0, parseDurationError(orig, "numerical overflow")
 		}
@@ -246,14 +248,14 @@ func ParseDuration(s string) (time.Duration, error) {
 			// float64 is needed to be nanosecond accurate for fractions of hours.
 			// v >= 0 && (f*unit/scale) <= 3.6e+12 (ns/h, h is the largest unit)
 			v += uint64(float64(f) * (float64(unit) / scale))
-			if v > maxUint64 {
+			if v > maxDurationMagnitude {
 				// overflow
 				return 0, parseDurationError(orig, "numerical overflow")
 			}
 		}
 
 		d += v
-		if d > maxUint64 {
+		if d > maxDurationMagnitude {
 			return 0, parseDurationError(orig, "numerical overflow")
 		}
 	}
@@ -262,7 +264,7 @@ func ParseDuration(s string) (time.Duration, error) {
 		return -time.Duration(d), nil
 	}
 
-	if d > maxUint64-1 {
+	if d > maxDurationMagnitude-1 {
 		return 0, parseDurationError(orig, "numerical overflow")
 	}
 
@@ -329,12 +331,12 @@ func leadingInt[bytes []byte | string](s bytes) (x uint64, rem bytes, ok bool) {
 			break
 		}
 
-		if x > maxUint64/10 { // overflow
+		if x > maxDurationMagnitude/10 { // overflow
 			return 0, rem, false
 		}
 
 		x = x*10 + uint64(c) - '0'
-		if x > maxUint64 { // overflow
+		if x > maxDurationMagnitude { // overflow
 			return 0, rem, false
 		}
 	}
@@ -360,14 +362,14 @@ func leadingFraction(s string) (x uint64, scale float64, rem string) {
 			continue
 		}
 
-		if x > (maxUint64-1)/10 {
+		if x > (maxDurationMagnitude-1)/10 {
 			// It's possible for overflow to give a positive number, so take care.
 			overflow = true
 			continue
 		}
 
 		y := x*10 + uint64(c) - '0'
-		if y > maxUint64 {
+		if y > maxDurationMagnitude {
 			overflow = true
 			continue
 		}

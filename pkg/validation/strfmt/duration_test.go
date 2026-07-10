@@ -147,6 +147,10 @@ func TestDurationParser(t *testing.T) {
 		"1 m45 s":              time.Minute + 45*time.Second,
 		"1m 45s":               time.Minute + 45*time.Second,
 		"1  minute 45 seconds": time.Minute + 45*time.Second,
+
+		// parse trailing spaces
+		"1ns  ":     1 * time.Nanosecond,
+		"1m 45s   ": time.Minute + 45*time.Second,
 	}
 
 	for str, dur := range testcases {
@@ -207,7 +211,7 @@ func TestDurationParser_EdgeCases(t *testing.T) {
 // TestDurationParser_Overflow covers every numerical-overflow branch in
 // ParseDuration, leadingInt, and leadingFraction.
 //
-// The boundary values are derived from maxUint64 = 1<<63 (the magnitude of
+// The boundary values are derived from maxDurationMagnitude = 1<<63 (the magnitude of
 // math.MinInt64). The fractional cases hinge on (1<<63 - 1)/10 = 922337203685477580.
 func TestDurationParser_Overflow(t *testing.T) {
 	overflows := []struct {
@@ -227,15 +231,15 @@ func TestDurationParser_Overflow(t *testing.T) {
 			input: "2562047.9h",
 		},
 		{
-			name: "running total d exceeds maxUint64 across tokens",
+			name: "running total d exceeds maxDurationMagnitude across tokens",
 			// Each token alone fits (9e18 < 1<<63 ~= 9.223e18), but the sum
-			// (1.8e19) overflows in the in-loop d > maxUint64 check.
+			// (1.8e19) overflows in the in-loop d > maxDurationMagnitude check.
 			input: "9000000000000ms 9000000000000ms",
 		},
 		{
-			name: "single positive value equals maxUint64",
+			name: "single positive value equals maxDurationMagnitude",
 			// 1<<63 ns parses through leadingInt successfully, then fails the
-			// final d > maxUint64-1 check (only the negative form fits, as
+			// final d > maxDurationMagnitude-1 check (only the negative form fits, as
 			// time.Duration(math.MinInt64)).
 			input: "9223372036854775808ns",
 		},
