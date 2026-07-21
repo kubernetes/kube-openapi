@@ -419,17 +419,45 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 	default:
 		return ret, fmt.Errorf("unsupported restful parameter kind : %v", restParam.Kind())
 	}
-	openAPIType, openAPIFormat := common.OpenAPITypeFormat(restParam.DataType())
-	if openAPIType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
+	dataType := restParam.DataType()
+
+	// AllowMultiple indicates an array parameter. The element type is
+	// derived by stripping the "[]" prefix from DataType.
+	elementType := dataType
+	if restParam.AllowMultiple() {
+		elementType = strings.TrimPrefix(dataType, "[]")
 	}
 
-	ret.Schema = &spec.Schema{
-		SchemaProps: spec.SchemaProps{
-			Type:        []string{openAPIType},
-			Format:      openAPIFormat,
-			UniqueItems: !restParam.AllowMultiple(),
-		},
+	elementAPIType, elementAPIFormat := common.OpenAPITypeFormat(elementType)
+	if elementAPIType == "" {
+		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got: %v", dataType)
+	}
+
+	if restParam.AllowMultiple() {
+		ret.Style = "form"
+		ret.Explode = true
+		ret.Schema = &spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:        []string{"array"},
+				UniqueItems: false,
+				Items: &spec.SchemaOrArray{
+					Schema: &spec.Schema{
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{elementAPIType},
+							Format: elementAPIFormat,
+						},
+					},
+				},
+			},
+		}
+	} else {
+		ret.Schema = &spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type:        []string{elementAPIType},
+				Format:      elementAPIFormat,
+				UniqueItems: true,
+			},
+		}
 	}
 	return ret, nil
 }

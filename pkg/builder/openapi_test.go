@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -650,6 +651,76 @@ func TestEscapeJsonPointerInDefinitionName(t *testing.T) {
 				_, exists = definitions.Definitions[tc.shouldNotExist]
 				assert.False(exists, "Definition should not exist with unescaped name: %s", tc.shouldNotExist)
 			}
+		})
+	}
+}
+
+func TestBuildParameter(t *testing.T) {
+	o := &openAPI{}
+
+	// buildParameter receives *restfuladapter.ParamAdapter at runtime.
+	newParam := func(dt string, allowMultiple bool) openapi.Parameter {
+		return &restfuladapter.ParamAdapter{
+			Param: restful.QueryParameter("p", "").DataType(dt).AllowMultiple(allowMultiple),
+		}
+	}
+
+	tests := []struct {
+		name        string
+		param       openapi.Parameter
+		wantType    string
+		wantFormat  string
+		wantItems   bool
+		wantErr     bool
+	}{
+		{
+			name:     "scalar string",
+			param:    newParam("string", false),
+			wantType: "string",
+		},
+		{
+			name:       "scalar []byte stays scalar",
+			param:      newParam("[]byte", false),
+			wantType:   "string",
+			wantFormat: "byte",
+		},
+		{
+			name:      "AllowMultiple=true emits array",
+			param:     newParam("[]string", true),
+			wantType:  "array",
+			wantItems: true,
+		},
+		{
+			name:      "AllowMultiple=true with plain DataType emits array",
+			param:     newParam("string", true),
+			wantType:  "array",
+			wantItems: true,
+		},
+		{
+			name:    "[]string without AllowMultiple is a misconfiguration — errors intentionally",
+			param:   newParam("[]string", false),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := o.buildParameter(tt.param, nil)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantType, got.Type)
+			assert.Equal(t, tt.wantFormat, got.Format)
+			if tt.wantItems {
+				assert.NotNil(t, got.Items)
+				assert.Equal(t, "multi", got.CollectionFormat)
+			} else {
+				assert.Nil(t, got.Items)
+				assert.Empty(t, got.CollectionFormat)
+			}
+			assert.True(t, got.UniqueItems != tt.param.AllowMultiple())
 		})
 	}
 }
