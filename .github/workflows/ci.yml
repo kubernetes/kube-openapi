@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: ['1.24', '1.25', '1.26']
+        go-version: ['1.25', '1.26']
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.0
@@ -34,11 +34,11 @@ jobs:
         go mod tidy && git diff --exit-code
         go test ./...
     # We set the maximum version of the go directive here according to
-    # the oldest go directive that exists on our supported release branches
-    # in k/k.
+    # the oldest Go toolchain (.go-version) in use on our supported
+    # release branches in k/k.
     - name: Run verify scripts
       run: |
-        ./hack/verify-go-directive.sh 1.24.0
+        ./hack/verify-go-directive.sh 1.25.0
   ci-go-tip:
     # Informational lane that exercises the vendored encoding/json/v2 shim
     # against Go tip so upstream changes (e.g. graduating JSONv2 to baseline)
