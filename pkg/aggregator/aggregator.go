@@ -323,7 +323,11 @@ PARAMETERLOOP:
 		} else if merged, changed, err := mergedGVKs(&existing, &v); err != nil {
 			return err
 		} else if changed {
+			if existing.Extensions == nil {
+				existing.Extensions = make(spec.Extensions)
+			}
 			existing.Extensions[gvkKey] = merged
+			dest.Definitions[k] = existing
 		}
 	}
 

@@ -2507,3 +2507,118 @@ func TestDeepEqualDefinitionsModuloGVKs(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeSpecsGVKIntoNilExtensions(t *testing.T) {
+	// The destination definition has no vendor extensions, so its Extensions
+	// map is nil. The source carries the same definition plus a
+	// x-kubernetes-group-version-kind extension, so mergedGVKs reports a
+	// change and the merge writes the gvk into the destination. This must not
+	// panic on the nil map.
+	var destSpec, sourceSpec, expected *spec.Swagger
+	if err := yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+`), &destSpec); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /bar:
+    post:
+      operationId: "barTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+    x-kubernetes-group-version-kind:
+    - group: group1
+      version: v1
+      kind: Foo
+`), &sourceSpec); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := yaml.Unmarshal([]byte(`
+swagger: "2.0"
+paths:
+  /foo:
+    post:
+      operationId: "fooTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+  /bar:
+    post:
+      operationId: "barTest"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/Foo"
+      responses:
+        200:
+          description: "OK"
+definitions:
+  Foo:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+    x-kubernetes-group-version-kind:
+    - group: group1
+      version: v1
+      kind: Foo
+`), &expected); err != nil {
+		t.Fatal(err)
+	}
+
+	ast := assert.New(t)
+	if destSpec.Definitions["Foo"].Extensions != nil {
+		t.Fatalf("test setup: expected nil Extensions on destination definition")
+	}
+	if !ast.NoError(MergeSpecs(destSpec, sourceSpec)) {
+		return
+	}
+	ast.Equal(DebugSpec{expected}, DebugSpec{destSpec})
+}
