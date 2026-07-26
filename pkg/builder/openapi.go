@@ -451,9 +451,22 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 	if openAPIType == "" {
 		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
 	}
-	ret.Type = openAPIType
-	ret.Format = openAPIFormat
-	ret.UniqueItems = !restParam.AllowMultiple()
+	// uniqueItems is an array-only validation, so a scalar parameter must not
+	// carry it. A parameter that accepts multiple values is an array of the
+	// element type, serialized as repeated query values (collectionFormat: multi).
+	if restParam.AllowMultiple() {
+		ret.Type = "array"
+		ret.CollectionFormat = "multi"
+		ret.Items = &spec.Items{
+			SimpleSchema: spec.SimpleSchema{
+				Type:   openAPIType,
+				Format: openAPIFormat,
+			},
+		}
+	} else {
+		ret.Type = openAPIType
+		ret.Format = openAPIFormat
+	}
 	return ret, nil
 }
 
