@@ -340,34 +340,83 @@ func typeShortName(t *types.Type) string {
 	return path.Base(t.Name.Package) + "." + t.Name.Name
 }
 
-func (g openAPITypeWriter) generateMembers(t *types.Type, required []string) ([]string, error) {
-	var err error
-	for t.Kind == types.Pointer { // fast-forward to effective type containing members
-		t = t.Elem
+type memberCandidate struct {
+	member    types.Member
+	parent    *types.Type
+	depth     int
+	ambiguous bool
+}
+
+func (g openAPITypeWriter) generateMembers(t *types.Type) ([]string, error) {
+	type typeAtDepth struct {
+		typeToVisit *types.Type
+		depth       int
 	}
-	for _, m := range t.Members {
-		if hasOpenAPITagValue(m.CommentLines, tagValueFalse) {
-			continue
+
+	queue := []typeAtDepth{{typeToVisit: t}}
+	candidatesByName := map[string]*memberCandidate{}
+	var candidates []*memberCandidate
+
+	// Visit embedded types breadth-first so fields at the shallowest depth are
+	// selected. Multiple fields with the same name at that depth are ambiguous.
+	for i := 0; i < len(queue); i++ {
+		current := queue[i]
+		for current.typeToVisit.Kind == types.Pointer { // fast-forward to effective type containing members
+			current.typeToVisit = current.typeToVisit.Elem
 		}
-		if shouldInlineMembers(&m) {
-			required, err = g.generateMembers(m.Type, required)
-			if err != nil {
-				return required, err
+		for _, m := range current.typeToVisit.Members {
+			if hasOpenAPITagValue(m.CommentLines, tagValueFalse) {
+				continue
 			}
+			if shouldInlineMembers(&m) {
+				queue = append(queue, typeAtDepth{typeToVisit: m.Type, depth: current.depth + 1})
+				continue
+			}
+			name := getReferableName(&m)
+			if name == "" {
+				continue
+			}
+
+			candidate, found := candidatesByName[name]
+			switch {
+			case !found:
+				candidate = &memberCandidate{
+					member: m,
+					parent: current.typeToVisit,
+					depth:  current.depth,
+				}
+				candidatesByName[name] = candidate
+				candidates = append(candidates, candidate)
+			case current.depth < candidate.depth:
+				candidate.member = m
+				candidate.parent = current.typeToVisit
+				candidate.depth = current.depth
+				candidate.ambiguous = false
+			case current.depth == candidate.depth:
+				candidate.ambiguous = true
+			}
+		}
+	}
+
+	required := []string{}
+	requiredNames := map[string]struct{}{}
+	for _, candidate := range candidates {
+		if candidate.ambiguous {
 			continue
 		}
-		name := getReferableName(&m)
-		if name == "" {
-			continue
-		}
-		if isOptional, err := isOptional(&m); err != nil {
-			klog.Errorf("Error when generating: %v, %v\n", name, m)
+
+		name := getReferableName(&candidate.member)
+		if optional, err := isOptional(&candidate.member); err != nil {
+			klog.Errorf("Error when generating: %v, %v\n", name, candidate.member)
 			return required, err
-		} else if !isOptional {
-			required = append(required, name)
+		} else if !optional {
+			if _, found := requiredNames[name]; !found {
+				required = append(required, name)
+				requiredNames[name] = struct{}{}
+			}
 		}
-		if err = g.generateProperty(&m, t); err != nil {
-			klog.Errorf("Error when generating: %v, %v\n", name, m)
+		if err := g.generateProperty(&candidate.member, candidate.parent); err != nil {
+			klog.Errorf("Error when generating: %v, %v\n", name, candidate.member)
 			return required, err
 		}
 	}
@@ -678,7 +727,7 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 		propertiesBuf := bytes.Buffer{}
 		bsw := g
 		bsw.SnippetWriter = generator.NewSnippetWriter(&propertiesBuf, g.context, "$", "$")
-		required, err := bsw.generateMembers(t, []string{})
+		required, err := bsw.generateMembers(t)
 		if err != nil {
 			return err
 		}
