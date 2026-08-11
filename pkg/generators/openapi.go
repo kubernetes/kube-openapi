@@ -754,7 +754,11 @@ func (g openAPITypeWriter) generateStructExtensions(t *types.Type, otherExtensio
 }
 
 func (g openAPITypeWriter) generateMemberExtensions(m *types.Member, parent *types.Type, otherExtensions map[string]interface{}) error {
-	extensions, parseErrors := parseExtensions(m.CommentLines)
+	comments := m.CommentLines
+	if m.Type.Kind == types.Alias {
+		comments = append(append([]string{}, comments...), m.Type.CommentLines...)
+	}
+	extensions, parseErrors := parseExtensions(comments)
 	validationErrors := validateMemberExtensions(extensions, m)
 	errors := append(parseErrors, validationErrors...)
 	// Initially, we will only log member extension errors.
