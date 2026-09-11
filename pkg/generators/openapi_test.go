@@ -867,6 +867,116 @@ Required: []string{"String"},
 	})
 }
 
+func TestEmbeddedInlineFieldResolution(t *testing.T) {
+	tests := []struct {
+		name             string
+		inputFile        string
+		propertyCounts   map[string]int
+		required         string
+		includedFragment string
+		excludedFragment string
+	}{
+		{
+			name: "same depth is ambiguous",
+			inputFile: `
+				package foo
+
+				type Common struct {
+					Shared string ` + "`json:\"shared\"`" + `
+				}
+
+				type Left struct {
+					Common ` + "`json:\",inline\"`" + `
+					Left string ` + "`json:\"left\"`" + `
+				}
+
+				type Right struct {
+					Common ` + "`json:\",inline\"`" + `
+					Right string ` + "`json:\"right\"`" + `
+				}
+
+				type Blah struct {
+					Left ` + "`json:\",inline\"`" + `
+					Right ` + "`json:\",inline\"`" + `
+				}`,
+			propertyCounts: map[string]int{
+				"left":   1,
+				"right":  1,
+				"shared": 0,
+			},
+			required: `Required: []string{"left","right"},`,
+		},
+		{
+			name: "shallower field wins",
+			inputFile: `
+				package foo
+
+				type Intermediate struct {
+					// Deep shared field.
+					Shared int ` + "`json:\"shared\"`" + `
+				}
+
+				type Deep struct {
+					Intermediate ` + "`json:\",inline\"`" + `
+				}
+
+				type Shallow struct {
+					// Shallow shared field.
+					Shared string ` + "`json:\"shared\"`" + `
+				}
+
+				type Blah struct {
+					Deep ` + "`json:\",inline\"`" + `
+					Shallow ` + "`json:\",inline\"`" + `
+				}`,
+			propertyCounts: map[string]int{
+				"shared": 1,
+			},
+			required:         `Required: []string{"shared"},`,
+			includedFragment: `Description: "Shallow shared field."`,
+			excludedFragment: `Description: "Deep shared field."`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+				e := packagestest.Export(t, x, []packagestest.Module{{
+					Name: "example.com/base/foo",
+					Files: map[string]interface{}{
+						"foo.go": test.inputFile,
+					},
+				}})
+				defer e.Cleanup()
+
+				callErr, funcErr, _, funcBuffer, _ := testOpenAPITypeWriter(t, e.Config)
+				if callErr != nil {
+					t.Fatal(callErr)
+				}
+				if funcErr != nil {
+					t.Fatal(funcErr)
+				}
+
+				generated := funcBuffer.String()
+				for property, expectedCount := range test.propertyCounts {
+					if count := strings.Count(generated, fmt.Sprintf("%q: {", property)); count != expectedCount {
+						t.Errorf("property %q emitted %d times, want %d\n%s", property, count, expectedCount, generated)
+					}
+				}
+				if count := strings.Count(generated, test.required); count != 1 {
+					t.Errorf("required fields emitted %d times, want 1 occurrence of %q\n%s", count, test.required, generated)
+				}
+				if test.includedFragment != "" && !strings.Contains(generated, test.includedFragment) {
+					t.Errorf("generated output does not contain winning field schema %q\n%s", test.includedFragment, generated)
+				}
+				if test.excludedFragment != "" && strings.Contains(generated, test.excludedFragment) {
+					t.Errorf("generated output contains shadowed field schema %q\n%s", test.excludedFragment, generated)
+				}
+			})
+		})
+	}
+}
+
 func TestNestedMapString(t *testing.T) {
 	inputFile := `
 		package foo
