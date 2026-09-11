@@ -447,12 +447,34 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 	default:
 		return ret, fmt.Errorf("unknown restful operation kind : %v", restParam.Kind())
 	}
-	openAPIType, openAPIFormat := common.OpenAPITypeFormat(restParam.DataType())
-	if openAPIType == "" {
-		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
+	dataType := restParam.DataType()
+
+	// AllowMultiple indicates an array parameter. The element type is
+	// derived by stripping the "[]" prefix from DataType.
+	elementType := dataType
+	if restParam.AllowMultiple() {
+		elementType = strings.TrimPrefix(dataType, "[]")
 	}
-	ret.Type = openAPIType
-	ret.Format = openAPIFormat
+
+	openAPIType, openAPIFormat := common.OpenAPITypeFormat(elementType)
+	if openAPIType == "" {
+		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got: %v", dataType)
+	}
+
+	if restParam.AllowMultiple() {
+		ret.Type = "array"
+		ret.Format = ""
+		ret.CollectionFormat = "multi"
+		ret.Items = &spec.Items{
+			SimpleSchema: spec.SimpleSchema{
+				Type:   openAPIType,
+				Format: openAPIFormat,
+			},
+		}
+	} else {
+		ret.Type = openAPIType
+		ret.Format = openAPIFormat
+	}
 	ret.UniqueItems = !restParam.AllowMultiple()
 	return ret, nil
 }
