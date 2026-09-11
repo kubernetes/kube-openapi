@@ -1816,7 +1816,14 @@ func TestExtensions(t *testing.T) {
 			// +listType=map
 			// +listMapKey=port
 			WithListField2 []string
-		}`
+
+			NamedItems NamedItemList
+		}
+				// +k8s:openapi-gen=true
+	// +listType=map
+	// +listMapKey=port
+	type NamedItemList []string
+			`
 	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
 		e := packagestest.Export(t, x, []packagestest.Module{{
 			Name: "example.com/base/foo",
@@ -1888,8 +1895,29 @@ Format: "",
 },
 },
 },
+"NamedItems": {
+VendorExtensible: spec.VendorExtensible{
+Extensions: spec.Extensions{
+"x-kubernetes-list-map-keys": []interface{}{
+"port",
 },
-Required: []string{"WithListField","WithListField2"},
+"x-kubernetes-list-type": "map",
+},
+},
+SchemaProps: spec.SchemaProps{
+Type: []string{"array"},
+Items: &spec.SchemaOrArray{
+Schema: &spec.Schema{
+SchemaProps: spec.SchemaProps{
+Type: []string{"string"},
+Format: "",
+},
+},
+},
+},
+},
+},
+Required: []string{"WithListField","WithListField2","NamedItems"},
 },
 VendorExtensible: spec.VendorExtensible{
 Extensions: spec.Extensions{
