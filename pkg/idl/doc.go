@@ -122,6 +122,14 @@ type OpenAPIGen string
 //
 //	+optional
 //
+// The declarative validation spelling of this tag is recognized as an alias:
+//
+//	+k8s:optional
+//
+// A field may carry both spellings during the migration to the prefixed tags,
+// which is not a conflict. Marking a field both optional and required, in
+// either spelling, is an error.
+//
 // Additionally, the json struct tag directive "omitempty" can be used to imply
 // the same.
 //

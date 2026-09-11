@@ -2764,6 +2764,20 @@ func TestRequired(t *testing.T) {
 
 			ImplicitlyRequiredField string
 			ImplicitlyOptionalField string ` + "`json:\"implicitlyOptionalField,omitempty\"`" + `
+
+			// +k8s:optional
+			K8sOptionalField string
+
+			// +k8s:required
+			K8sRequiredField string ` + "`json:\"k8sRequiredField,omitempty\"`" + `
+
+			// +optional
+			// +k8s:optional
+			BothOptionalField string
+
+			// +required
+			// +k8s:required
+			BothRequiredField string ` + "`json:\"bothRequiredField,omitempty\"`" + `
 		}`
 
 	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
@@ -2839,8 +2853,34 @@ func TestRequired(t *testing.T) {
    								Format: "",
    							},
    						},
+   						"K8sOptionalField": {
+   							SchemaProps: spec.SchemaProps{
+   								Default: "",
+   								Type:    []string{"string"},
+   								Format:  "",
+   							},
+   						},
+   						"k8sRequiredField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
+   						"BothOptionalField": {
+   							SchemaProps: spec.SchemaProps{
+   								Default: "",
+   								Type:    []string{"string"},
+   								Format:  "",
+   							},
+   						},
+   						"bothRequiredField": {
+   							SchemaProps: spec.SchemaProps{
+   								Type:   []string{"string"},
+   								Format: "",
+   							},
+   						},
 					},
-					Required: []string{"RequiredField", "requiredPointerField", "ImplicitlyRequiredField"},
+					Required: []string{"RequiredField", "requiredPointerField", "ImplicitlyRequiredField", "k8sRequiredField", "bothRequiredField"},
 				},
 			},
 		}
@@ -2852,36 +2892,49 @@ func TestRequired(t *testing.T) {
 		}
 	})
 
-	// Show specifying both is an error
-	badFile := `
+	// Show specifying both is an error, in any mix of the prefixed and
+	// unprefixed spellings.
+	for _, tags := range [][]string{
+		{"+optional", "+required"},
+		{"+k8s:optional", "+k8s:required"},
+		{"+optional", "+k8s:required"},
+		{"+k8s:optional", "+required"},
+	} {
+		// ":" in a subtest name ends up in a temporary GOPATH, which the go
+		// tool reads as a path list separator, so keep it out of the name.
+		name := strings.ReplaceAll(strings.Join(tags, "_"), ":", "-")
+		t.Run(name, func(t *testing.T) {
+			badFile := `
 		package foo
 
 		// +k8s:openapi-gen=true
 		type Blah struct {
-			// +optional
-			// +required
+			// ` + tags[0] + `
+			// ` + tags[1] + `
 			ConfusingField string
 		}`
-	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
-		e := packagestest.Export(t, x, []packagestest.Module{{
-			Name: "example.com/base/foo",
-			Files: map[string]interface{}{
-				"foo.go": badFile,
-			},
-		}})
-		defer e.Cleanup()
+			packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+				e := packagestest.Export(t, x, []packagestest.Module{{
+					Name: "example.com/base/foo",
+					Files: map[string]interface{}{
+						"foo.go": badFile,
+					},
+				}})
+				defer e.Cleanup()
 
-		callErr, funcErr, _, _, _ := testOpenAPITypeWriter(t, e.Config)
-		if callErr != nil {
-			t.Errorf("Unexpected callErr: %v", callErr)
-		}
-		if funcErr == nil {
-			t.Fatalf("Expected funcErr")
-		}
-		if !strings.Contains(funcErr.Error(), "cannot be both optional and required") {
-			t.Errorf("Unexpected error: %v", funcErr)
-		}
-	})
+				callErr, funcErr, _, _, _ := testOpenAPITypeWriter(t, e.Config)
+				if callErr != nil {
+					t.Errorf("Unexpected callErr: %v", callErr)
+				}
+				if funcErr == nil {
+					t.Fatalf("Expected funcErr")
+				}
+				if !strings.Contains(funcErr.Error(), "cannot be both optional and required") {
+					t.Errorf("Unexpected error: %v", funcErr)
+				}
+			})
+		})
+	}
 }
 
 func TestMarkerCommentsCustomDefsV3(t *testing.T) {
