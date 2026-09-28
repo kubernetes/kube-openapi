@@ -252,6 +252,82 @@ func TestParseEnums(t *testing.T) {
 				"foo.Foo": {"case1", "case2"},
 			},
 		},
+		{
+			name: "declarative validation spelling",
+			universe: types.Universe{
+				"foo": &types.Package{
+					Name: "foo",
+					Types: map[string]*types.Type{
+						"Foo": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "Foo",
+							},
+							Kind:         types.Alias,
+							Underlying:   types.String,
+							CommentLines: []string{"+k8s:enum"},
+						},
+					},
+					Constants: map[string]*types.Type{
+						"Bar": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "Bar",
+							},
+							Kind: types.Alias,
+							Underlying: &types.Type{
+								Name: types.Name{
+									Package: "foo",
+									Name:    "Foo",
+								},
+							},
+							ConstValue: &[]string{"bar"}[0],
+						},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"foo.Foo": {"bar"},
+			},
+		},
+		{
+			name: "both spellings",
+			universe: types.Universe{
+				"foo": &types.Package{
+					Name: "foo",
+					Types: map[string]*types.Type{
+						"Foo": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "Foo",
+							},
+							Kind:         types.Alias,
+							Underlying:   types.String,
+							CommentLines: []string{"+enum", "+k8s:enum"},
+						},
+					},
+					Constants: map[string]*types.Type{
+						"Bar": {
+							Name: types.Name{
+								Package: "foo",
+								Name:    "Bar",
+							},
+							Kind: types.Alias,
+							Underlying: &types.Type{
+								Name: types.Name{
+									Package: "foo",
+									Name:    "Foo",
+								},
+							},
+							ConstValue: &[]string{"bar"}[0],
+						},
+					},
+				},
+			},
+			expected: map[string][]string{
+				"foo.Foo": {"bar"},
+			},
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			enums := parseEnums(&generator.Context{Universe: tc.universe})
