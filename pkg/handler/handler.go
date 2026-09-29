@@ -18,13 +18,15 @@ package handler
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/sha512"
 	"fmt"
+	"mime"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	"github.com/emicklei/go-restful/v3"
 	openapi_v2 "github.com/google/gnostic-models/openapiv2"
 	"github.com/google/uuid"
@@ -54,7 +56,26 @@ func computeETag(data []byte) string {
 
 type timedSpec struct {
 	spec         []byte
+	gzipped      []byte
 	lastModified time.Time
+}
+
+func gzipBytes(b []byte) []byte {
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	_, _ = zw.Write(b) // bytes.Buffer never fails
+	_ = zw.Close()
+	return buf.Bytes()
+}
+
+func acceptsGzip(header string) bool {
+	for _, enc := range strings.Split(header, ",") {
+		if name, params, err := mime.ParseMediaType(enc); err == nil && name == "gzip" {
+			q, err := strconv.ParseFloat(params["q"], 64)
+			return params["q"] == "" || (err == nil && q > 0)
+		}
+	}
+	return false
 }
 
 // OpenAPIService is the service responsible for serving OpenAPI spec. It has
@@ -83,7 +104,7 @@ func NewOpenAPIServiceLazy(swagger cached.Value[*spec.Swagger]) *OpenAPIService 
 		if err != nil {
 			return timedSpec{}, "", err
 		}
-		return timedSpec{spec: json, lastModified: time.Now()}, computeETag(json), nil
+		return timedSpec{spec: json, gzipped: gzipBytes(json), lastModified: time.Now()}, computeETag(json), nil
 	}, &o.specCache)
 	o.protoCache = cached.Transform(func(ts timedSpec, etag string, err error) (timedSpec, string, error) {
 		if err != nil {
@@ -94,7 +115,7 @@ func NewOpenAPIServiceLazy(swagger cached.Value[*spec.Swagger]) *OpenAPIService 
 			return timedSpec{}, "", err
 		}
 		// We can re-use the same etag as json because of the Vary header.
-		return timedSpec{spec: proto, lastModified: ts.lastModified}, etag, nil
+		return timedSpec{spec: proto, gzipped: gzipBytes(proto), lastModified: ts.lastModified}, etag, nil
 	}, o.jsonCache)
 	return o
 }
@@ -138,7 +159,7 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 		{"application", subTypeProtobuf, "application/" + subTypeProtobuf, o.protoCache},
 	}
 
-	handler.Handle(servePath, gziphandler.GzipHandler(http.HandlerFunc(
+	handler.Handle(servePath, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			decipherableFormats := r.Header.Get("Accept")
 			if decipherableFormats == "" {
@@ -146,6 +167,7 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 			}
 			clauses := goautoneg.ParseAccept(decipherableFormats)
 			w.Header().Add("Vary", "Accept")
+			w.Header().Add("Vary", "Accept-Encoding")
 			for _, clause := range clauses {
 				for _, accepts := range accepted {
 					if clause.Type != accepts.Type && clause.Type != "*" {
@@ -158,11 +180,13 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 					ts, etag, err := accepts.GetDataAndEtag.Get()
 					if err != nil {
 						klog.Errorf("Error in OpenAPI handler: %s", err)
-						// only return a 503 if we have no older cache data to serve
-						if ts.spec == nil {
-							w.WriteHeader(http.StatusServiceUnavailable)
-							return
-						}
+						w.WriteHeader(http.StatusServiceUnavailable)
+						return
+					}
+					body := ts.spec
+					if acceptsGzip(r.Header.Get("Accept-Encoding")) {
+						body, etag = ts.gzipped, etag+"-gzip"
+						w.Header().Set("Content-Encoding", "gzip")
 					}
 					// Set Content-Type header in the reponse
 					w.Header().Set("Content-Type", accepts.ReturnedContentType)
@@ -170,7 +194,7 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 					// ETag must be enclosed in double quotes: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag
 					w.Header().Set("Etag", strconv.Quote(etag))
 					// ServeContent will take care of caching using eTag.
-					http.ServeContent(w, r, servePath, ts.lastModified, bytes.NewReader(ts.spec))
+					http.ServeContent(w, r, servePath, ts.lastModified, bytes.NewReader(body))
 					return
 				}
 			}
@@ -178,7 +202,7 @@ func (o *OpenAPIService) RegisterOpenAPIVersionedService(servePath string, handl
 			w.WriteHeader(406)
 			return
 		}),
-	))
+	)
 }
 
 // BuildAndRegisterOpenAPIVersionedService builds the spec and registers a handler to provide access to it.
