@@ -19,10 +19,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
-	"github.com/go-openapi/swag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -91,16 +91,20 @@ var extendedFixtures = []string{
 	"extended-format",
 }
 
+func containsCI(list []string, s string) bool {
+	return slices.ContainsFunc(list, func(x string) bool { return strings.EqualFold(x, s) })
+}
+
 func isEnabled(nm string) bool {
-	return swag.ContainsStringsCI(enabled(), nm)
+	return containsCI(enabled(), nm)
 }
 
 func isOptionalEnabled(nm string) bool {
-	return swag.ContainsStringsCI(optionalFixtures, nm)
+	return containsCI(optionalFixtures, nm)
 }
 
 func isExtendedEnabled(nm string) bool {
-	return swag.ContainsStringsCI(extendedFixtures, nm)
+	return containsCI(extendedFixtures, nm)
 }
 
 func TestJSONSchemaSuite(t *testing.T) {

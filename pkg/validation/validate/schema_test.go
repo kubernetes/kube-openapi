@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/go-openapi/swag"
+	"github.com/go-openapi/swag/conv"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 	"k8s.io/kube-openapi/pkg/validation/strfmt"
 )
@@ -171,7 +171,7 @@ func TestSchemaValidator_EdgeCases(t *testing.T) {
 	r = s.Validate(j)
 	assert.True(t, r.IsValid())
 
-	bignum := swag.FormatFloat64(math.MaxFloat64)
+	bignum := conv.FormatFloat(math.MaxFloat64)
 	j = json.Number(bignum)
 	r = s.Validate(j)
 	assert.False(t, r.IsValid())
@@ -356,4 +356,16 @@ func TestNumericFormatEnforcement(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAgainstSchemaStructPointer(t *testing.T) {
+	schema := &spec.Schema{SchemaProps: spec.SchemaProps{Type: []string{"object"}, Required: []string{"b"}}}
+	in := struct {
+		A int `json:"a"`
+	}{A: 1}
+	byValue := AgainstSchema(schema, in, strfmt.Default)
+	byPointer := AgainstSchema(schema, &in, strfmt.Default)
+	require.Error(t, byValue)
+	require.Error(t, byPointer)
+	assert.Equal(t, byValue.Error(), byPointer.Error())
 }
