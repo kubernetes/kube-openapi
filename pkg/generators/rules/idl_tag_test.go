@@ -52,6 +52,22 @@ func TestListTypeMissing(t *testing.T) {
 			},
 			expected: []string{},
 		},
+		{
+			name: "simple passing with +k8s:listType",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "Containers",
+						Type: &types.Type{
+							Kind: types.Slice,
+						},
+						CommentLines: []string{"+k8s:listType=map"},
+					},
+				},
+			},
+			expected: []string{},
+		},
 
 		{
 			name: "list Items field should not be annotated",
@@ -64,6 +80,30 @@ func TestListTypeMissing(t *testing.T) {
 							Kind: types.Slice,
 						},
 						CommentLines: []string{"+listType=map"},
+					},
+					{
+						Name:     "ListMeta",
+						Embedded: true,
+						Type: &types.Type{
+							Kind: types.Struct,
+						},
+					},
+				},
+			},
+			expected: []string{"Items"},
+		},
+
+		{
+			name: "list Items field should not be annotated with +k8s:listType",
+			t: &types.Type{
+				Kind: types.Struct,
+				Members: []types.Member{
+					{
+						Name: "Items",
+						Type: &types.Type{
+							Kind: types.Slice,
+						},
+						CommentLines: []string{"+k8s:listType=map"},
 					},
 					{
 						Name:     "ListMeta",
