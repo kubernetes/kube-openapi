@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -288,8 +289,7 @@ func getTestCommonParameters() []*spec3.Parameter {
 			Required:    true,
 			Schema: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Type:        []string{"string"},
-					UniqueItems: true,
+					Type: []string{"string"},
 				},
 			},
 		},
@@ -301,8 +301,7 @@ func getTestCommonParameters() []*spec3.Parameter {
 			In:          "query",
 			Schema: &spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Type:        []string{"string"},
-					UniqueItems: true,
+					Type: []string{"string"},
 				},
 			},
 		},
@@ -424,6 +423,35 @@ func getTestOutputDefinition() *spec.Schema {
 				"x-test2": "test2",
 			},
 		},
+	}
+}
+
+func TestBuildParameterUniqueItemsAndArray(t *testing.T) {
+	assert := assert.New(t)
+	o := &openAPI{}
+
+	// A scalar parameter must not carry uniqueItems, which is an array-only validation.
+	scalar, err := o.buildParameter(&restfuladapter.ParamAdapter{
+		Param: restful.QueryParameter("limit", "maximum number of results").DataType("integer"),
+	})
+	assert.NoError(err)
+	if assert.NotNil(scalar.Schema) {
+		assert.Equal(spec.StringOrArray{"integer"}, scalar.Schema.Type)
+		assert.False(scalar.Schema.UniqueItems)
+		assert.Nil(scalar.Schema.Items)
+	}
+
+	// A parameter that accepts multiple values is an array of its element type.
+	multi, err := o.buildParameter(&restfuladapter.ParamAdapter{
+		Param: restful.QueryParameter("labelSelector", "label selectors").DataType("string").AllowMultiple(true),
+	})
+	assert.NoError(err)
+	if assert.NotNil(multi.Schema) {
+		assert.Equal(spec.StringOrArray{"array"}, multi.Schema.Type)
+		assert.False(multi.Schema.UniqueItems)
+		if assert.NotNil(multi.Schema.Items) && assert.NotNil(multi.Schema.Items.Schema) {
+			assert.Equal(spec.StringOrArray{"string"}, multi.Schema.Items.Schema.Type)
+		}
 	}
 }
 

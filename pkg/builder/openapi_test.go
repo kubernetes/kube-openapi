@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -292,12 +293,12 @@ func getTestCommonParameters() []spec.Parameter {
 	ret := make([]spec.Parameter, 2)
 	ret[0] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/path-z6Ciiujn"),
+			Ref: spec.MustCreateRef("#/parameters/path-n7c4dXYK"),
 		},
 	}
 	ret[1] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/pretty-nN7o5FEq"),
+			Ref: spec.MustCreateRef("#/parameters/pretty-Vg1Gut1p"),
 		},
 	}
 	return ret
@@ -328,12 +329,12 @@ func getAdditionalTestParameters() []spec.Parameter {
 	}
 	ret[1] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/fparam-xCJg5kHS"),
+			Ref: spec.MustCreateRef("#/parameters/fparam-5cewTdsI"),
 		},
 	}
 	ret[2] = spec.Parameter{
 		Refable: spec.Refable{
-			Ref: spec.MustCreateRef("#/parameters/hparam-tx-jfxM1"),
+			Ref: spec.MustCreateRef("#/parameters/hparam-JCXdvvT5"),
 		},
 	}
 	return ret
@@ -408,6 +409,32 @@ func getTestOutputDefinition() spec.Schema {
 	}
 }
 
+func TestBuildParameterUniqueItemsAndArray(t *testing.T) {
+	assert := assert.New(t)
+	o := &openAPI{}
+
+	// A scalar parameter must not carry uniqueItems, which is an array-only validation.
+	scalar, err := o.buildParameter(&restfuladapter.ParamAdapter{
+		Param: restful.QueryParameter("limit", "maximum number of results").DataType("integer"),
+	}, nil)
+	assert.NoError(err)
+	assert.Equal("integer", scalar.Type)
+	assert.False(scalar.UniqueItems)
+	assert.Nil(scalar.Items)
+
+	// A parameter that accepts multiple values is an array of its element type.
+	multi, err := o.buildParameter(&restfuladapter.ParamAdapter{
+		Param: restful.QueryParameter("labelSelector", "label selectors").DataType("string").AllowMultiple(true),
+	}, nil)
+	assert.NoError(err)
+	assert.Equal("array", multi.Type)
+	assert.Equal("multi", multi.CollectionFormat)
+	assert.False(multi.UniqueItems)
+	if assert.NotNil(multi.Items) {
+		assert.Equal("string", multi.Items.Type)
+	}
+}
+
 func TestBuildOpenAPISpec(t *testing.T) {
 	config, container, assert := setUp(t, true)
 	expected := &spec.Swagger{
@@ -431,10 +458,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 				"builder.TestOutput": getTestOutputDefinition(),
 			},
 			Parameters: map[string]spec.Parameter{
-				"fparam-xCJg5kHS": {
-					CommonValidations: spec.CommonValidations{
-						UniqueItems: true,
-					},
+				"fparam-5cewTdsI": {
 					SimpleSchema: spec.SimpleSchema{
 						Type: "number",
 					},
@@ -444,10 +468,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Description: "a test form parameter",
 					},
 				},
-				"hparam-tx-jfxM1": {
-					CommonValidations: spec.CommonValidations{
-						UniqueItems: true,
-					},
+				"hparam-JCXdvvT5": {
 					SimpleSchema: spec.SimpleSchema{
 						Type: "integer",
 					},
@@ -457,10 +478,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Description: "a test head parameter",
 					},
 				},
-				"path-z6Ciiujn": {
-					CommonValidations: spec.CommonValidations{
-						UniqueItems: true,
-					},
+				"path-n7c4dXYK": {
 					SimpleSchema: spec.SimpleSchema{
 						Type: "string",
 					},
@@ -471,10 +489,7 @@ func TestBuildOpenAPISpec(t *testing.T) {
 						Required:    true,
 					},
 				},
-				"pretty-nN7o5FEq": {
-					CommonValidations: spec.CommonValidations{
-						UniqueItems: true,
-					},
+				"pretty-Vg1Gut1p": {
 					SimpleSchema: spec.SimpleSchema{
 						Type: "string",
 					},
