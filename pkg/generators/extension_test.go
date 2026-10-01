@@ -87,6 +87,16 @@ func TestSingleTagExtension(t *testing.T) {
 			extensionName:   "x-kubernetes-member-success",
 			extensionValues: []string{"success"},
 		},
+		{
+			// Test that unrelated tags aren't parsed.
+			comments: []string{
+				`+k8s:validation:cel[0]:rule="oldSelf == self"`,
+				"+listType=atomic",
+			},
+			extensionTag:    "listType",
+			extensionName:   "x-kubernetes-list-type",
+			extensionValues: []string{"atomic"},
+		},
 	}
 	for _, test := range tests {
 		extensions, _ := parseExtensions(test.comments)

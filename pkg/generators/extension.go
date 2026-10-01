@@ -18,6 +18,7 @@ package generators
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"sort"
 	"strings"
@@ -189,7 +190,17 @@ func parseExtensions(comments []string) ([]extension, []error) {
 		}
 	}
 	// Next, generate extensions from "idlTags" (e.g. +listType)
-	tagValues := gengo.ExtractCommentTags("+", comments)
+	idlTags := append(slices.Collect(maps.Keys(tagToExtension)), "k8s:listType", "k8s:listMapKey")
+	tags, err := gengo.ExtractFunctionStyleCommentTags("+", idlTags, comments)
+	if err != nil {
+		return extensions, append(errors, err)
+	}
+	tagValues := map[string][]string{}
+	for name, nameTags := range tags {
+		for _, tag := range nameTags {
+			tagValues[name] = append(tagValues[name], tag.Value)
+		}
+	}
 	resolveTagAliases(tagValues)
 	for _, idlTag := range sortedMapKeys(tagValues) {
 		xAttrs, exists := tagToExtension[idlTag]
