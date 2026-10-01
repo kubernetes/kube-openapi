@@ -164,17 +164,7 @@ func BenchmarkOpenAPIV3Deserialize(b *testing.B) {
 		}
 		b.ResetTimer()
 
-		b.Run(fmt.Sprintf("%s jsonv2 via jsonv1 full spec", bc.file), func(b2 *testing.B) {
-			b2.ReportAllocs()
-			for i := 0; i < b2.N; i++ {
-				var result *OpenAPI
-				if err := json.Unmarshal(originalJSON, &result); err != nil {
-					b2.Fatal(err)
-				}
-			}
-		})
-
-		b.Run("jsonv2", func(b2 *testing.B) {
+		b.Run(bc.file, func(b2 *testing.B) {
 			b2.ReportAllocs()
 			for i := 0; i < b2.N; i++ {
 				var result *OpenAPI
@@ -213,16 +203,7 @@ func BenchmarkOpenAPIV3Serialize(b *testing.B) {
 		}
 		b.ResetTimer()
 
-		b.Run(fmt.Sprintf("%s jsonv2 via jsonv1 full spec", bc.file), func(b2 *testing.B) {
-			b2.ReportAllocs()
-			for i := 0; i < b2.N; i++ {
-				if _, err := json.Marshal(openapi); err != nil {
-					b2.Fatal(err)
-				}
-			}
-		})
-
-		b.Run("jsonv2", func(b2 *testing.B) {
+		b.Run(bc.file, func(b2 *testing.B) {
 			b2.ReportAllocs()
 			for i := 0; i < b2.N; i++ {
 				if _, err := openapi.MarshalJSON(); err != nil {
