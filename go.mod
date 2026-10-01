@@ -5,7 +5,6 @@ go 1.27.0
 require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/emicklei/go-restful/v3 v3.13.0
-	github.com/go-openapi/jsonpointer v1.0.0
 	github.com/go-openapi/jsonreference v1.0.0
 	github.com/go-openapi/swag/conv v0.27.1
 	github.com/go-openapi/swag/jsonutils v0.27.1
@@ -31,6 +30,7 @@ require (
 
 require (
 	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-openapi/jsonpointer v1.0.0 // indirect
 	github.com/go-openapi/swag/pools v0.27.1 // indirect
 	github.com/go-openapi/swag/typeutils v0.27.1 // indirect
 	golang.org/x/mod v0.33.0 // indirect
