@@ -147,6 +147,105 @@ func TestMultipleTagExtensions(t *testing.T) {
 
 }
 
+func TestTagAliasExtensions(t *testing.T) {
+
+	var tests = []struct {
+		name       string
+		comments   []string
+		extensions []extension
+	}{
+		{
+			name: "aliases without the unprefixed tags",
+			comments: []string{
+				"+k8s:listType=map",
+				"+k8s:listMapKey=port",
+			},
+			extensions: []extension{
+				{
+					idlTag: "listMapKey",
+					xName:  "x-kubernetes-list-map-keys",
+					values: []string{"port"},
+				},
+				{
+					idlTag: "listType",
+					xName:  "x-kubernetes-list-type",
+					values: []string{"map"},
+				},
+			},
+		},
+		{
+			name: "listMapKey alias with +listType=map",
+			comments: []string{
+				"+listType=map",
+				"+k8s:listMapKey=port",
+				"+k8s:listMapKey=protocol",
+			},
+			extensions: []extension{
+				{
+					idlTag: "listMapKey",
+					xName:  "x-kubernetes-list-map-keys",
+					values: []string{"port", "protocol"},
+				},
+				{
+					idlTag: "listType",
+					xName:  "x-kubernetes-list-type",
+					values: []string{"map"},
+				},
+			},
+		},
+		{
+			name: "listMapKey alias is ignored on atomic lists",
+			comments: []string{
+				"+k8s:listType=atomic",
+				"+k8s:listMapKey=name",
+			},
+			extensions: []extension{{
+				idlTag: "listType",
+				xName:  "x-kubernetes-list-type",
+				values: []string{"atomic"},
+			}},
+		},
+		{
+			name:       "listMapKey alias is ignored without a list type",
+			comments:   []string{"+k8s:listMapKey=name"},
+			extensions: []extension{},
+		},
+		{
+			name: "unprefixed tags win over the aliases",
+			comments: []string{
+				"+listType=map",
+				"+k8s:listType=set",
+				"+listMapKey=port",
+				"+k8s:listMapKey=name",
+			},
+			extensions: []extension{
+				{
+					idlTag: "listMapKey",
+					xName:  "x-kubernetes-list-map-keys",
+					values: []string{"port"},
+				},
+				{
+					idlTag: "listType",
+					xName:  "x-kubernetes-list-type",
+					values: []string{"map"},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			extensions, errors := parseExtensions(test.comments)
+			if len(errors) > 0 {
+				t.Errorf("Unexpected errors: %v\n", errors)
+			}
+			if !reflect.DeepEqual(extensions, test.extensions) {
+				t.Errorf("Extensions: expected (%v), actual (%v)\n", test.extensions, extensions)
+			}
+		})
+	}
+}
+
 func TestExtensionParseErrors(t *testing.T) {
 
 	var tests = []struct {

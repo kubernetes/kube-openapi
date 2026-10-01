@@ -26,6 +26,8 @@ package idl
 // This tag MUST only be used on lists, or the generation step will
 // fail.
 //
+// +k8s:listType is used when +listType is absent.
+//
 // # Atomic
 //
 // Example:
@@ -84,6 +86,8 @@ type ListType string
 // Using this tag will generate the following OpenAPI extension:
 //
 //	"x-kubernetes-list-map-key": "name"
+//
+// +k8s:listMapKey is used when +listMapKey is absent and the list type is map.
 type ListMapKey string
 
 // MapType annotates a map to further describe its topology. It may
