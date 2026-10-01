@@ -598,6 +598,8 @@ func (g openAPITypeWriter) generate(t *types.Type) error {
 			return nil
 		}
 
+		applyKnownPackages(t, validationSchema)
+
 		args := argsFromType(t)
 		g.Do("func "+nameTmpl+"(ref $.ReferenceCallback|raw$) $.OpenAPIDefinition|raw$ {\n", args)
 		switch {
