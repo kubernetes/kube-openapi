@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"compress/gzip"
 	json "encoding/json"
 	"fmt"
 	"io"
@@ -253,5 +254,40 @@ func TestConcurrentReadStaleCache(t *testing.T) {
 	}
 	for i := 0; i < concurrency; i++ {
 		<-updateSpecChan
+	}
+}
+
+func TestGzipNegotiation(t *testing.T) {
+	var s spec.Swagger
+	if err := s.UnmarshalJSON(returnedSwagger); err != nil {
+		t.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	NewOpenAPIService(&s).RegisterOpenAPIVersionedService("/openapi/v2", mux)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+	for _, tc := range []struct {
+		encoding string
+		gzipped  bool
+	}{{"identity", false}, {"GZip", true}, {"gzip;q=0.5", true}, {"gzip;q=0", false}, {"gzip;q=", false}} {
+		req, _ := http.NewRequest("GET", server.URL+"/openapi/v2", nil)
+		req.Header.Set("Accept-Encoding", tc.encoding)
+		resp, err := server.Client().Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := resp.Header.Get("Content-Encoding") == "gzip"; got != tc.gzipped {
+			t.Fatalf("%q: gzipped %v, want %v", tc.encoding, got, tc.gzipped)
+		}
+		var body io.Reader = resp.Body
+		if tc.gzipped {
+			if body, err = gzip.NewReader(resp.Body); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if got, _ := io.ReadAll(body); !reflect.DeepEqual(got, normalizeSwaggerOrDie(returnedSwagger)) {
+			t.Fatalf("%q: body %s", tc.encoding, got)
+		}
+		resp.Body.Close()
 	}
 }
