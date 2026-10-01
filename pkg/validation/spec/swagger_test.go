@@ -235,7 +235,7 @@ func TestUnmarshalAdditionalProperties(t *testing.T) {
 	}
 }
 
-func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
+func TestSwaggerSpec_Unmarshal(t *testing.T) {
 	fuzzer := randfill.
 		NewWithSeed(1646791953).
 		NilChance(0.01).
@@ -265,7 +265,7 @@ func TestSwaggerSpec_ExperimentalUnmarshal(t *testing.T) {
 	}
 }
 
-func BenchmarkSwaggerSpec_ExperimentalUnmarshal(b *testing.B) {
+func BenchmarkSwaggerSpec_Unmarshal(b *testing.B) {
 	// Download kube-openapi swagger json
 	swagFile, err := os.Open("../../schemaconv/testdata/swagger.json")
 	if err != nil {
@@ -278,30 +278,18 @@ func BenchmarkSwaggerSpec_ExperimentalUnmarshal(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	b.ReportAllocs()
 	b.ResetTimer()
 
-	b.Run("jsonv2 via jsonv1", func(b2 *testing.B) {
-		for i := 0; i < b2.N; i++ {
-			var result *Swagger
-			if err := json.Unmarshal(originalJSON, &result); err != nil {
-				b2.Fatal(err)
-			}
+	for i := 0; i < b.N; i++ {
+		var result Swagger
+		if err := result.UnmarshalJSON(originalJSON); err != nil {
+			b.Fatal(err)
 		}
-	})
-
-	// Our UnmarshalJSON implementation which defers to jsonv2 causes the
-	// text to be parsed/validated twice. This costs a significant amount of time.
-	b.Run("jsonv2", func(b2 *testing.B) {
-		for i := 0; i < b2.N; i++ {
-			var result Swagger
-			if err := result.UnmarshalJSON(originalJSON); err != nil {
-				b2.Fatal(err)
-			}
-		}
-	})
+	}
 }
 
-func BenchmarkSwaggerSpec_ExperimentalMarshal(b *testing.B) {
+func BenchmarkSwaggerSpec_Marshal(b *testing.B) {
 	// Load kube-openapi swagger json
 	swagFile, err := os.Open("../../schemaconv/testdata/swagger.json")
 	if err != nil {
@@ -319,23 +307,12 @@ func BenchmarkSwaggerSpec_ExperimentalMarshal(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	b.ReportAllocs()
 	b.ResetTimer()
 
-	b.Run("jsonv2 via jsonv1", func(b2 *testing.B) {
-		b2.ReportAllocs()
-		for i := 0; i < b2.N; i++ {
-			if _, err := json.Marshal(swagger); err != nil {
-				b2.Fatal(err)
-			}
+	for i := 0; i < b.N; i++ {
+		if _, err = swagger.MarshalJSON(); err != nil {
+			b.Fatal(err)
 		}
-	})
-
-	b.Run("jsonv2", func(b2 *testing.B) {
-		b2.ReportAllocs()
-		for i := 0; i < b2.N; i++ {
-			if _, err = swagger.MarshalJSON(); err != nil {
-				b2.Fatal(err)
-			}
-		}
-	})
+	}
 }
