@@ -110,14 +110,14 @@ func TestGzipHandlerAlreadyCompressed(t *testing.T) {
 	assert.Equal(t, testBody, res.Body.String())
 }
 
-func TestNewGzipLevelHandler(t *testing.T) {
+func TestGzipHandlerWithOpts(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, testBody)
 	})
 
 	for lvl := gzip.BestSpeed; lvl <= gzip.BestCompression; lvl++ {
-		wrapper, err := NewGzipLevelHandler(lvl)
+		wrapper, err := gzipHandlerWithOpts(compressionLevel(lvl))
 		if !assert.Nil(t, err, "NewGzipLevleHandler returned error for level:", lvl) {
 			continue
 		}
@@ -135,23 +135,13 @@ func TestNewGzipLevelHandler(t *testing.T) {
 	}
 }
 
-func TestNewGzipLevelHandlerReturnsErrorForInvalidLevels(t *testing.T) {
+func TestGzipHandlerWithOptsReturnsErrorForInvalidLevels(t *testing.T) {
 	var err error
-	_, err = NewGzipLevelHandler(-42)
+	_, err = gzipHandlerWithOpts(compressionLevel(-42))
 	assert.NotNil(t, err)
 
-	_, err = NewGzipLevelHandler(42)
+	_, err = gzipHandlerWithOpts(compressionLevel(42))
 	assert.NotNil(t, err)
-}
-
-func TestMustNewGzipLevelHandlerWillPanic(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("panic was not called")
-		}
-	}()
-
-	_ = MustNewGzipLevelHandler(-42)
 }
 
 func TestGzipHandlerNoBody(t *testing.T) {
@@ -279,16 +269,16 @@ func TestGzipHandlerContentLength(t *testing.T) {
 	}
 }
 
-func TestGzipHandlerMinSizeMustBePositive(t *testing.T) {
-	_, err := NewGzipLevelAndMinSize(gzip.DefaultCompression, -1)
+func TestGzipHandlerWithOptsMinSizeMustBePositive(t *testing.T) {
+	_, err := gzipHandlerWithOpts(minSize(-1))
 	assert.Error(t, err)
 }
 
-func TestGzipHandlerMinSize(t *testing.T) {
+func TestGzipHandlerWithOptsMinSize(t *testing.T) {
 	responseLength := 0
 	b := []byte{'x'}
 
-	wrapper, _ := NewGzipLevelAndMinSize(gzip.DefaultCompression, 128)
+	wrapper, _ := gzipHandlerWithOpts(minSize(128))
 	handler := wrapper(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// Write responses one byte at a time to ensure that the flush
@@ -586,8 +576,8 @@ func TestContentTypes(t *testing.T) {
 			io.WriteString(w, testBody)
 		})
 
-		wrapper, err := GzipHandlerWithOpts(ContentTypes(tt.acceptedContentTypes))
-		if !assert.Nil(t, err, "NewGzipHandlerWithOpts returned error", tt.name) {
+		wrapper, err := gzipHandlerWithOpts(contentTypes(tt.acceptedContentTypes))
+		if !assert.Nil(t, err, "gzipHandlerWithOpts returned error", tt.name) {
 			continue
 		}
 
