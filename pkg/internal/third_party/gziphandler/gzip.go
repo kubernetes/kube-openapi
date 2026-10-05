@@ -1,7 +1,7 @@
 // Copyright 2016-2017 The New York Times Company. Licensed under the Apache License, Version 2.0.
 // Copied from github.com/NYTimes/gziphandler v1.1.1 (dd0439581c76).
 // Changes: gofmt; the HTTP/2 Push method (gzip_go18.go) and its tests are dropped; the import comment is removed;
-// fields and functions used only in this package are privatised.
+// fields and functions used only in this package are privatised; content-type filtering is removed.
 
 package gziphandler
 
@@ -10,7 +10,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"mime"
 	"net"
 	"net/http"
 	"strconv"
@@ -89,8 +88,6 @@ type gzipResponseWriter struct {
 	minSize int    // Specifed the minimum response size to gzip. If the response length is bigger than this value, it is compressed.
 	buf     []byte // Holds the first part of the write before reaching the minSize or the end of the write.
 	ignore  bool   // If true, then we immediately passthru writes to the underlying ResponseWriter.
-
-	contentTypes []parsedContentType // Only compress if the response is one of these content-types. All are accepted if empty.
 }
 
 type gzipResponseWriterWithCloseNotify struct {
@@ -122,8 +119,8 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 		ct    = w.Header().Get(contentType)
 		ce    = w.Header().Get(contentEncoding)
 	)
-	// Only continue if they didn't already choose an encoding or a known unhandled content length or type.
-	if ce == "" && (cl == 0 || cl >= w.minSize) && (ct == "" || handleContentType(w.contentTypes, ct)) {
+	// Only continue if they didn't already choose an encoding or a known unhandled content length.
+	if ce == "" && (cl == 0 || cl >= w.minSize) {
 		// If the current buffer is less than minSize and a Content-Length isn't set, then wait until we have more data.
 		if len(w.buf) < w.minSize && cl == 0 {
 			return len(b), nil
@@ -135,13 +132,10 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 				ct = http.DetectContentType(w.buf)
 				w.Header().Set(contentType, ct)
 			}
-			// If the Content-Type is acceptable to GZIP, initialize the GZIP writer.
-			if handleContentType(w.contentTypes, ct) {
-				if err := w.startGzip(); err != nil {
-					return 0, err
-				}
-				return len(b), nil
+			if err := w.startGzip(); err != nil {
+				return 0, err
 			}
+			return len(b), nil
 		}
 	}
 	// If we got here, we should not GZIP this response.
@@ -306,7 +300,6 @@ func gzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error
 					ResponseWriter: w,
 					index:          index,
 					minSize:        c.minSize,
-					contentTypes:   c.contentTypes,
 				}
 				defer gw.Close()
 
@@ -324,40 +317,10 @@ func gzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error
 	}, nil
 }
 
-// Parsed representation of one of the inputs to ContentTypes.
-// See https://golang.org/pkg/mime/#ParseMediaType
-type parsedContentType struct {
-	mediaType string
-	params    map[string]string
-}
-
-// equals returns whether this content type matches another content type.
-func (pct parsedContentType) equals(mediaType string, params map[string]string) bool {
-	if pct.mediaType != mediaType {
-		return false
-	}
-	// if pct has no params, don't care about other's params
-	if len(pct.params) == 0 {
-		return true
-	}
-
-	// if pct has any params, they must be identical to other's.
-	if len(pct.params) != len(params) {
-		return false
-	}
-	for k, v := range pct.params {
-		if w, ok := params[k]; !ok || v != w {
-			return false
-		}
-	}
-	return true
-}
-
 // Used for functional configuration.
 type config struct {
-	minSize      int
-	level        int
-	contentTypes []parsedContentType
+	minSize int
+	level   int
 }
 
 func (c *config) validate() error {
@@ -386,36 +349,6 @@ func compressionLevel(level int) option {
 	}
 }
 
-// ContentTypes specifies a list of content types to compare
-// the Content-Type header to before compressing. If none
-// match, the response will be returned as-is.
-//
-// Content types are compared in a case-insensitive, whitespace-ignored
-// manner.
-//
-// A MIME type without any other directive will match a content type
-// that has the same MIME type, regardless of that content type's other
-// directives. I.e., "text/html" will match both "text/html" and
-// "text/html; charset=utf-8".
-//
-// A MIME type with any other directive will only match a content type
-// that has the same MIME type and other directives. I.e.,
-// "text/html; charset=utf-8" will only match "text/html; charset=utf-8".
-//
-// By default, responses are gzipped regardless of
-// Content-Type.
-func contentTypes(types []string) option {
-	return func(c *config) {
-		c.contentTypes = []parsedContentType{}
-		for _, v := range types {
-			mediaType, params, err := mime.ParseMediaType(v)
-			if err == nil {
-				c.contentTypes = append(c.contentTypes, parsedContentType{mediaType, params})
-			}
-		}
-	}
-}
-
 // GzipHandler wraps an HTTP handler, to transparently gzip the response body if
 // the client supports it (via the Accept-Encoding header). This will compress at
 // the default compression level.
@@ -429,27 +362,6 @@ func GzipHandler(h http.Handler) http.Handler {
 func acceptsGzip(r *http.Request) bool {
 	acceptedEncodings, _ := parseEncodings(r.Header.Get(acceptEncoding))
 	return acceptedEncodings["gzip"] > 0.0
-}
-
-// returns true if we've been configured to compress the specific content type.
-func handleContentType(contentTypes []parsedContentType, ct string) bool {
-	// If contentTypes is empty we handle all content types.
-	if len(contentTypes) == 0 {
-		return true
-	}
-
-	mediaType, params, err := mime.ParseMediaType(ct)
-	if err != nil {
-		return false
-	}
-
-	for _, c := range contentTypes {
-		if c.equals(mediaType, params) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // parseEncodings attempts to parse a list of codings, per RFC 2616, as might
