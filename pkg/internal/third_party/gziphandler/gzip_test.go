@@ -110,40 +110,6 @@ func TestGzipHandlerAlreadyCompressed(t *testing.T) {
 	assert.Equal(t, testBody, res.Body.String())
 }
 
-func TestGzipHandlerWithOpts(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, testBody)
-	})
-
-	for lvl := gzip.BestSpeed; lvl <= gzip.BestCompression; lvl++ {
-		wrapper, err := gzipHandlerWithOpts(compressionLevel(lvl))
-		if !assert.Nil(t, err, "NewGzipLevleHandler returned error for level:", lvl) {
-			continue
-		}
-
-		req, _ := http.NewRequest("GET", "/whatever", nil)
-		req.Header.Set("Accept-Encoding", "gzip")
-		resp := httptest.NewRecorder()
-		wrapper(handler).ServeHTTP(resp, req)
-		res := resp.Result()
-
-		assert.Equal(t, 200, res.StatusCode)
-		assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
-		assert.Equal(t, "Accept-Encoding", res.Header.Get("Vary"))
-		assert.Equal(t, gzipStrLevel(testBody, lvl), resp.Body.Bytes())
-	}
-}
-
-func TestGzipHandlerWithOptsReturnsErrorForInvalidLevels(t *testing.T) {
-	var err error
-	_, err = gzipHandlerWithOpts(compressionLevel(-42))
-	assert.NotNil(t, err)
-
-	_, err = gzipHandlerWithOpts(compressionLevel(42))
-	assert.NotNil(t, err)
-}
-
 func TestGzipHandlerNoBody(t *testing.T) {
 	tests := []struct {
 		statusCode      int
@@ -266,48 +232,6 @@ func TestGzipHandlerContentLength(t *testing.T) {
 		}
 		assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"), fmt.Sprintf("for test iteration %d", num))
 		assert.NotEqual(t, test.bodyLen, l, fmt.Sprintf("for test iteration %d", num))
-	}
-}
-
-func TestGzipHandlerWithOptsMinSizeMustBePositive(t *testing.T) {
-	_, err := gzipHandlerWithOpts(minSize(-1))
-	assert.Error(t, err)
-}
-
-func TestGzipHandlerWithOptsMinSize(t *testing.T) {
-	responseLength := 0
-	b := []byte{'x'}
-
-	wrapper, _ := gzipHandlerWithOpts(minSize(128))
-	handler := wrapper(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			// Write responses one byte at a time to ensure that the flush
-			// mechanism, if used, is working properly.
-			for i := 0; i < responseLength; i++ {
-				n, err := w.Write(b)
-				assert.Equal(t, 1, n)
-				assert.Nil(t, err)
-			}
-		},
-	))
-
-	r, _ := http.NewRequest("GET", "/whatever", &bytes.Buffer{})
-	r.Header.Add("Accept-Encoding", "gzip")
-
-	// Short response is not compressed
-	responseLength = 127
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
-	if w.Result().Header.Get(contentEncoding) == "gzip" {
-		t.Error("Expected uncompressed response, got compressed")
-	}
-
-	// Long response is not compressed
-	responseLength = 128
-	w = httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
-	if w.Result().Header.Get(contentEncoding) != "gzip" {
-		t.Error("Expected compressed response, got uncompressed")
 	}
 }
 

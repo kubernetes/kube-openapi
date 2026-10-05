@@ -1,7 +1,7 @@
 // Copyright 2016-2017 The New York Times Company. Licensed under the Apache License, Version 2.0.
 // Copied from github.com/NYTimes/gziphandler v1.1.1 (dd0439581c76).
 // Changes: gofmt; the HTTP/2 Push method (gzip_go18.go) and its tests are dropped; the import comment is removed;
-// fields and functions used only in this package are privatised; content-type filtering is removed.
+// fields and functions used only in this package are privatised; content-type filtering is removed; options are removed.
 
 package gziphandler
 
@@ -85,9 +85,8 @@ type gzipResponseWriter struct {
 
 	code int // Saves the WriteHeader value.
 
-	minSize int    // Specifed the minimum response size to gzip. If the response length is bigger than this value, it is compressed.
-	buf     []byte // Holds the first part of the write before reaching the minSize or the end of the write.
-	ignore  bool   // If true, then we immediately passthru writes to the underlying ResponseWriter.
+	buf    []byte // Holds the first part of the write before reaching the minSize or the end of the write.
+	ignore bool   // If true, then we immediately passthru writes to the underlying ResponseWriter.
 }
 
 type gzipResponseWriterWithCloseNotify struct {
@@ -120,13 +119,13 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 		ce    = w.Header().Get(contentEncoding)
 	)
 	// Only continue if they didn't already choose an encoding or a known unhandled content length.
-	if ce == "" && (cl == 0 || cl >= w.minSize) {
+	if ce == "" && (cl == 0 || cl >= defaultMinSize) {
 		// If the current buffer is less than minSize and a Content-Length isn't set, then wait until we have more data.
-		if len(w.buf) < w.minSize && cl == 0 {
+		if len(w.buf) < defaultMinSize && cl == 0 {
 			return len(b), nil
 		}
 		// If the Content-Length is larger than minSize or the current buffer is larger than minSize, then continue.
-		if cl >= w.minSize || len(w.buf) >= w.minSize {
+		if cl >= defaultMinSize || len(w.buf) >= defaultMinSize {
 			// If a Content-Type wasn't specified, infer it from the current buffer.
 			if ct == "" {
 				ct = http.DetectContentType(w.buf)
@@ -276,22 +275,12 @@ func (w *gzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // verify Hijacker interface implementation
 var _ http.Hijacker = &gzipResponseWriter{}
 
-func gzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error) {
-	c := &config{
-		level:   gzip.DefaultCompression,
-		minSize: defaultMinSize,
-	}
-
-	for _, o := range opts {
-		o(c)
-	}
-
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-
+// GzipHandler wraps an HTTP handler, to transparently gzip the response body if
+// the client supports it (via the Accept-Encoding header). This will compress at
+// the default compression level.
+func GzipHandler(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
-		index := poolIndex(c.level)
+		index := poolIndex(gzip.DefaultCompression)
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(vary, acceptEncoding)
@@ -299,7 +288,6 @@ func gzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error
 				gw := &gzipResponseWriter{
 					ResponseWriter: w,
 					index:          index,
-					minSize:        c.minSize,
 				}
 				defer gw.Close()
 
@@ -314,47 +302,7 @@ func gzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error
 				h.ServeHTTP(w, r)
 			}
 		})
-	}, nil
-}
-
-// Used for functional configuration.
-type config struct {
-	minSize int
-	level   int
-}
-
-func (c *config) validate() error {
-	if c.level != gzip.DefaultCompression && (c.level < gzip.BestSpeed || c.level > gzip.BestCompression) {
-		return fmt.Errorf("invalid compression level requested: %d", c.level)
-	}
-
-	if c.minSize < 0 {
-		return fmt.Errorf("minimum size must be more than zero")
-	}
-
-	return nil
-}
-
-type option func(c *config)
-
-func minSize(size int) option {
-	return func(c *config) {
-		c.minSize = size
-	}
-}
-
-func compressionLevel(level int) option {
-	return func(c *config) {
-		c.level = level
-	}
-}
-
-// GzipHandler wraps an HTTP handler, to transparently gzip the response body if
-// the client supports it (via the Accept-Encoding header). This will compress at
-// the default compression level.
-func GzipHandler(h http.Handler) http.Handler {
-	wrapper, _ := gzipHandlerWithOpts()
-	return wrapper(h)
+	}(h)
 }
 
 // acceptsGzip returns true if the given HTTP request indicates that it will
