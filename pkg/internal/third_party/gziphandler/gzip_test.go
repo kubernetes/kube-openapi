@@ -238,7 +238,7 @@ func TestGzipHandlerContentLength(t *testing.T) {
 func TestGzipDoubleClose(t *testing.T) {
 	// reset the pool for the default compression so we can make sure duplicates
 	// aren't added back by double close
-	addLevelPool(gzip.DefaultCompression)
+	gzipWriterPool = newGzipWriterPool()
 
 	handler := GzipHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// call close here and it'll get called again interally by
@@ -254,8 +254,8 @@ func TestGzipDoubleClose(t *testing.T) {
 
 	// the second close shouldn't have added the same writer
 	// so we pull out 2 writers from the pool and make sure they're different
-	w1 := gzipWriterPools[poolIndex(gzip.DefaultCompression)].Get()
-	w2 := gzipWriterPools[poolIndex(gzip.DefaultCompression)].Get()
+	w1 := gzipWriterPool.Get()
+	w2 := gzipWriterPool.Get()
 	// assert.NotEqual looks at the value and not the address, so we use regular ==
 	assert.False(t, w1 == w2)
 }

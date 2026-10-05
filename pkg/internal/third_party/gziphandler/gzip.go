@@ -1,7 +1,8 @@
 // Copyright 2016-2017 The New York Times Company. Licensed under the Apache License, Version 2.0.
 // Copied from github.com/NYTimes/gziphandler v1.1.1 (dd0439581c76).
 // Changes: gofmt; the HTTP/2 Push method (gzip_go18.go) and its tests are dropped; the import comment is removed;
-// fields and functions used only in this package are privatised; content-type filtering is removed; options are removed.
+// fields and functions used only in this package are privatised; content-type filtering is removed; options are removed;
+// a single writer pool is used (for the single compression level supported).
 
 package gziphandler
 
@@ -40,35 +41,14 @@ const (
 	defaultMinSize = 1400
 )
 
-// gzipWriterPools stores a sync.Pool for each compression level for reuse of
-// gzip.Writers. Use poolIndex to covert a compression level to an index into
-// gzipWriterPools.
-var gzipWriterPools [gzip.BestCompression - gzip.BestSpeed + 2]*sync.Pool
+// gzipWriterPool stores a sync.Pool for the default compression level for reuse of
+// gzip.Writers.
+var gzipWriterPool = newGzipWriterPool()
 
-func init() {
-	for i := gzip.BestSpeed; i <= gzip.BestCompression; i++ {
-		addLevelPool(i)
-	}
-	addLevelPool(gzip.DefaultCompression)
-}
-
-// poolIndex maps a compression level to its index into gzipWriterPools. It
-// assumes that level is a valid gzip compression level.
-func poolIndex(level int) int {
-	// gzip.DefaultCompression == -1, so we need to treat it special.
-	if level == gzip.DefaultCompression {
-		return gzip.BestCompression - gzip.BestSpeed + 1
-	}
-	return level - gzip.BestSpeed
-}
-
-func addLevelPool(level int) {
-	gzipWriterPools[poolIndex(level)] = &sync.Pool{
-		New: func() interface{} {
-			// NewWriterLevel only returns error on a bad level, we are guaranteeing
-			// that this will be a valid level so it is okay to ignore the returned
-			// error.
-			w, _ := gzip.NewWriterLevel(nil, level)
+func newGzipWriterPool() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			w, _ := gzip.NewWriterLevel(nil, gzip.DefaultCompression)
 			return w
 		},
 	}
@@ -80,8 +60,7 @@ func addLevelPool(level int) {
 // It can be configured to skip response smaller than minSize.
 type gzipResponseWriter struct {
 	http.ResponseWriter
-	index int // Index for gzipWriterPools.
-	gw    *gzip.Writer
+	gw *gzip.Writer
 
 	code int // Saves the WriteHeader value.
 
@@ -215,7 +194,7 @@ func (w *gzipResponseWriter) WriteHeader(code int) {
 func (w *gzipResponseWriter) init() {
 	// Bytes written during ServeHTTP are redirected to this gzip writer
 	// before being written to the underlying response.
-	gzw := gzipWriterPools[w.index].Get().(*gzip.Writer)
+	gzw := gzipWriterPool.Get().(*gzip.Writer)
 	gzw.Reset(w.ResponseWriter)
 	w.gw = gzw
 }
@@ -237,7 +216,7 @@ func (w *gzipResponseWriter) Close() error {
 	}
 
 	err := w.gw.Close()
-	gzipWriterPools[w.index].Put(w.gw)
+	gzipWriterPool.Put(w.gw)
 	w.gw = nil
 	return err
 }
@@ -280,14 +259,11 @@ var _ http.Hijacker = &gzipResponseWriter{}
 // the default compression level.
 func GzipHandler(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
-		index := poolIndex(gzip.DefaultCompression)
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(vary, acceptEncoding)
 			if acceptsGzip(r) {
 				gw := &gzipResponseWriter{
 					ResponseWriter: w,
-					index:          index,
 				}
 				defer gw.Close()
 
