@@ -5,11 +5,11 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strconv"
 	"testing"
 
@@ -147,7 +147,7 @@ func TestGzipHandlerNoBody(t *testing.T) {
 		req.Header.Set("Accept-Encoding", "gzip")
 		handler.ServeHTTP(rec, req)
 
-		body, err := ioutil.ReadAll(rec.Body)
+		body, err := io.ReadAll(rec.Body)
 		if err != nil {
 			t.Fatalf("Unexpected error reading response body: %v", err)
 		}
@@ -215,7 +215,7 @@ func TestGzipHandlerContentLength(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("Unexpected error reading response body in test iteration %d: %v", num, err)
 		}
@@ -301,7 +301,7 @@ func TestGzipHandlerDoubleWriteHeader(t *testing.T) {
 	}
 	req.Header.Set("Accept-Encoding", "gzip")
 	wrapper.ServeHTTP(rec, req)
-	body, err := ioutil.ReadAll(rec.Body)
+	body, err := io.ReadAll(rec.Body)
 	if err != nil {
 		t.Fatalf("Unexpected error reading response body: %v", err)
 	}
@@ -450,7 +450,7 @@ func gzipStrLevel(s string, lvl int) []byte {
 }
 
 func benchmark(b *testing.B, parallel bool, size int) {
-	bin, err := ioutil.ReadFile("testdata/benchmark.json")
+	bin, err := os.ReadFile("testdata/benchmark.json")
 	if err != nil {
 		b.Fatal(err)
 	}
