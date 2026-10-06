@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bytes"
+	"compress/gzip"
 	json "encoding/json"
 	"fmt"
 	"io"
@@ -254,4 +256,168 @@ func TestConcurrentReadStaleCache(t *testing.T) {
 	for i := 0; i < concurrency; i++ {
 		<-updateSpecChan
 	}
+}
+
+func TestOpenAPIVersionedServiceGzip(t *testing.T) {
+	// Construct a spec exceeding the 1400-byte defaultMinSize threshold
+	paths := map[string]interface{}{}
+	for i := 0; i < 20; i++ {
+		paths[fmt.Sprintf("/api/v1/resource%d", i)] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"description": fmt.Sprintf("Resource description %d padding to exceed gzip minimum size", i),
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{"description": "OK"},
+				},
+			},
+		}
+	}
+	rawSpec, err := json.Marshal(map[string]interface{}{
+		"swagger": "2.0",
+		"info": map[string]interface{}{
+			"title":   "Kubernetes",
+			"version": "v1.30.0",
+		},
+		"paths": paths,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var s spec.Swagger
+	if err := s.UnmarshalJSON(rawSpec); err != nil {
+		t.Fatal(err)
+	}
+
+	mux := http.NewServeMux()
+	o := NewOpenAPIService(&s)
+	o.RegisterOpenAPIVersionedService("/openapi/v2", mux)
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// Disable automatic gzip negotiation in http.Transport so we can explicitly
+	// verify server behavior with and without the Accept-Encoding header, without
+	// Go silently injecting headers or stripping Content-Encoding.
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableCompression: true,
+		},
+	}
+
+	t.Run("without Accept-Encoding: gzip", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", server.URL+"/openapi/v2", nil)
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "" {
+			t.Errorf("expected empty Content-Encoding, got %q", ce)
+		}
+	})
+
+	t.Run("JSON with Accept-Encoding: gzip", func(t *testing.T) {
+		// Fetch plain body for comparison
+		plainResp, err := client.Get(server.URL + "/openapi/v2")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer plainResp.Body.Close()
+		plainBody, err := io.ReadAll(plainResp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		req, _ := http.NewRequest("GET", server.URL+"/openapi/v2", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
+			t.Errorf("expected Content-Type: application/json, got %q", ct)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "gzip" {
+			t.Fatalf("expected Content-Encoding: gzip, got %q", ce)
+		}
+
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			t.Fatalf("failed to create gzip reader: %v", err)
+		}
+		defer gzReader.Close()
+		decompressed, err := io.ReadAll(gzReader)
+		if err != nil {
+			t.Fatalf("failed to read decompressed body: %v", err)
+		}
+		if !bytes.Equal(decompressed, plainBody) {
+			t.Errorf("decompressed body does not match uncompressed body")
+		}
+	})
+
+	t.Run("Protobuf with Accept-Encoding: gzip", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", server.URL+"/openapi/v2", nil)
+		req.Header.Set("Accept", "application/com.github.proto-openapi.spec.v2@v1.0+protobuf")
+		req.Header.Set("Accept-Encoding", "gzip")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "gzip" {
+			t.Fatalf("expected Content-Encoding: gzip, got %q", ce)
+		}
+
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			t.Fatalf("failed to create gzip reader for protobuf: %v", err)
+		}
+		defer gzReader.Close()
+		decompressed, err := io.ReadAll(gzReader)
+		if err != nil {
+			t.Fatalf("failed to read decompressed protobuf body: %v", err)
+		}
+		if len(decompressed) == 0 {
+			t.Errorf("expected non-empty decompressed protobuf body")
+		}
+	})
+
+	t.Run("below minSize threshold does not compress", func(t *testing.T) {
+		var smallS spec.Swagger
+		if err := smallS.UnmarshalJSON(returnedSwagger); err != nil {
+			t.Fatal(err)
+		}
+		smallMux := http.NewServeMux()
+		smallO := NewOpenAPIService(&smallS)
+		smallO.RegisterOpenAPIVersionedService("/openapi/v2", smallMux)
+		smallServer := httptest.NewServer(smallMux)
+		defer smallServer.Close()
+
+		req, _ := http.NewRequest("GET", smallServer.URL+"/openapi/v2", nil)
+		req.Header.Set("Accept-Encoding", "gzip")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "" {
+			t.Errorf("expected empty Content-Encoding for small payload, got %q", ce)
+		}
+	})
 }
