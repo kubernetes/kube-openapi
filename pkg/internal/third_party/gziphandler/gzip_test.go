@@ -5,11 +5,11 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strconv"
 	"testing"
 
@@ -110,50 +110,6 @@ func TestGzipHandlerAlreadyCompressed(t *testing.T) {
 	assert.Equal(t, testBody, res.Body.String())
 }
 
-func TestNewGzipLevelHandler(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, testBody)
-	})
-
-	for lvl := gzip.BestSpeed; lvl <= gzip.BestCompression; lvl++ {
-		wrapper, err := NewGzipLevelHandler(lvl)
-		if !assert.Nil(t, err, "NewGzipLevleHandler returned error for level:", lvl) {
-			continue
-		}
-
-		req, _ := http.NewRequest("GET", "/whatever", nil)
-		req.Header.Set("Accept-Encoding", "gzip")
-		resp := httptest.NewRecorder()
-		wrapper(handler).ServeHTTP(resp, req)
-		res := resp.Result()
-
-		assert.Equal(t, 200, res.StatusCode)
-		assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"))
-		assert.Equal(t, "Accept-Encoding", res.Header.Get("Vary"))
-		assert.Equal(t, gzipStrLevel(testBody, lvl), resp.Body.Bytes())
-	}
-}
-
-func TestNewGzipLevelHandlerReturnsErrorForInvalidLevels(t *testing.T) {
-	var err error
-	_, err = NewGzipLevelHandler(-42)
-	assert.NotNil(t, err)
-
-	_, err = NewGzipLevelHandler(42)
-	assert.NotNil(t, err)
-}
-
-func TestMustNewGzipLevelHandlerWillPanic(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("panic was not called")
-		}
-	}()
-
-	_ = MustNewGzipLevelHandler(-42)
-}
-
 func TestGzipHandlerNoBody(t *testing.T) {
 	tests := []struct {
 		statusCode      int
@@ -191,7 +147,7 @@ func TestGzipHandlerNoBody(t *testing.T) {
 		req.Header.Set("Accept-Encoding", "gzip")
 		handler.ServeHTTP(rec, req)
 
-		body, err := ioutil.ReadAll(rec.Body)
+		body, err := io.ReadAll(rec.Body)
 		if err != nil {
 			t.Fatalf("Unexpected error reading response body: %v", err)
 		}
@@ -259,7 +215,7 @@ func TestGzipHandlerContentLength(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("Unexpected error reading response body in test iteration %d: %v", num, err)
 		}
@@ -279,52 +235,10 @@ func TestGzipHandlerContentLength(t *testing.T) {
 	}
 }
 
-func TestGzipHandlerMinSizeMustBePositive(t *testing.T) {
-	_, err := NewGzipLevelAndMinSize(gzip.DefaultCompression, -1)
-	assert.Error(t, err)
-}
-
-func TestGzipHandlerMinSize(t *testing.T) {
-	responseLength := 0
-	b := []byte{'x'}
-
-	wrapper, _ := NewGzipLevelAndMinSize(gzip.DefaultCompression, 128)
-	handler := wrapper(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			// Write responses one byte at a time to ensure that the flush
-			// mechanism, if used, is working properly.
-			for i := 0; i < responseLength; i++ {
-				n, err := w.Write(b)
-				assert.Equal(t, 1, n)
-				assert.Nil(t, err)
-			}
-		},
-	))
-
-	r, _ := http.NewRequest("GET", "/whatever", &bytes.Buffer{})
-	r.Header.Add("Accept-Encoding", "gzip")
-
-	// Short response is not compressed
-	responseLength = 127
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
-	if w.Result().Header.Get(contentEncoding) == "gzip" {
-		t.Error("Expected uncompressed response, got compressed")
-	}
-
-	// Long response is not compressed
-	responseLength = 128
-	w = httptest.NewRecorder()
-	handler.ServeHTTP(w, r)
-	if w.Result().Header.Get(contentEncoding) != "gzip" {
-		t.Error("Expected compressed response, got uncompressed")
-	}
-}
-
 func TestGzipDoubleClose(t *testing.T) {
 	// reset the pool for the default compression so we can make sure duplicates
 	// aren't added back by double close
-	addLevelPool(gzip.DefaultCompression)
+	gzipWriterPool = newGzipWriterPool()
 
 	handler := GzipHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// call close here and it'll get called again interally by
@@ -340,8 +254,8 @@ func TestGzipDoubleClose(t *testing.T) {
 
 	// the second close shouldn't have added the same writer
 	// so we pull out 2 writers from the pool and make sure they're different
-	w1 := gzipWriterPools[poolIndex(gzip.DefaultCompression)].Get()
-	w2 := gzipWriterPools[poolIndex(gzip.DefaultCompression)].Get()
+	w1 := gzipWriterPool.Get()
+	w2 := gzipWriterPool.Get()
 	// assert.NotEqual looks at the value and not the address, so we use regular ==
 	assert.False(t, w1 == w2)
 }
@@ -387,7 +301,7 @@ func TestGzipHandlerDoubleWriteHeader(t *testing.T) {
 	}
 	req.Header.Set("Accept-Encoding", "gzip")
 	wrapper.ServeHTTP(rec, req)
-	body, err := ioutil.ReadAll(rec.Body)
+	body, err := io.ReadAll(rec.Body)
 	if err != nil {
 		t.Fatalf("Unexpected error reading response body: %v", err)
 	}
@@ -516,96 +430,6 @@ func TestDontWriteWhenNotWrittenTo(t *testing.T) {
 	}
 }
 
-var contentTypeTests = []struct {
-	name                 string
-	contentType          string
-	acceptedContentTypes []string
-	expectedGzip         bool
-}{
-	{
-		name:                 "Always gzip when content types are empty",
-		contentType:          "",
-		acceptedContentTypes: []string{},
-		expectedGzip:         true,
-	},
-	{
-		name:                 "MIME match",
-		contentType:          "application/json",
-		acceptedContentTypes: []string{"application/json"},
-		expectedGzip:         true,
-	},
-	{
-		name:                 "MIME no match",
-		contentType:          "text/xml",
-		acceptedContentTypes: []string{"application/json"},
-		expectedGzip:         false,
-	},
-	{
-		name:                 "MIME match with no other directive ignores non-MIME directives",
-		contentType:          "application/json; charset=utf-8",
-		acceptedContentTypes: []string{"application/json"},
-		expectedGzip:         true,
-	},
-	{
-		name:                 "MIME match with other directives requires all directives be equal, different charset",
-		contentType:          "application/json; charset=ascii",
-		acceptedContentTypes: []string{"application/json; charset=utf-8"},
-		expectedGzip:         false,
-	},
-	{
-		name:                 "MIME match with other directives requires all directives be equal, same charset",
-		contentType:          "application/json; charset=utf-8",
-		acceptedContentTypes: []string{"application/json; charset=utf-8"},
-		expectedGzip:         true,
-	},
-	{
-		name:                 "MIME match with other directives requires all directives be equal, missing charset",
-		contentType:          "application/json",
-		acceptedContentTypes: []string{"application/json; charset=ascii"},
-		expectedGzip:         false,
-	},
-	{
-		name:                 "MIME match case insensitive",
-		contentType:          "Application/Json",
-		acceptedContentTypes: []string{"application/json"},
-		expectedGzip:         true,
-	},
-	{
-		name:                 "MIME match ignore whitespace",
-		contentType:          "application/json;charset=utf-8",
-		acceptedContentTypes: []string{"application/json;            charset=utf-8"},
-		expectedGzip:         true,
-	},
-}
-
-func TestContentTypes(t *testing.T) {
-	for _, tt := range contentTypeTests {
-		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			w.Header().Set("Content-Type", tt.contentType)
-			io.WriteString(w, testBody)
-		})
-
-		wrapper, err := GzipHandlerWithOpts(ContentTypes(tt.acceptedContentTypes))
-		if !assert.Nil(t, err, "NewGzipHandlerWithOpts returned error", tt.name) {
-			continue
-		}
-
-		req, _ := http.NewRequest("GET", "/whatever", nil)
-		req.Header.Set("Accept-Encoding", "gzip")
-		resp := httptest.NewRecorder()
-		wrapper(handler).ServeHTTP(resp, req)
-		res := resp.Result()
-
-		assert.Equal(t, 200, res.StatusCode)
-		if tt.expectedGzip {
-			assert.Equal(t, "gzip", res.Header.Get("Content-Encoding"), tt.name)
-		} else {
-			assert.NotEqual(t, "gzip", res.Header.Get("Content-Encoding"), tt.name)
-		}
-	}
-}
-
 // --------------------------------------------------------------------
 
 func BenchmarkGzipHandler_S2k(b *testing.B)   { benchmark(b, false, 2048) }
@@ -626,7 +450,7 @@ func gzipStrLevel(s string, lvl int) []byte {
 }
 
 func benchmark(b *testing.B, parallel bool, size int) {
-	bin, err := ioutil.ReadFile("testdata/benchmark.json")
+	bin, err := os.ReadFile("testdata/benchmark.json")
 	if err != nil {
 		b.Fatal(err)
 	}

@@ -1,5 +1,8 @@
 // Copyright 2016-2017 The New York Times Company. Licensed under the Apache License, Version 2.0.
-// Copied from github.com/NYTimes/gziphandler v1.1.1 (dd0439581c76). Changes: gofmt; the HTTP/2 Push method (gzip_go18.go) and its tests are dropped; the import comment is removed.
+// Copied from github.com/NYTimes/gziphandler v1.1.1 (dd0439581c76).
+// Changes: gofmt; the HTTP/2 Push method (gzip_go18.go) and its tests are dropped; the import comment is removed;
+// fields and functions used only in this package are privatised; content-type filtering is removed; options are removed;
+// a single writer pool is used (for the single compression level supported).
 
 package gziphandler
 
@@ -8,7 +11,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"mime"
 	"net"
 	"net/http"
 	"strconv"
@@ -27,80 +29,55 @@ const (
 type codings map[string]float64
 
 const (
-	// DefaultQValue is the default qvalue to assign to an encoding if no explicit qvalue is set.
+	// defaultQValue is the default qvalue to assign to an encoding if no explicit qvalue is set.
 	// This is actually kind of ambiguous in RFC 2616, so hopefully it's correct.
 	// The examples seem to indicate that it is.
-	DefaultQValue = 1.0
+	defaultQValue = 1.0
 
-	// DefaultMinSize is the default minimum size until we enable gzip compression.
+	// defaultMinSize is the default minimum size until we enable gzip compression.
 	// 1500 bytes is the MTU size for the internet since that is the largest size allowed at the network layer.
 	// If you take a file that is 1300 bytes and compress it to 800 bytes, it’s still transmitted in that same 1500 byte packet regardless, so you’ve gained nothing.
 	// That being the case, you should restrict the gzip compression to files with a size greater than a single packet, 1400 bytes (1.4KB) is a safe value.
-	DefaultMinSize = 1400
+	defaultMinSize = 1400
 )
 
-// gzipWriterPools stores a sync.Pool for each compression level for reuse of
-// gzip.Writers. Use poolIndex to covert a compression level to an index into
-// gzipWriterPools.
-var gzipWriterPools [gzip.BestCompression - gzip.BestSpeed + 2]*sync.Pool
+// gzipWriterPool stores a sync.Pool for the default compression level for reuse of
+// gzip.Writers.
+var gzipWriterPool = newGzipWriterPool()
 
-func init() {
-	for i := gzip.BestSpeed; i <= gzip.BestCompression; i++ {
-		addLevelPool(i)
-	}
-	addLevelPool(gzip.DefaultCompression)
-}
-
-// poolIndex maps a compression level to its index into gzipWriterPools. It
-// assumes that level is a valid gzip compression level.
-func poolIndex(level int) int {
-	// gzip.DefaultCompression == -1, so we need to treat it special.
-	if level == gzip.DefaultCompression {
-		return gzip.BestCompression - gzip.BestSpeed + 1
-	}
-	return level - gzip.BestSpeed
-}
-
-func addLevelPool(level int) {
-	gzipWriterPools[poolIndex(level)] = &sync.Pool{
-		New: func() interface{} {
-			// NewWriterLevel only returns error on a bad level, we are guaranteeing
-			// that this will be a valid level so it is okay to ignore the returned
-			// error.
-			w, _ := gzip.NewWriterLevel(nil, level)
+func newGzipWriterPool() *sync.Pool {
+	return &sync.Pool{
+		New: func() any {
+			w, _ := gzip.NewWriterLevel(nil, gzip.DefaultCompression)
 			return w
 		},
 	}
 }
 
-// GzipResponseWriter provides an http.ResponseWriter interface, which gzips
+// gzipResponseWriter provides an http.ResponseWriter interface, which gzips
 // bytes before writing them to the underlying response. This doesn't close the
 // writers, so don't forget to do that.
 // It can be configured to skip response smaller than minSize.
-type GzipResponseWriter struct {
+type gzipResponseWriter struct {
 	http.ResponseWriter
-	index int // Index for gzipWriterPools.
-	gw    *gzip.Writer
+	gw *gzip.Writer
 
 	code int // Saves the WriteHeader value.
 
-	minSize int    // Specifed the minimum response size to gzip. If the response length is bigger than this value, it is compressed.
-	buf     []byte // Holds the first part of the write before reaching the minSize or the end of the write.
-	ignore  bool   // If true, then we immediately passthru writes to the underlying ResponseWriter.
-
-	contentTypes []parsedContentType // Only compress if the response is one of these content-types. All are accepted if empty.
+	buf    []byte // Holds the first part of the write before reaching the minSize or the end of the write.
+	ignore bool   // If true, then we immediately passthru writes to the underlying ResponseWriter.
 }
 
-type GzipResponseWriterWithCloseNotify struct {
-	*GzipResponseWriter
+type gzipResponseWriterWithCloseNotify struct {
+	*gzipResponseWriter
 }
 
-func (w GzipResponseWriterWithCloseNotify) CloseNotify() <-chan bool {
+func (w gzipResponseWriterWithCloseNotify) CloseNotify() <-chan bool {
 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
 
 // Write appends data to the gzip writer.
-func (w *GzipResponseWriter) Write(b []byte) (int, error) {
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	// GZIP responseWriter is initialized. Use the GZIP responseWriter.
 	if w.gw != nil {
 		return w.gw.Write(b)
@@ -120,26 +97,23 @@ func (w *GzipResponseWriter) Write(b []byte) (int, error) {
 		ct    = w.Header().Get(contentType)
 		ce    = w.Header().Get(contentEncoding)
 	)
-	// Only continue if they didn't already choose an encoding or a known unhandled content length or type.
-	if ce == "" && (cl == 0 || cl >= w.minSize) && (ct == "" || handleContentType(w.contentTypes, ct)) {
+	// Only continue if they didn't already choose an encoding or a known unhandled content length.
+	if ce == "" && (cl == 0 || cl >= defaultMinSize) {
 		// If the current buffer is less than minSize and a Content-Length isn't set, then wait until we have more data.
-		if len(w.buf) < w.minSize && cl == 0 {
+		if len(w.buf) < defaultMinSize && cl == 0 {
 			return len(b), nil
 		}
 		// If the Content-Length is larger than minSize or the current buffer is larger than minSize, then continue.
-		if cl >= w.minSize || len(w.buf) >= w.minSize {
+		if cl >= defaultMinSize || len(w.buf) >= defaultMinSize {
 			// If a Content-Type wasn't specified, infer it from the current buffer.
 			if ct == "" {
 				ct = http.DetectContentType(w.buf)
 				w.Header().Set(contentType, ct)
 			}
-			// If the Content-Type is acceptable to GZIP, initialize the GZIP writer.
-			if handleContentType(w.contentTypes, ct) {
-				if err := w.startGzip(); err != nil {
-					return 0, err
-				}
-				return len(b), nil
+			if err := w.startGzip(); err != nil {
+				return 0, err
 			}
+			return len(b), nil
 		}
 	}
 	// If we got here, we should not GZIP this response.
@@ -150,7 +124,7 @@ func (w *GzipResponseWriter) Write(b []byte) (int, error) {
 }
 
 // startGzip initializes a GZIP writer and writes the buffer.
-func (w *GzipResponseWriter) startGzip() error {
+func (w *gzipResponseWriter) startGzip() error {
 	// Set the GZIP header.
 	w.Header().Set(contentEncoding, "gzip")
 
@@ -186,7 +160,7 @@ func (w *GzipResponseWriter) startGzip() error {
 }
 
 // startPlain writes to sent bytes and buffer the underlying ResponseWriter without gzip.
-func (w *GzipResponseWriter) startPlain() error {
+func (w *gzipResponseWriter) startPlain() error {
 	if w.code != 0 {
 		w.ResponseWriter.WriteHeader(w.code)
 		// Ensure that no other WriteHeader's happen
@@ -209,7 +183,7 @@ func (w *GzipResponseWriter) startPlain() error {
 }
 
 // WriteHeader just saves the response code until close or GZIP effective writes.
-func (w *GzipResponseWriter) WriteHeader(code int) {
+func (w *gzipResponseWriter) WriteHeader(code int) {
 	if w.code == 0 {
 		w.code = code
 	}
@@ -217,16 +191,16 @@ func (w *GzipResponseWriter) WriteHeader(code int) {
 
 // init graps a new gzip writer from the gzipWriterPool and writes the correct
 // content encoding header.
-func (w *GzipResponseWriter) init() {
+func (w *gzipResponseWriter) init() {
 	// Bytes written during ServeHTTP are redirected to this gzip writer
 	// before being written to the underlying response.
-	gzw := gzipWriterPools[w.index].Get().(*gzip.Writer)
+	gzw := gzipWriterPool.Get().(*gzip.Writer)
 	gzw.Reset(w.ResponseWriter)
 	w.gw = gzw
 }
 
 // Close will close the gzip.Writer and will put it back in the gzipWriterPool.
-func (w *GzipResponseWriter) Close() error {
+func (w *gzipResponseWriter) Close() error {
 	if w.ignore {
 		return nil
 	}
@@ -242,15 +216,15 @@ func (w *GzipResponseWriter) Close() error {
 	}
 
 	err := w.gw.Close()
-	gzipWriterPools[w.index].Put(w.gw)
+	gzipWriterPool.Put(w.gw)
 	w.gw = nil
 	return err
 }
 
 // Flush flushes the underlying *gzip.Writer and then the underlying
-// http.ResponseWriter if it is an http.Flusher. This makes GzipResponseWriter
+// http.ResponseWriter if it is an http.Flusher. This makes gzipResponseWriter
 // an http.Flusher.
-func (w *GzipResponseWriter) Flush() {
+func (w *gzipResponseWriter) Flush() {
 	if w.gw == nil && !w.ignore {
 		// Only flush once startGzip or startPlain has been called.
 		//
@@ -270,7 +244,7 @@ func (w *GzipResponseWriter) Flush() {
 
 // Hijack implements http.Hijacker. If the underlying ResponseWriter is a
 // Hijacker, its Hijack method is returned. Otherwise an error is returned.
-func (w *GzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+func (w *gzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if hj, ok := w.ResponseWriter.(http.Hijacker); ok {
 		return hj.Hijack()
 	}
@@ -278,64 +252,23 @@ func (w *GzipResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 // verify Hijacker interface implementation
-var _ http.Hijacker = &GzipResponseWriter{}
+var _ http.Hijacker = &gzipResponseWriter{}
 
-// MustNewGzipLevelHandler behaves just like NewGzipLevelHandler except that in
-// an error case it panics rather than returning an error.
-func MustNewGzipLevelHandler(level int) func(http.Handler) http.Handler {
-	wrap, err := NewGzipLevelHandler(level)
-	if err != nil {
-		panic(err)
-	}
-	return wrap
-}
-
-// NewGzipLevelHandler returns a wrapper function (often known as middleware)
-// which can be used to wrap an HTTP handler to transparently gzip the response
-// body if the client supports it (via the Accept-Encoding header). Responses will
-// be encoded at the given gzip compression level. An error will be returned only
-// if an invalid gzip compression level is given, so if one can ensure the level
-// is valid, the returned error can be safely ignored.
-func NewGzipLevelHandler(level int) (func(http.Handler) http.Handler, error) {
-	return NewGzipLevelAndMinSize(level, DefaultMinSize)
-}
-
-// NewGzipLevelAndMinSize behave as NewGzipLevelHandler except it let the caller
-// specify the minimum size before compression.
-func NewGzipLevelAndMinSize(level, minSize int) (func(http.Handler) http.Handler, error) {
-	return GzipHandlerWithOpts(CompressionLevel(level), MinSize(minSize))
-}
-
-func GzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error) {
-	c := &config{
-		level:   gzip.DefaultCompression,
-		minSize: DefaultMinSize,
-	}
-
-	for _, o := range opts {
-		o(c)
-	}
-
-	if err := c.validate(); err != nil {
-		return nil, err
-	}
-
+// GzipHandler wraps an HTTP handler, to transparently gzip the response body if
+// the client supports it (via the Accept-Encoding header). This will compress at
+// the default compression level.
+func GzipHandler(h http.Handler) http.Handler {
 	return func(h http.Handler) http.Handler {
-		index := poolIndex(c.level)
-
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Add(vary, acceptEncoding)
 			if acceptsGzip(r) {
-				gw := &GzipResponseWriter{
+				gw := &gzipResponseWriter{
 					ResponseWriter: w,
-					index:          index,
-					minSize:        c.minSize,
-					contentTypes:   c.contentTypes,
 				}
 				defer gw.Close()
 
 				if _, ok := w.(http.CloseNotifier); ok {
-					gwcn := GzipResponseWriterWithCloseNotify{gw}
+					gwcn := gzipResponseWriterWithCloseNotify{gw}
 					h.ServeHTTP(gwcn, r)
 				} else {
 					h.ServeHTTP(gw, r)
@@ -345,107 +278,7 @@ func GzipHandlerWithOpts(opts ...option) (func(http.Handler) http.Handler, error
 				h.ServeHTTP(w, r)
 			}
 		})
-	}, nil
-}
-
-// Parsed representation of one of the inputs to ContentTypes.
-// See https://golang.org/pkg/mime/#ParseMediaType
-type parsedContentType struct {
-	mediaType string
-	params    map[string]string
-}
-
-// equals returns whether this content type matches another content type.
-func (pct parsedContentType) equals(mediaType string, params map[string]string) bool {
-	if pct.mediaType != mediaType {
-		return false
-	}
-	// if pct has no params, don't care about other's params
-	if len(pct.params) == 0 {
-		return true
-	}
-
-	// if pct has any params, they must be identical to other's.
-	if len(pct.params) != len(params) {
-		return false
-	}
-	for k, v := range pct.params {
-		if w, ok := params[k]; !ok || v != w {
-			return false
-		}
-	}
-	return true
-}
-
-// Used for functional configuration.
-type config struct {
-	minSize      int
-	level        int
-	contentTypes []parsedContentType
-}
-
-func (c *config) validate() error {
-	if c.level != gzip.DefaultCompression && (c.level < gzip.BestSpeed || c.level > gzip.BestCompression) {
-		return fmt.Errorf("invalid compression level requested: %d", c.level)
-	}
-
-	if c.minSize < 0 {
-		return fmt.Errorf("minimum size must be more than zero")
-	}
-
-	return nil
-}
-
-type option func(c *config)
-
-func MinSize(size int) option {
-	return func(c *config) {
-		c.minSize = size
-	}
-}
-
-func CompressionLevel(level int) option {
-	return func(c *config) {
-		c.level = level
-	}
-}
-
-// ContentTypes specifies a list of content types to compare
-// the Content-Type header to before compressing. If none
-// match, the response will be returned as-is.
-//
-// Content types are compared in a case-insensitive, whitespace-ignored
-// manner.
-//
-// A MIME type without any other directive will match a content type
-// that has the same MIME type, regardless of that content type's other
-// directives. I.e., "text/html" will match both "text/html" and
-// "text/html; charset=utf-8".
-//
-// A MIME type with any other directive will only match a content type
-// that has the same MIME type and other directives. I.e.,
-// "text/html; charset=utf-8" will only match "text/html; charset=utf-8".
-//
-// By default, responses are gzipped regardless of
-// Content-Type.
-func ContentTypes(types []string) option {
-	return func(c *config) {
-		c.contentTypes = []parsedContentType{}
-		for _, v := range types {
-			mediaType, params, err := mime.ParseMediaType(v)
-			if err == nil {
-				c.contentTypes = append(c.contentTypes, parsedContentType{mediaType, params})
-			}
-		}
-	}
-}
-
-// GzipHandler wraps an HTTP handler, to transparently gzip the response body if
-// the client supports it (via the Accept-Encoding header). This will compress at
-// the default compression level.
-func GzipHandler(h http.Handler) http.Handler {
-	wrapper, _ := NewGzipLevelHandler(gzip.DefaultCompression)
-	return wrapper(h)
+	}(h)
 }
 
 // acceptsGzip returns true if the given HTTP request indicates that it will
@@ -453,27 +286,6 @@ func GzipHandler(h http.Handler) http.Handler {
 func acceptsGzip(r *http.Request) bool {
 	acceptedEncodings, _ := parseEncodings(r.Header.Get(acceptEncoding))
 	return acceptedEncodings["gzip"] > 0.0
-}
-
-// returns true if we've been configured to compress the specific content type.
-func handleContentType(contentTypes []parsedContentType, ct string) bool {
-	// If contentTypes is empty we handle all content types.
-	if len(contentTypes) == 0 {
-		return true
-	}
-
-	mediaType, params, err := mime.ParseMediaType(ct)
-	if err != nil {
-		return false
-	}
-
-	for _, c := range contentTypes {
-		if c.equals(mediaType, params) {
-			return true
-		}
-	}
-
-	return false
 }
 
 // parseEncodings attempts to parse a list of codings, per RFC 2616, as might
@@ -512,7 +324,7 @@ func parseEncodings(s string) (codings, error) {
 func parseCoding(s string) (coding string, qvalue float64, err error) {
 	for n, part := range strings.Split(s, ";") {
 		part = strings.TrimSpace(part)
-		qvalue = DefaultQValue
+		qvalue = defaultQValue
 
 		if n == 0 {
 			coding = strings.ToLower(part)
