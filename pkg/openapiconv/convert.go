@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated. Build and serve OpenAPI v3 directly using pkg/builder3 and pkg/handler3 instead.
 package openapiconv
 
 import (
@@ -25,11 +26,16 @@ import (
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 var OpenAPIV2DefPrefix = "#/definitions/"
+
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 var OpenAPIV3DefPrefix = "#/components/schemas/"
 
 // ConvertV2ToV3 converts an OpenAPI V2 object into V3.
 // Certain references may be shared between the V2 and V3 objects in the conversion.
+//
+// Deprecated: Build and serve OpenAPI v3 directly using pkg/builder3 and pkg/handler3 instead.
 func ConvertV2ToV3(v2Spec *spec.Swagger) *spec3.OpenAPI {
 	v3Spec := &spec3.OpenAPI{
 		Version:      "3.0.0",
@@ -42,6 +48,7 @@ func ConvertV2ToV3(v2Spec *spec.Swagger) *spec3.OpenAPI {
 	return v3Spec
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertExternalDocumentation(v2ED *spec.ExternalDocumentation) *spec3.ExternalDocumentation {
 	if v2ED == nil {
 		return nil
@@ -54,6 +61,7 @@ func ConvertExternalDocumentation(v2ED *spec.ExternalDocumentation) *spec3.Exter
 	}
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertComponents(v2SecurityDefinitions spec.SecurityDefinitions, v2Definitions spec.Definitions, v2Responses map[string]spec.Response, produces []string) *spec3.Components {
 	components := &spec3.Components{}
 
@@ -79,6 +87,7 @@ func ConvertComponents(v2SecurityDefinitions spec.SecurityDefinitions, v2Definit
 	return components
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertSchema(v2Schema *spec.Schema) *spec.Schema {
 	if v2Schema == nil {
 		return nil
@@ -127,6 +136,7 @@ func ConvertSchema(v2Schema *spec.Schema) *spec.Schema {
 	return builderutil.WrapRefs(&v3Schema)
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertSchemaList(v2SchemaList []spec.Schema) []spec.Schema {
 	if v2SchemaList == nil {
 		return nil
@@ -138,6 +148,7 @@ func ConvertSchemaList(v2SchemaList []spec.Schema) []spec.Schema {
 	return v3SchemaList
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertSecurityScheme(v2securityScheme *spec.SecurityScheme) *spec3.SecurityScheme {
 	if v2securityScheme == nil {
 		return nil
@@ -165,6 +176,7 @@ func ConvertSecurityScheme(v2securityScheme *spec.SecurityScheme) *spec3.Securit
 	return securityScheme
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertPaths(v2Paths *spec.Paths) *spec3.Paths {
 	if v2Paths == nil {
 		return nil
@@ -182,6 +194,7 @@ func ConvertPaths(v2Paths *spec.Paths) *spec3.Paths {
 	return paths
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertPathItem(v2pathItem spec.PathItem) *spec3.Path {
 	path := &spec3.Path{
 		Refable: v2pathItem.Refable,
@@ -202,6 +215,7 @@ func ConvertPathItem(v2pathItem spec.PathItem) *spec3.Path {
 	return path
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertOperation(v2Operation *spec.Operation) *spec3.Operation {
 	if v2Operation == nil {
 		return nil
@@ -253,6 +267,7 @@ func ConvertOperation(v2Operation *spec.Operation) *spec3.Operation {
 	return operation
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertResponse(v2Response *spec.Response, produces []string) *spec3.Response {
 	if v2Response == nil {
 		return nil
@@ -280,6 +295,7 @@ func ConvertResponse(v2Response *spec.Response, produces []string) *spec3.Respon
 	return response
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertParameter(v2Param spec.Parameter) *spec3.Parameter {
 	param := &spec3.Parameter{
 		Refable:          ConvertRefableParameter(v2Param.Refable),
@@ -307,6 +323,7 @@ func ConvertParameter(v2Param spec.Parameter) *spec3.Parameter {
 	return param
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertRefableParameter(refable spec.Refable) spec.Refable {
 	if refable.Ref.String() != "" {
 		return spec.Refable{Ref: spec.MustCreateRef(strings.Replace(refable.Ref.String(), "#/parameters/", "#/components/parameters/", 1))}
@@ -314,6 +331,7 @@ func ConvertRefableParameter(refable spec.Refable) spec.Refable {
 	return refable
 }
 
+// Deprecated: OpenAPI v2 to v3 conversion is deprecated.
 func ConvertRefableResponse(refable spec.Refable) spec.Refable {
 	if refable.Ref.String() != "" {
 		return spec.Refable{Ref: spec.MustCreateRef(strings.Replace(refable.Ref.String(), "#/responses/", "#/components/responses/", 1))}
