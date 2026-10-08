@@ -50,11 +50,13 @@ func groupRoutesByPath(routes []common.Route) map[string][]common.Route {
 	return pathToRoutes
 }
 
-func mapKeyFromParam(param common.Parameter) interface{} {
-	return struct {
-		Name string
-		Kind common.ParameterKind
-	}{
+type paramKey struct {
+	Name string
+	Kind common.ParameterKind
+}
+
+func mapKeyFromParam(param common.Parameter) paramKey {
+	return paramKey{
 		Name: param.Name(),
 		Kind: param.Kind(),
 	}
