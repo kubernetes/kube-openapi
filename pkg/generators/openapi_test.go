@@ -448,6 +448,51 @@ Type: []string{"object"},
 	})
 }
 
+func TestCustomJSONSerializationUnexportedField(t *testing.T) {
+	inputFile := `
+		package foo
+
+		// Blah has custom JSON serialization.
+		type Blah struct {
+			value string
+		}
+
+		func (Blah) MarshalJSON() ([]byte, error) { return nil, nil }
+
+		func (*Blah) UnmarshalJSON([]byte) error { return nil }`
+
+	packagestest.TestAll(t, func(t *testing.T, x packagestest.Exporter) {
+		e := packagestest.Export(t, x, []packagestest.Module{{
+			Name: "example.com/base/foo",
+			Files: map[string]interface{}{
+				"foo.go": inputFile,
+			},
+		}})
+		defer e.Cleanup()
+
+		callErr, funcErr, callBuffer, funcBuffer, _ := testOpenAPITypeWriter(t, e.Config)
+		if callErr != nil {
+			t.Fatal(callErr)
+		}
+		if funcErr != nil {
+			t.Fatal(funcErr)
+		}
+		assertEqual(t, callBuffer.String(),
+			`"example.com/base/foo.Blah": schema_examplecom_base_foo_Blah(ref),`)
+		assertEqual(t, funcBuffer.String(),
+			`func schema_examplecom_base_foo_Blah(ref common.ReferenceCallback) common.OpenAPIDefinition {
+return common.OpenAPIDefinition{
+Schema: spec.Schema{
+SchemaProps: spec.SchemaProps{
+Description: "Blah has custom JSON serialization.",
+Type: []string{"object"},
+},
+},
+}
+}`)
+	})
+}
+
 func TestNestedStruct(t *testing.T) {
 	inputFile := `
 		package foo
