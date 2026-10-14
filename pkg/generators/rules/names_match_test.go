@@ -298,6 +298,33 @@ func TestNamesMatch(t *testing.T) {
 			},
 			expected: []string{"PodSpec"},
 		},
+		// NOTE: unexported fields of types with custom JSON serialization should skip evaluation
+		{
+			name: "custom_json_serialization_unexported",
+			t: &types.Type{
+				Kind:    types.Struct,
+				Methods: map[string]*types.Type{"MarshalJSON": {}, "UnmarshalJSON": {}},
+				Members: []types.Member{
+					{
+						Name: "podSpec",
+					},
+				},
+			},
+			expected: []string{},
+		},
+		{
+			name: "custom_unmarshalling_only_unexported",
+			t: &types.Type{
+				Kind:    types.Struct,
+				Methods: map[string]*types.Type{"UnmarshalJSON": {}},
+				Members: []types.Member{
+					{
+						Name: "podSpec",
+					},
+				},
+			},
+			expected: []string{"podSpec"},
+		},
 		// NOTE: this is to expand test coverage
 		// {"S", "s", true},
 		{
