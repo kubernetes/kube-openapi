@@ -18,9 +18,11 @@ package handler3
 
 import (
 	"bytes"
+	"compress/gzip"
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -45,6 +47,94 @@ const (
 	subTypeProtobuf           = "com.github.proto-openapi.spec.v3.v1.0+protobuf"
 	subTypeJSON               = "json"
 )
+
+var (
+	gzipWriterPool = sync.Pool{
+		New: func() any {
+			return gzip.NewWriter(io.Discard)
+		},
+	}
+	gzipReaderPool sync.Pool
+)
+
+func compressGzip(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	gw := gzipWriterPool.Get().(*gzip.Writer)
+	gw.Reset(&buf)
+	defer func() {
+		gw.Reset(io.Discard)
+		gzipWriterPool.Put(gw)
+	}()
+	if _, err := gw.Write(data); err != nil {
+		return nil, err
+	}
+	if err := gw.Close(); err != nil {
+		return nil, err
+	}
+	return bytes.Clone(buf.Bytes()), nil
+}
+
+func decompressGzip(data []byte) ([]byte, error) {
+	var (
+		gr  *gzip.Reader
+		err error
+	)
+	if v := gzipReaderPool.Get(); v != nil {
+		gr = v.(*gzip.Reader)
+		err = gr.Reset(bytes.NewReader(data))
+	} else {
+		gr, err = gzip.NewReader(bytes.NewReader(data))
+	}
+	if err != nil {
+		return nil, err
+	}
+	uncompressed, err := io.ReadAll(gr)
+	if err != nil {
+		return nil, err
+	}
+	if err := gr.Close(); err != nil {
+		return nil, err
+	}
+	gzipReaderPool.Put(gr)
+	return uncompressed, nil
+}
+
+// lazyGzipReadSeeker delays decompressing the cached gzip payload until
+// http.ServeContent actually seeks or reads the body. When http.ServeContent
+// short-circuits on precondition checks (such as 304 Not Modified for
+// If-None-Match), neither Seek nor Read is called and zero decompression occurs.
+type lazyGzipReadSeeker struct {
+	compressed []byte
+	reader     *bytes.Reader
+	err        error
+}
+
+func (s *lazyGzipReadSeeker) init() error {
+	if s.reader != nil || s.err != nil {
+		return s.err
+	}
+	uncompressed, err := decompressGzip(s.compressed)
+	if err != nil {
+		s.err = err
+		return err
+	}
+	s.reader = bytes.NewReader(uncompressed)
+	return nil
+}
+
+func (s *lazyGzipReadSeeker) Read(p []byte) (int, error) {
+	if err := s.init(); err != nil {
+		return 0, err
+	}
+	return s.reader.Read(p)
+}
+
+func (s *lazyGzipReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	if err := s.init(); err != nil {
+		return 0, err
+	}
+	return s.reader.Seek(offset, whence)
+}
 
 // OpenAPIV3Discovery is the format of the Discovery document for OpenAPI V3
 // It maps Discovery paths to their corresponding URLs with a hash parameter included
@@ -85,17 +175,25 @@ func newOpenAPIV3Group() *openAPIV3Group {
 		if err != nil {
 			return timedSpec{}, "", err
 		}
-		json, err := json.Marshal(spec)
+		jsonBytes, err := json.Marshal(spec)
 		if err != nil {
 			return timedSpec{}, "", err
 		}
-		return timedSpec{spec: json, lastModified: time.Now()}, computeETag(json), nil
+		compressed, err := compressGzip(jsonBytes)
+		if err != nil {
+			return timedSpec{}, "", err
+		}
+		return timedSpec{spec: compressed, lastModified: time.Now()}, computeETag(jsonBytes), nil
 	}, &o.specCache)
 	o.pbCache = cached.Transform(func(ts timedSpec, etag string, err error) (timedSpec, string, error) {
 		if err != nil {
 			return timedSpec{}, "", err
 		}
-		proto, err := ToV3ProtoBinary(ts.spec)
+		uncompressed, err := decompressGzip(ts.spec)
+		if err != nil {
+			return timedSpec{}, "", err
+		}
+		proto, err := ToV3ProtoBinary(uncompressed)
 		if err != nil {
 			return timedSpec{}, "", err
 		}
@@ -220,6 +318,35 @@ func (o *OpenAPIService) HandleDiscovery(w http.ResponseWriter, r *http.Request)
 	http.ServeContent(w, r, "/openapi/v3", ts.lastModified, bytes.NewReader(ts.spec))
 }
 
+func acceptsGzip(r *http.Request) bool {
+	if r.Header.Get("Range") != "" {
+		return false
+	}
+	for _, line := range r.Header.Values("Accept-Encoding") {
+		for _, part := range strings.Split(line, ",") {
+			coding, params, hasParams := strings.Cut(strings.TrimSpace(part), ";")
+			if !strings.EqualFold(strings.TrimSpace(coding), "gzip") {
+				continue
+			}
+			if !hasParams {
+				return true
+			}
+			for _, param := range strings.Split(params, ";") {
+				if k, v, ok := strings.Cut(strings.TrimSpace(param), "="); ok && strings.EqualFold(k, "q") {
+					if q, err := strconv.ParseFloat(v, 64); err != nil || q <= 0 || q > 1 {
+						coding = ""
+						break
+					}
+				}
+			}
+			if coding != "" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Request) {
 	url := strings.SplitAfterN(r.URL.Path, "/", 4)
 	group := url[3]
@@ -280,7 +407,18 @@ func (o *OpenAPIService) HandleGroupVersion(w http.ResponseWriter, r *http.Reque
 				// effectively indicating that the cache never expires.
 				w.Header().Set("Expires", time.Now().AddDate(1, 0, 0).Format(time.RFC1123))
 			}
-			http.ServeContent(w, r, "", lastModified, bytes.NewReader(data))
+
+			var content io.ReadSeeker = bytes.NewReader(data)
+			if accepts.SubType == subTypeJSON {
+				w.Header().Add("Vary", "Accept-Encoding")
+				if acceptsGzip(r) {
+					w.Header().Set("Content-Encoding", "gzip")
+				} else {
+					content = &lazyGzipReadSeeker{compressed: data}
+				}
+			}
+
+			http.ServeContent(w, r, "", lastModified, content)
 			return
 		}
 	}
