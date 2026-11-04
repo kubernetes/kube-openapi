@@ -752,3 +752,336 @@ func TestV3GVKExtension(t *testing.T) {
 		}
 	})
 }
+
+// TestV3AllOfRef verifies how ParseSchemaV3 handles OpenAPI 3.0 schemas that use
+// allOf. In OpenAPI 3.0, sibling fields alongside a $ref (such as "description",
+// "default", or "x-kubernetes-*" extensions) are ignored per the specification.
+// To attach field-level metadata to a referenced type, Kubernetes >= 1.35 (via
+// kube-openapi's pkg/builder3/util.WrapRefs) wraps the $ref in a single-element
+// allOf array on an otherwise typeless schema.
+func TestV3AllOfRef(t *testing.T) {
+	spec := []byte(`{
+		"openapi": "3.0.0",
+		"info": {
+			"title": "Test",
+			"version": "v1"
+		},
+		"paths": {},
+		"components": {
+			"schemas": {
+				"Parent": {
+					"type": "object",
+					"properties": {
+						"directRef": {
+							"$ref": "#/components/schemas/Child"
+						},
+						"allOfRef": {
+							"allOf": [
+								{
+									"$ref": "#/components/schemas/Child"
+								}
+							],
+							"description": "field using allOf-wrapped ref",
+							"default": "some-default",
+							"x-kubernetes-patch-strategy": "merge"
+						},
+						"allOfExternalRef": {
+							"allOf": [
+								{
+									"$ref": "#/components/parameters/ExternalParam"
+								}
+							],
+							"description": "field using allOf-wrapped non-component ref"
+						},
+						"allOfInlineSchema": {
+							"allOf": [
+								{
+									"type": "string"
+								}
+							],
+							"description": "field using allOf with inline schema instead of ref"
+						},
+						"allOfMultipleRefs": {
+							"allOf": [
+								{
+									"$ref": "#/components/schemas/Child"
+								},
+								{
+									"$ref": "#/components/schemas/Child"
+								}
+							],
+							"description": "field using multi-element allOf composition"
+						},
+						"allOfUnknownSchemaRef": {
+							"allOf": [
+								{
+									"$ref": "#/components/schemas/NonExistentModel"
+								}
+							],
+							"description": "field using allOf-wrapped unknown component ref"
+						}
+					},
+					"x-kubernetes-group-version-kind": [
+						{
+							"group": "test",
+							"kind": "Parent",
+							"version": "v1"
+						}
+					]
+				},
+				"Child": {
+					"type": "object",
+					"properties": {
+						"name": {
+							"type": "string"
+						}
+					},
+					"x-kubernetes-group-version-kind": [
+						{
+							"group": "test",
+							"kind": "Child",
+							"version": "v1"
+						}
+					]
+				}
+			}
+		}
+	}`)
+	document, err := openapi_v3.ParseDocument(spec)
+	if err != nil {
+		t.Fatalf("failed to parse OpenAPI v3 document: %v", err)
+	}
+	models, err := proto.NewOpenAPIV3Data(document)
+	if err != nil {
+		t.Fatalf("failed to create OpenAPI v3 data: %v", err)
+	}
+
+	schema := models.LookupModel("Parent")
+	if schema == nil {
+		t.Fatal("model Parent not found")
+	}
+	parent, ok := schema.(*proto.Kind)
+	if !ok || parent == nil {
+		t.Fatal("expected Parent to be *proto.Kind")
+	}
+
+	// Baseline: a direct $ref with no sibling fields resolves to proto.Reference.
+	t.Run("direct $ref without sibling fields resolves to proto.Reference", func(t *testing.T) {
+		field, ok := parent.Fields["directRef"]
+		if !ok {
+			t.Fatal("missing 'directRef' field")
+		}
+		ref, ok := field.(proto.Reference)
+		if !ok {
+			t.Fatalf("expected 'directRef' to be proto.Reference, got %T", field)
+		}
+		if ref.Reference() != "Child" {
+			t.Errorf("directRef reference = %q, want %q", ref.Reference(), "Child")
+		}
+	})
+
+	// A single-element allOf containing a #/components/schemas/ $ref must unwrap
+	// to a proto.Reference pointing at the target model and linking its SubSchema.
+	t.Run("single-element allOf wrapping #/components/schemas/ $ref resolves to proto.Reference", func(t *testing.T) {
+		field, ok := parent.Fields["allOfRef"]
+		if !ok {
+			t.Fatal("missing 'allOfRef' field")
+		}
+		ref, ok := field.(proto.Reference)
+		if !ok {
+			t.Fatalf("expected 'allOfRef' to be proto.Reference, got %T", field)
+		}
+		if ref.Reference() != "Child" {
+			t.Errorf("allOfRef reference = %q, want %q", ref.Reference(), "Child")
+		}
+		if ref.SubSchema() == nil {
+			t.Error("expected allOfRef.SubSchema() to resolve to non-nil Child schema")
+		}
+	})
+
+	// Metadata placed on the outer schema alongside the single-element allOf
+	// (description, default, and x-kubernetes-* extensions) must be preserved
+	// on the resulting proto.Reference BaseSchema.
+	t.Run("single-element allOf wrapping $ref preserves outer description, default, and extensions", func(t *testing.T) {
+		field := parent.Fields["allOfRef"]
+		if got := field.GetDescription(); got != "field using allOf-wrapped ref" {
+			t.Errorf("description = %q, want %q", got, "field using allOf-wrapped ref")
+		}
+		if got, want := field.GetDefault(), "some-default"; got != want {
+			t.Errorf("default = %v, want %v", got, want)
+		}
+		if got, want := field.GetExtensions()["x-kubernetes-patch-strategy"], "merge"; got != want {
+			t.Errorf("x-kubernetes-patch-strategy extension = %v, want %v", got, want)
+		}
+	})
+
+	// Mirrors ParseV3SchemaReference: references outside #/components/schemas
+	// (such as #/components/parameters/...) cannot be resolved against d.models
+	// and must fall back to *proto.Arbitrary while preserving outer BaseSchema metadata.
+	t.Run("single-element allOf wrapping non-component $ref falls back to proto.Arbitrary", func(t *testing.T) {
+		field, ok := parent.Fields["allOfExternalRef"]
+		if !ok {
+			t.Fatal("missing 'allOfExternalRef' field")
+		}
+		arb, ok := field.(*proto.Arbitrary)
+		if !ok {
+			t.Fatalf("expected 'allOfExternalRef' to fall back to *proto.Arbitrary, got %T", field)
+		}
+		if got, want := arb.GetDescription(), "field using allOf-wrapped non-component ref"; got != want {
+			t.Errorf("description = %q, want %q", got, want)
+		}
+	})
+
+	// When a single-element allOf contains an inline Schema rather than a $ref,
+	// it is not a WrapRefs reference wrapper and must fall through to *proto.Arbitrary.
+	t.Run("single-element allOf wrapping inline schema instead of $ref falls back to proto.Arbitrary", func(t *testing.T) {
+		field, ok := parent.Fields["allOfInlineSchema"]
+		if !ok {
+			t.Fatal("missing 'allOfInlineSchema' field")
+		}
+		if _, ok := field.(*proto.Arbitrary); !ok {
+			t.Fatalf("expected 'allOfInlineSchema' to fall back to *proto.Arbitrary, got %T", field)
+		}
+	})
+
+	// When allOf contains more than one element, it represents schema composition
+	// rather than a single wrapped $ref and must not be unwrapped into proto.Reference.
+	t.Run("multi-element allOf is not unwrapped as a single reference and falls back to proto.Arbitrary", func(t *testing.T) {
+		field, ok := parent.Fields["allOfMultipleRefs"]
+		if !ok {
+			t.Fatal("missing 'allOfMultipleRefs' field")
+		}
+		if _, ok := field.(*proto.Arbitrary); !ok {
+			t.Fatalf("expected 'allOfMultipleRefs' to fall back to *proto.Arbitrary, got %T", field)
+		}
+	})
+
+	// When a single-element allOf references a #/components/schemas/ model that
+	// does not exist in the document, parseAllOfRefSchema returns false so
+	// ParseSchemaV3 falls back to *proto.Arbitrary rather than introducing a new
+	// failure return.
+	t.Run("single-element allOf wrapping unknown #/components/schemas/ $ref falls back to proto.Arbitrary", func(t *testing.T) {
+		field, ok := parent.Fields["allOfUnknownSchemaRef"]
+		if !ok {
+			t.Fatal("missing 'allOfUnknownSchemaRef' field")
+		}
+		arb, ok := field.(*proto.Arbitrary)
+		if !ok {
+			t.Fatalf("expected 'allOfUnknownSchemaRef' to fall back to *proto.Arbitrary, got %T", field)
+		}
+		if got, want := arb.GetDescription(), "field using allOf-wrapped unknown component ref"; got != want {
+			t.Errorf("description = %q, want %q", got, want)
+		}
+	})
+}
+
+// TestSpecificationExtensionToMap verifies that OpenAPI v3 specification
+// extensions (stored as raw YAML strings in gnostic-models v0.7.0+ NamedAny
+// protos) are unmarshaled into native Go types with string-keyed maps, while
+// malformed or empty extension entries are safely ignored.
+func TestSpecificationExtensionToMap(t *testing.T) {
+	// gnostic-models v0.7.0+ populates NamedAny.Value.Yaml without populating
+	// the legacy Value.Value protobuf Any field. SpecificationExtensionToMap
+	// unmarshals Value.Yaml via go.yaml.in/yaml/v3 so that YAML objects decode
+	// into map[string]interface{} (matching JSON decoding).
+	t.Run("decodes scalar, slice, and nested map YAML extension values into native Go types", func(t *testing.T) {
+		extensions := []*openapi_v3.NamedAny{
+			{
+				Name:  "x-nil",
+				Value: &openapi_v3.Any{Yaml: "null"},
+			},
+			{
+				Name:  "x-bool",
+				Value: &openapi_v3.Any{Yaml: "true"},
+			},
+			{
+				Name:  "x-int",
+				Value: &openapi_v3.Any{Yaml: "42"},
+			},
+			{
+				Name:  "x-float",
+				Value: &openapi_v3.Any{Yaml: "3.14"},
+			},
+			{
+				Name:  "x-string",
+				Value: &openapi_v3.Any{Yaml: `"hello"`},
+			},
+			{
+				Name:  "x-slice",
+				Value: &openapi_v3.Any{Yaml: `["a", 1, true, {"k": "v"}]`},
+			},
+			{
+				Name:  "x-map",
+				Value: &openapi_v3.Any{Yaml: `{"group": "apps", "version": "v1", "kind": "Deployment", "nested": {"enabled": true}}`},
+			},
+		}
+
+		got := proto.SpecificationExtensionToMap(extensions)
+
+		want := map[string]interface{}{
+			"x-nil":    nil,
+			"x-bool":   true,
+			"x-int":    42,
+			"x-float":  3.14,
+			"x-string": "hello",
+			"x-slice": []interface{}{
+				"a",
+				1,
+				true,
+				map[string]interface{}{"k": "v"},
+			},
+			"x-map": map[string]interface{}{
+				"group":   "apps",
+				"version": "v1",
+				"kind":    "Deployment",
+				"nested":  map[string]interface{}{"enabled": true},
+			},
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("SpecificationExtensionToMap mismatch:\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+
+	// Defensive guards in SpecificationExtensionToMap must skip entries with
+	// missing names, nil Any values, empty YAML strings, or invalid YAML syntax
+	// without failing conversion of valid sibling extensions.
+	t.Run("skips extension entries with empty name, nil value, empty YAML, or malformed YAML", func(t *testing.T) {
+		extensions := []*openapi_v3.NamedAny{
+			{
+				// Empty extension name must be skipped.
+				Name:  "",
+				Value: &openapi_v3.Any{Yaml: `"ignored"`},
+			},
+			{
+				// Nil Value pointer must be skipped.
+				Name:  "x-nil-value-struct",
+				Value: nil,
+			},
+			{
+				// Empty raw YAML string must be skipped.
+				Name:  "x-empty-yaml",
+				Value: &openapi_v3.Any{Yaml: ""},
+			},
+			{
+				// Malformed YAML that fails yaml.Unmarshal must be skipped.
+				Name:  "x-malformed-yaml",
+				Value: &openapi_v3.Any{Yaml: "[unclosed flow sequence"},
+			},
+			{
+				// Valid sibling extension must still be preserved.
+				Name:  "x-valid-extension",
+				Value: &openapi_v3.Any{Yaml: `"preserved"`},
+			},
+		}
+
+		got := proto.SpecificationExtensionToMap(extensions)
+		want := map[string]interface{}{
+			"x-valid-extension": "preserved",
+		}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("SpecificationExtensionToMap guard handling mismatch:\ngot:  %#v\nwant: %#v", got, want)
+		}
+	})
+}
