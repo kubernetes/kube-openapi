@@ -18,6 +18,8 @@ package handler3
 
 import (
 	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime"
@@ -27,8 +29,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-
-	"encoding/json"
 
 	"k8s.io/kube-openapi/pkg/spec3"
 )
@@ -536,5 +536,420 @@ func TestUpdateGroupVersion(t *testing.T) {
 	}
 	if len(discovery.Paths) != 1 {
 		t.Fatalf("Invalid number of Paths, expected 2: %v", discovery.Paths)
+	}
+}
+
+func TestOpenAPIV3VersionedServiceGzip(t *testing.T) {
+	s := buildBenchmarkV3Spec(t, "apps", 20)
+	expectedJSON, err := json.Marshal(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedETag := strconv.Quote(computeETag(expectedJSON))
+	expectedPb, err := ToV3ProtoBinary(expectedJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mux := http.NewServeMux()
+	o := NewOpenAPIService()
+	mux.Handle("/openapi/v3", http.HandlerFunc(o.HandleDiscovery))
+	mux.Handle("/openapi/v3/apis/apps/v1", http.HandlerFunc(o.HandleGroupVersion))
+	o.UpdateGroupVersion("apis/apps/v1", s)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	// Disable automatic gzip negotiation in http.Transport so we can explicitly
+	// verify server behavior with and without the Accept-Encoding header.
+	client := &http.Client{
+		Transport: &http.Transport{
+			DisableCompression: true,
+		},
+	}
+
+	assertVaryContains := func(t *testing.T, h http.Header, want string) {
+		t.Helper()
+		for _, v := range h.Values("Vary") {
+			if v == want {
+				return
+			}
+		}
+		t.Errorf("Vary header %v does not contain %q", h.Values("Vary"), want)
+	}
+
+	t.Run("JSON without Accept-Encoding: gzip returns uncompressed JSON", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, server.URL+"/openapi/v3/apis/apps/v1", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "" {
+			t.Errorf("expected empty Content-Encoding, got %q", ce)
+		}
+		assertVaryContains(t, resp.Header, "Accept")
+		assertVaryContains(t, resp.Header, "Accept-Encoding")
+		if gotETag := resp.Header.Get("ETag"); gotETag != expectedETag {
+			t.Errorf("expected ETag %s, got %s", expectedETag, gotETag)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(body, expectedJSON) {
+			t.Errorf("uncompressed body does not match expected JSON")
+		}
+	})
+
+	t.Run("JSON with Accept-Encoding: gzip returns pre-compressed gzip payload", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, server.URL+"/openapi/v3/apis/apps/v1", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Accept-Encoding", "gzip")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ct := resp.Header.Get("Content-Type"); ct != "application/json" {
+			t.Errorf("expected Content-Type: application/json, got %q", ct)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "gzip" {
+			t.Fatalf("expected Content-Encoding: gzip, got %q", ce)
+		}
+		assertVaryContains(t, resp.Header, "Accept")
+		assertVaryContains(t, resp.Header, "Accept-Encoding")
+		if gotETag := resp.Header.Get("ETag"); gotETag != expectedETag {
+			t.Errorf("expected ETag %s, got %s", expectedETag, gotETag)
+		}
+
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			t.Fatalf("failed to create gzip reader: %v", err)
+		}
+		defer gzReader.Close()
+		decompressed, err := io.ReadAll(gzReader)
+		if err != nil {
+			t.Fatalf("failed to read decompressed body: %v", err)
+		}
+		if !bytes.Equal(decompressed, expectedJSON) {
+			t.Errorf("decompressed body does not match expected JSON")
+		}
+	})
+
+	t.Run("JSON with multi-header Accept-Encoding returns pre-compressed gzip payload", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, server.URL+"/openapi/v3/apis/apps/v1", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Add("Accept-Encoding", "deflate")
+		req.Header.Add("Accept-Encoding", "gzip")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		if ce := resp.Header.Get("Content-Encoding"); ce != "gzip" {
+			t.Fatalf("expected Content-Encoding: gzip for multi-header Accept-Encoding, got %q", ce)
+		}
+		assertVaryContains(t, resp.Header, "Accept-Encoding")
+		gzReader, err := gzip.NewReader(resp.Body)
+		if err != nil {
+			t.Fatalf("failed to create gzip reader: %v", err)
+		}
+		defer gzReader.Close()
+		decompressed, err := io.ReadAll(gzReader)
+		if err != nil {
+			t.Fatalf("failed to read decompressed body: %v", err)
+		}
+		if !bytes.Equal(decompressed, expectedJSON) {
+			t.Errorf("decompressed body does not match expected JSON")
+		}
+	})
+
+	t.Run("JSON with Accept-Encoding: gzip;q=0 or invalid q returns uncompressed JSON", func(t *testing.T) {
+		for _, ae := range []string{"gzip;q=0", "gzip;q=0.000", "gzip;q=invalid", "gzip;q=1.5"} {
+			req, err := http.NewRequest(http.MethodGet, server.URL+"/openapi/v3/apis/apps/v1", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Accept-Encoding", ae)
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				t.Fatalf("Accept-Encoding %q: unexpected status code: %d", ae, resp.StatusCode)
+			}
+			if ce := resp.Header.Get("Content-Encoding"); ce != "" {
+				t.Errorf("Accept-Encoding %q: expected empty Content-Encoding, got %q", ae, ce)
+			}
+			assertVaryContains(t, resp.Header, "Accept-Encoding")
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(body, expectedJSON) {
+				t.Errorf("Accept-Encoding %q: body does not match expected JSON", ae)
+			}
+		}
+	})
+
+	t.Run("If-None-Match returns 304 Not Modified without decompressing", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, server.URL+"/openapi/v3/apis/apps/v1", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("If-None-Match", expectedETag)
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusNotModified {
+			t.Fatalf("unexpected status code: got %d, want %d", resp.StatusCode, http.StatusNotModified)
+		}
+		assertVaryContains(t, resp.Header, "Accept-Encoding")
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(body) != 0 {
+			t.Errorf("expected empty 304 body, got %d bytes", len(body))
+		}
+
+		// Verify directly that lazyGzipReadSeeker never invokes decompressGzip when
+		// http.ServeContent short-circuits on a matching If-None-Match precondition.
+		rs := &lazyGzipReadSeeker{compressed: []byte("corrupt-gzip-that-must-not-be-decompressed")}
+		rec := httptest.NewRecorder()
+		rec.Header().Set("Etag", expectedETag)
+		condReq := httptest.NewRequest(http.MethodGet, "/openapi/v3/apis/apps/v1", nil)
+		condReq.Header.Set("If-None-Match", expectedETag)
+		http.ServeContent(rec, condReq, "", time.Now(), rs)
+		if rec.Code != http.StatusNotModified {
+			t.Fatalf("lazyGzipReadSeeker 304 status: got %d, want %d", rec.Code, http.StatusNotModified)
+		}
+		if rs.reader != nil || rs.err != nil {
+			t.Errorf("lazyGzipReadSeeker should not have initialized on 304 Not Modified (reader=%v, err=%v)", rs.reader, rs.err)
+		}
+	})
+
+	t.Run("Protobuf with and without Accept-Encoding: gzip", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, server.URL+"/openapi/v3/apis/apps/v1", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Accept", "application/com.github.proto-openapi.spec.v3.v1.0+protobuf")
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status code: %d", resp.StatusCode)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(body, expectedPb) {
+			t.Errorf("protobuf body does not match expected protobuf")
+		}
+	})
+}
+
+func buildBenchmarkV3Spec(tb testing.TB, group string, numResources int) *spec3.OpenAPI {
+	tb.Helper()
+	paths := make(map[string]interface{}, numResources*2)
+	schemas := make(map[string]interface{}, numResources)
+	for i := 0; i < numResources; i++ {
+		resName := fmt.Sprintf("Resource%d", i)
+		ref := fmt.Sprintf("#/components/schemas/io.k8s.%s.%s", group, resName)
+		collPath := fmt.Sprintf("/apis/%s/v1/namespaces/{namespace}/resource%ds", group, i)
+		itemPath := fmt.Sprintf("/apis/%s/v1/namespaces/{namespace}/resource%ds/{name}", group, i)
+		paths[collPath] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"description": fmt.Sprintf("list or watch objects of kind %s in group %s", resName, group),
+				"operationId": fmt.Sprintf("list%sNamespaced%s", group, resName),
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{"$ref": ref},
+							},
+						},
+					},
+				},
+			},
+			"post": map[string]interface{}{
+				"description": fmt.Sprintf("create an object of kind %s in group %s", resName, group),
+				"operationId": fmt.Sprintf("create%sNamespaced%s", group, resName),
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{"$ref": ref},
+							},
+						},
+					},
+				},
+			},
+		}
+		paths[itemPath] = map[string]interface{}{
+			"get": map[string]interface{}{
+				"description": fmt.Sprintf("read the specified %s in group %s", resName, group),
+				"operationId": fmt.Sprintf("read%sNamespaced%s", group, resName),
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{"$ref": ref},
+							},
+						},
+					},
+				},
+			},
+			"put": map[string]interface{}{
+				"description": fmt.Sprintf("replace the specified %s in group %s", resName, group),
+				"operationId": fmt.Sprintf("replace%sNamespaced%s", group, resName),
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{"$ref": ref},
+							},
+						},
+					},
+				},
+			},
+			"delete": map[string]interface{}{
+				"description": fmt.Sprintf("delete the specified %s in group %s", resName, group),
+				"operationId": fmt.Sprintf("delete%sNamespaced%s", group, resName),
+				"responses": map[string]interface{}{
+					"200": map[string]interface{}{
+						"description": "OK",
+						"content": map[string]interface{}{
+							"application/json": map[string]interface{}{
+								"schema": map[string]interface{}{"$ref": ref},
+							},
+						},
+					},
+				},
+			},
+		}
+		props := make(map[string]interface{}, 16)
+		for f := 0; f < 16; f++ {
+			props[fmt.Sprintf("field%d", f)] = map[string]interface{}{
+				"type":        "string",
+				"description": fmt.Sprintf("Standard configuration field %d for %s in group %s used by controllers and admission policies.", f, resName, group),
+			}
+		}
+		schemas[fmt.Sprintf("io.k8s.%s.%s", group, resName)] = map[string]interface{}{
+			"description": fmt.Sprintf("%s represents a declarative Kubernetes API resource in group %s.", resName, group),
+			"type":        "object",
+			"properties":  props,
+		}
+	}
+	raw, err := json.Marshal(map[string]interface{}{
+		"openapi": "3.0.0",
+		"info": map[string]interface{}{
+			"title":   "Kubernetes",
+			"version": "v1.32.0",
+		},
+		"paths": paths,
+		"components": map[string]interface{}{
+			"schemas": schemas,
+		},
+	})
+	if err != nil {
+		tb.Fatal(err)
+	}
+	var s spec3.OpenAPI
+	if err := json.Unmarshal(raw, &s); err != nil {
+		tb.Fatal(err)
+	}
+	return &s
+}
+
+func BenchmarkHandler3CachedSpecMemory(b *testing.B) {
+	groups := []struct {
+		name string
+		spec *spec3.OpenAPI
+	}{
+		{"api/v1", buildBenchmarkV3Spec(b, "core", 80)},
+		{"apis/apps/v1", buildBenchmarkV3Spec(b, "apps", 40)},
+		{"apis/admissionregistration.k8s.io/v1", buildBenchmarkV3Spec(b, "admissionregistration", 30)},
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	var cachedBytes, cachedCapBytes int
+	for i := 0; i < b.N; i++ {
+		o := NewOpenAPIService()
+		for _, g := range groups {
+			o.UpdateGroupVersion(g.name, g.spec)
+			if _, _, _, err := o.getSingleGroupBytes(subTypeJSON, g.name); err != nil {
+				b.Fatal(err)
+			}
+		}
+		if i == 0 {
+			for _, grp := range o.v3Schema {
+				ts, _, err := grp.jsonCache.Get()
+				if err != nil {
+					b.Fatal(err)
+				}
+				cachedBytes += len(ts.spec)
+				cachedCapBytes += cap(ts.spec)
+			}
+		}
+	}
+	b.ReportMetric(float64(cachedBytes), "cached-bytes")
+	b.ReportMetric(float64(cachedCapBytes), "cached-cap-bytes")
+}
+
+func BenchmarkServeGroupVersionGzip(b *testing.B) {
+	o := NewOpenAPIService()
+	o.UpdateGroupVersion("apis/apps/v1", buildBenchmarkV3Spec(b, "apps", 40))
+	req := httptest.NewRequest(http.MethodGet, "/openapi/v3/apis/apps/v1", nil)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Encoding", "gzip")
+
+	// Warm the cache before measuring per-request serving cost.
+	rec := httptest.NewRecorder()
+	o.HandleGroupVersion(rec, req)
+	if rec.Code != http.StatusOK {
+		b.Fatalf("unexpected status: %d", rec.Code)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w := httptest.NewRecorder()
+		o.HandleGroupVersion(w, req)
 	}
 }
