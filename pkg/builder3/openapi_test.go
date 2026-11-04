@@ -25,8 +25,10 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/spec3"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
@@ -114,7 +116,7 @@ func (_ TestInput) OpenAPIDefinition() openapi.OpenAPIDefinition {
 	schema.Extensions = spec.Extensions{"x-test": "test"}
 	def := openapi.EmbedOpenAPIDefinitionIntoV2Extension(openapi.OpenAPIDefinition{
 		Schema:       schema,
-		Dependencies: []string{},
+		Dependencies: []string{"k8s.io/kube-openapi/pkg/builder3.TestOutput"},
 	}, openapi.OpenAPIDefinition{
 		// this empty embedded v2 definition should not appear in the result
 	})
@@ -148,6 +150,118 @@ func (_ TestOutput) OpenAPIDefinition() openapi.OpenAPIDefinition {
 
 var _ openapi.OpenAPIDefinitionGetter = TestInput{}
 var _ openapi.OpenAPIDefinitionGetter = TestOutput{}
+
+// go-restful stores responses in a map and cannot declare the same status twice.
+type routeWithResponses struct {
+	*restfuladapter.RouteAdapter
+	responses []openapi.StatusCodeResponse
+}
+
+func (r routeWithResponses) StatusCodeResponses() []openapi.StatusCodeResponse { return r.responses }
+
+func newResponseRoute(responses []restful.ResponseError) routeWithResponses {
+	r := routeWithResponses{RouteAdapter: &restfuladapter.RouteAdapter{Route: &restful.Route{
+		Produces:    []string{restful.MIME_JSON, "application/yaml"},
+		WriteSample: true,
+	}}}
+	for i := range responses {
+		r.responses = append(r.responses, &restfuladapter.ResponseErrorAdapter{Err: &responses[i]})
+	}
+	return r
+}
+
+func TestResponseAlternatives(t *testing.T) {
+	config, _ := getConfig(false)
+	o := newOpenAPI(config)
+	route := newResponseRoute([]restful.ResponseError{
+		{Code: 200, Model: (*TestInput)(nil)},
+		{Code: 202, Model: int(0)},
+		{Code: 200, Model: int32(0)},
+		{Code: 200, Model: int64(0)},
+		{Code: 202, Model: int32(0)},
+		{Code: 200, Model: TestInput{}},
+		{Code: 200, Message: "last"},
+	})
+	op, err := o.buildOperations(route, nil)
+	require.NoError(t, err)
+	responses := op.Responses.StatusCodeResponses
+	require.Len(t, responses, 2)
+	assert.Equal(t, "last", responses[200].Description)
+	want := &spec.Schema{SchemaProps: spec.SchemaProps{AnyOf: []spec.Schema{
+		*spec.RefSchema("#/components/schemas/builder3.TestInput"), *spec.Int32Property(), *spec.Int64Property(),
+	}}}
+	for _, mime := range route.Produces() {
+		assert.Equal(t, want, responses[200].Content[mime].Schema)
+		assert.Equal(t, spec.Int32Property(), responses[202].Content[mime].Schema)
+	}
+	assert.Contains(t, o.spec.Components.Schemas, "builder3.TestInput")
+	assert.Contains(t, o.spec.Components.Schemas, "builder3.TestOutput")
+}
+
+func TestWriteSampleFallback(t *testing.T) {
+	config, _ := getConfig(false)
+	o := newOpenAPI(config)
+	responses := func(route routeWithResponses) map[int]*spec3.Response {
+		t.Helper()
+		op, err := o.buildOperations(route, nil)
+		require.NoError(t, err)
+		return op.Responses.StatusCodeResponses
+	}
+
+	route := newResponseRoute(nil)
+	assert.Equal(t, spec.BoolProperty(), responses(route)[200].Content[restful.MIME_JSON].Schema)
+	route.Route.WriteSample = nil
+	assert.Empty(t, responses(route))
+
+	bodyless := responses(newResponseRoute([]restful.ResponseError{{Code: 204}}))
+	require.Len(t, bodyless, 1)
+	require.NotNil(t, bodyless[204])
+	assert.Empty(t, bodyless[204].Content)
+}
+
+type responseModelName string
+
+func (m responseModelName) OpenAPIModelName() string { return string(m) }
+
+func TestResponseModelOrder(t *testing.T) {
+	// The default component names omit the package path. The first declaration
+	// of each name supplies its definition, even across different status codes.
+	const (
+		resource1 responseModelName = "first/v1.Resource"
+		status1   responseModelName = "first/v1.Status"
+		resource2 responseModelName = "second/v1.Resource"
+		status2   responseModelName = "second/v1.Status"
+	)
+	definitions := map[string]openapi.OpenAPIDefinition{}
+	for _, name := range []responseModelName{resource1, status1, resource2, status2} {
+		definitions[string(name)] = openapi.OpenAPIDefinition{Schema: *new(spec.Schema).WithDescription(string(name))}
+	}
+	o := newOpenAPI(&openapi.OpenAPIV3Config{Definitions: definitions})
+	op, err := o.buildOperations(newResponseRoute([]restful.ResponseError{
+		{Code: 200, Model: resource1},
+		{Code: 202, Model: status1},
+		{Code: 202, Model: resource2},
+		{Code: 200, Model: status2},
+		{Code: 200, Model: resource2},
+	}), nil)
+	require.NoError(t, err)
+	assert.Equal(t, string(resource1), o.spec.Components.Schemas["v1.Resource"].Description)
+	assert.Equal(t, string(status1), o.spec.Components.Schemas["v1.Status"].Description)
+	assert.Equal(t, []spec.Schema{
+		*spec.RefSchema("#/components/schemas/v1.Resource"), *spec.RefSchema("#/components/schemas/v1.Status"),
+	}, op.Responses.StatusCodeResponses[200].Content[restful.MIME_JSON].Schema.AnyOf)
+}
+
+func TestUndefinedResponseAlternative(t *testing.T) {
+	config, _ := getConfig(false)
+	o := newOpenAPI(config)
+	_, err := o.buildOperations(newResponseRoute([]restful.ResponseError{
+		{Code: 200, Model: ""},
+		{Code: 200, Model: TestRecursiveType{}},
+		{Code: 200, Model: true},
+	}), nil)
+	require.ErrorContains(t, err, "cannot find model definition for k8s.io/kube-openapi/pkg/builder3.TestRecursiveType")
+}
 
 func getTestRoute(ws *restful.WebService, method string, opPrefix string) *restful.RouteBuilder {
 	ret := ws.Method(method).
