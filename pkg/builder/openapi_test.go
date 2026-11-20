@@ -27,6 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	openapi "k8s.io/kube-openapi/pkg/common"
+	"k8s.io/kube-openapi/pkg/common/restfuladapter"
 	"k8s.io/kube-openapi/pkg/util/jsontesting"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -650,6 +651,54 @@ func TestEscapeJsonPointerInDefinitionName(t *testing.T) {
 				_, exists = definitions.Definitions[tc.shouldNotExist]
 				assert.False(exists, "Definition should not exist with unescaped name: %s", tc.shouldNotExist)
 			}
+		})
+	}
+}
+
+func TestBuildParameterAllowMultiple(t *testing.T) {
+	tests := []struct {
+		name          string
+		dataType      string
+		allowMultiple bool
+		want          string
+	}{
+		{
+			name:     "scalar",
+			dataType: "string",
+			want:     `{"name":"p","in":"query","type":"string","uniqueItems":true}`,
+		},
+		{
+			name:     "scalar []byte",
+			dataType: "[]byte",
+			want:     `{"name":"p","in":"query","type":"string","format":"byte","uniqueItems":true}`,
+		},
+		{
+			name:          "multiple strings",
+			dataType:      "string",
+			allowMultiple: true,
+			want:          `{"name":"p","in":"query","type":"array","items":{"type":"string"},"collectionFormat":"multi"}`,
+		},
+		{
+			name:          "multiple integers",
+			dataType:      "int32",
+			allowMultiple: true,
+			want:          `{"name":"p","in":"query","type":"array","items":{"type":"integer","format":"int32"},"collectionFormat":"multi"}`,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			param := &restfuladapter.ParamAdapter{
+				Param: restful.QueryParameter("p", "").DataType(tc.dataType).AllowMultiple(tc.allowMultiple),
+			}
+			got, err := (&openAPI{}).buildParameter(param, nil)
+			if err != nil {
+				t.Fatalf("buildParameter: %v", err)
+			}
+			gotJSON, err := json.Marshal(got)
+			if err != nil {
+				t.Fatalf("marshal: %v", err)
+			}
+			assert.JSONEq(t, tc.want, string(gotJSON))
 		})
 	}
 }

@@ -412,6 +412,20 @@ func (o *openAPI) buildParameter(restParam common.Parameter) (ret *spec3.Paramet
 		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
 	}
 
+	if restParam.AllowMultiple() {
+		// DataType is the element type. Style and Explode are left unset because
+		// the query defaults (form, explode=true) already mean repeated keys.
+		ret.Schema = &spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"array"},
+				Items: &spec.SchemaOrArray{Schema: &spec.Schema{
+					SchemaProps: spec.SchemaProps{Type: []string{openAPIType}, Format: openAPIFormat},
+				}},
+			},
+		}
+		return ret, nil
+	}
+
 	ret.Schema = &spec.Schema{
 		SchemaProps: spec.SchemaProps{
 			Type:        []string{openAPIType},
