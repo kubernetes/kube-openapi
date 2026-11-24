@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	restful "github.com/emicklei/go-restful/v3"
@@ -50,27 +51,42 @@ func groupRoutesByPath(routes []common.Route) map[string][]common.Route {
 	return pathToRoutes
 }
 
-func (o *openAPI) buildResponse(model interface{}, description string, content []string) (*spec3.Response, error) {
+type responseModels struct {
+	description string
+	schemas     []resolvedSchema
+}
+
+func (r responseModels) build(content []string) *spec3.Response {
 	response := &spec3.Response{
 		ResponseProps: spec3.ResponseProps{
-			Description: description,
+			Description: r.description,
 			Content:     make(map[string]*spec3.MediaType),
 		},
 	}
 
-	s, err := o.toSchema(util.GetCanonicalTypeName(model))
-	if err != nil {
-		return nil, err
+	var schema *spec.Schema
+	switch len(r.schemas) {
+	case 0:
+		return response
+	case 1:
+		schema = r.schemas[0].schema()
+	default:
+		// Alternative response models can overlap, so oneOf is too restrictive.
+		anyOf := make([]spec.Schema, len(r.schemas))
+		for i, model := range r.schemas {
+			anyOf[i] = *model.schema()
+		}
+		schema = &spec.Schema{SchemaProps: spec.SchemaProps{AnyOf: anyOf}}
 	}
 
 	for _, contentType := range content {
 		response.ResponseProps.Content[contentType] = &spec3.MediaType{
 			MediaTypeProps: spec3.MediaTypeProps{
-				Schema: s,
+				Schema: schema,
 			},
 		}
 	}
-	return response, nil
+	return response
 }
 
 func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[interface{}]*spec3.Parameter) (*spec3.Operation, error) {
@@ -98,20 +114,36 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 		return ret, err
 	}
 
-	// Build responses
+	// Resolve models in declaration order: resolving a reference also registers its component.
+	responsesByCode := map[int]responseModels{}
 	for _, resp := range route.StatusCodeResponses() {
-		ret.Responses.StatusCodeResponses[resp.Code()], err = o.buildResponse(resp.Model(), resp.Message(), route.Produces())
-		if err != nil {
-			return ret, err
+		code := resp.Code()
+		response := responsesByCode[code]
+		response.description = resp.Message()
+		// A nil sample describes a response without a body, not a JSON null.
+		if model := resp.Model(); model != nil {
+			schema, err := o.resolveSchema(util.GetCanonicalTypeName(model))
+			if err != nil {
+				return ret, err
+			}
+			if !slices.Contains(response.schemas, schema) {
+				response.schemas = append(response.schemas, schema)
+			}
 		}
+		responsesByCode[code] = response
 	}
 
-	// If there is no response but a write sample, assume that write sample is an http.StatusOK response.
-	if len(ret.Responses.StatusCodeResponses) == 0 && route.ResponsePayloadSample() != nil {
-		ret.Responses.StatusCodeResponses[http.StatusOK], err = o.buildResponse(route.ResponsePayloadSample(), "OK", route.Produces())
-		if err != nil {
-			return ret, err
+	if len(responsesByCode) == 0 {
+		if model := route.ResponsePayloadSample(); model != nil {
+			schema, err := o.resolveSchema(util.GetCanonicalTypeName(model))
+			if err != nil {
+				return ret, err
+			}
+			responsesByCode[http.StatusOK] = responseModels{description: "OK", schemas: []resolvedSchema{schema}}
 		}
+	}
+	for code, response := range responsesByCode {
+		ret.Responses.StatusCodeResponses[code] = response.build(route.Produces())
 	}
 
 	for code, resp := range o.config.CommonResponses {
@@ -150,10 +182,11 @@ func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[
 func (o *openAPI) buildRequestBody(parameters []common.Parameter, consumes []string, bodySample interface{}) (*spec3.RequestBody, error) {
 	for _, param := range parameters {
 		if param.Kind() == common.BodyParameterKind && bodySample != nil {
-			schema, err := o.toSchema(util.GetCanonicalTypeName(bodySample))
+			model, err := o.resolveSchema(util.GetCanonicalTypeName(bodySample))
 			if err != nil {
 				return nil, err
 			}
+			schema := model.schema()
 			r := &spec3.RequestBody{
 				RequestBodyProps: spec3.RequestBodyProps{
 					Content:     map[string]*spec3.MediaType{},
@@ -328,11 +361,8 @@ func BuildOpenAPISpecFromRoutes(webServices []common.RouteContainer, config *com
 // passed type names.
 func BuildOpenAPIDefinitionsForResources(config *common.OpenAPIV3Config, names ...string) (map[string]*spec.Schema, error) {
 	o := newOpenAPI(config)
-	// We can discard the return value of toSchema because all we care about is the side effect of calling it.
-	// All the models created for this resource get added to o.swagger.Definitions
 	for _, name := range names {
-		_, err := o.toSchema(name)
-		if err != nil {
+		if _, err := o.resolveSchema(name); err != nil {
 			return nil, err
 		}
 	}
@@ -465,23 +495,23 @@ func (o *openAPI) buildDefinitionForType(name string) (string, error) {
 	return "#/components/schemas/" + common.EscapeJsonPointer(defName), nil
 }
 
-func (o *openAPI) toSchema(name string) (_ *spec.Schema, err error) {
-	if openAPIType, openAPIFormat := common.OpenAPITypeFormat(name); openAPIType != "" {
-		return &spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type:   []string{openAPIType},
-				Format: openAPIFormat,
-			},
-		}, nil
-	} else {
-		ref, err := o.buildDefinitionForType(name)
-		if err != nil {
-			return nil, err
-		}
-		return &spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Ref: spec.MustCreateRef(ref),
-			},
-		}, nil
+// A model resolves to either a component reference or a primitive type and format.
+type resolvedSchema struct {
+	ref         string
+	typ, format string
+}
+
+func (o *openAPI) resolveSchema(name string) (resolvedSchema, error) {
+	if typ, format := common.OpenAPITypeFormat(name); typ != "" {
+		return resolvedSchema{typ: typ, format: format}, nil
 	}
+	ref, err := o.buildDefinitionForType(name)
+	return resolvedSchema{ref: ref}, err
+}
+
+func (s resolvedSchema) schema() *spec.Schema {
+	if s.ref != "" {
+		return spec.RefSchema(s.ref)
+	}
+	return new(spec.Schema).Typed(s.typ, s.format)
 }
