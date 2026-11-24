@@ -439,6 +439,14 @@ func (o *openAPI) buildParameter(restParam common.Parameter, bodySample interfac
 	if openAPIType == "" {
 		return ret, fmt.Errorf("non-body Restful parameter type should be a simple type, but got : %v", restParam.DataType())
 	}
+	if restParam.AllowMultiple() {
+		// DataType is the element type. "multi" means repeated keys (?a=x&a=y);
+		// without it, v2 defaults to "csv".
+		ret.Type = "array"
+		ret.Items = &spec.Items{SimpleSchema: spec.SimpleSchema{Type: openAPIType, Format: openAPIFormat}}
+		ret.CollectionFormat = "multi"
+		return ret, nil
+	}
 	ret.Type = openAPIType
 	ret.Format = openAPIFormat
 	ret.UniqueItems = !restParam.AllowMultiple()
