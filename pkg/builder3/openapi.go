@@ -73,7 +73,7 @@ func (o *openAPI) buildResponse(model interface{}, description string, content [
 	return response, nil
 }
 
-func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[interface{}]*spec3.Parameter) (*spec3.Operation, error) {
+func (o *openAPI) buildOperations(route common.Route, inPathCommonParamsMap map[paramKey]*spec3.Parameter) (*spec3.Operation, error) {
 	ret := &spec3.Operation{
 		OperationProps: spec3.OperationProps{
 			Description: route.Description(),
@@ -338,19 +338,21 @@ func BuildOpenAPIDefinitionsForResources(config *common.OpenAPIV3Config, names .
 	}
 	return o.spec.Components.Schemas, nil
 }
-func (o *openAPI) findCommonParameters(routes []common.Route) (map[interface{}]*spec3.Parameter, error) {
-	commonParamsMap := make(map[interface{}]*spec3.Parameter, 0)
-	paramOpsCountByName := make(map[interface{}]int, 0)
-	paramNameKindToDataMap := make(map[interface{}]common.Parameter, 0)
+func (o *openAPI) findCommonParameters(routes []common.Route) (map[paramKey]*spec3.Parameter, error) {
+	commonParamsMap := make(map[paramKey]*spec3.Parameter, 0)
+	paramOpsCountByName := make(map[paramKey]int, 0)
+	paramNameKindToDataMap := make(map[paramKey]common.Parameter, 0)
 	for _, route := range routes {
-		routeParamDuplicateMap := make(map[interface{}]bool)
-		s := ""
+		routeParamDuplicateMap := make(map[paramKey]bool)
 		params := route.Parameters()
-		for _, param := range params {
-			m, _ := json.Marshal(param)
-			s += string(m) + "\n"
+		for i, param := range params {
 			key := mapKeyFromParam(param)
 			if routeParamDuplicateMap[key] {
+				s := ""
+				for _, p := range params[:i+1] {
+					m, _ := json.Marshal(p)
+					s += string(m) + "\n"
+				}
 				msg, _ := json.Marshal(params)
 				return commonParamsMap, fmt.Errorf("duplicate parameter %v for route %v, %v", param.Name(), string(msg), s)
 			}

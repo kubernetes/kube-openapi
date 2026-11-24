@@ -653,3 +653,29 @@ func TestEscapeJsonPointerInDefinitionName(t *testing.T) {
 		})
 	}
 }
+
+func TestDuplicateParameterError(t *testing.T) {
+	config, container, assert := setUp(t, false)
+	ws := container.RegisteredWebServices()[0]
+	ws.Route(ws.GET("/dup").
+		Operation("getDup").
+		Param(ws.QueryParameter("dupParam", "first")).
+		Param(ws.QueryParameter("dupParam", "second")).
+		To(noOp))
+	_, err := BuildOpenAPISpec(container.RegisteredWebServices(), config)
+	assert.Error(err)
+	assert.Contains(err.Error(), "duplicate parameter dupParam for route")
+}
+
+func BenchmarkBuildOpenAPISpec(b *testing.B) {
+	config, container := getConfig(true)
+	webServices := container.RegisteredWebServices()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := BuildOpenAPISpec(webServices, config)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
