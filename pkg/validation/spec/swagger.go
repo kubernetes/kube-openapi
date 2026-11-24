@@ -247,6 +247,13 @@ func (s StringOrArray) MarshalJSON() ([]byte, error) {
 	return json.Marshal([]string(s))
 }
 
+func (s StringOrArray) MarshalJSONTo(enc *jsontext.Encoder) error {
+	if len(s) == 1 {
+		return enc.WriteToken(jsontext.String(s[0]))
+	}
+	return jsonv2.MarshalEncode(enc, []string(s))
+}
+
 // SchemaOrArray represents a value that can either be a Schema
 // or an array of Schema. Mainly here for serialization purposes
 type SchemaOrArray struct {
